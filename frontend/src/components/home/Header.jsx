@@ -19,7 +19,6 @@ function Header() {
                 <button className="text-base text-black bg-white py-2 px-6 border-2 border-black rounded-lg transition duration-300 ease-in-out transform hover:bg-black hover:text-white hover:border-white hover:shadow-lg">
                     {accept}
                 </button>
-
                     
                     <div className="flex items-center space-x-6">
                         <img src={headerBasket} className="h-10 w-10 cursor-pointer" alt="Basket" />
