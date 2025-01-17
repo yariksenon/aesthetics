@@ -1,16 +1,16 @@
 import React from 'react';
-import Nav from './Nav';
+import AsideBanner from './AsideBanner';
 import Header from './Header';
-import Test from './Test';
 import Section from './Section';
+import Main from './Main'
 
 function Home(){
     return (
         <>
-            <Nav />
+            <AsideBanner />
             <Header />
             <Section />
-            <Test />
+            <Main />
         </>
     )
 }
