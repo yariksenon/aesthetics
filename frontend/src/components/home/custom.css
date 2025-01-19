@@ -17,3 +17,7 @@
 .custom-underline:hover::after {
     transform: scaleX(1);
 }
+
+.font-bebas-neue {
+    font-family: 'Bebas Neue', sans-serif;
+}
