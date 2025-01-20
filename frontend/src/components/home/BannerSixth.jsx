@@ -7,7 +7,7 @@ import './custom.css';
 function BannerSixth() {
     return (
         <>
-            <div className="flex mt-[3%] gap-x-2 justify-between">
+            <div className="flex mt-[5%] gap-x-2 justify-between">
                 <div className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105">
                     <img src={BannerSixthWinter} alt="WINTER" />
                     <span className="bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:from-gray-400 hover:to-white">WINTER</span>
