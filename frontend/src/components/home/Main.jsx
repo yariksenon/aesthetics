@@ -1,5 +1,5 @@
 import BannerFirst from "./BannerFirst";
-import ProductCarts from './ProductCarts';
+import ProductCarts from './ProductCards';
 import BannerThird from "./BannerThird";
 import SportActivities from './SportsActivities';
 import BannerFifth from "./BannerFifth";

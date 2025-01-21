@@ -5,25 +5,58 @@ import BannerSixthAutumn from "../../assets/home/BannerSixth-autumn.svg";
 import './custom.css';
 
 function BannerSixth() {
-    return (
-        <>
-            <div className="flex mt-[5%] gap-x-2 justify-between">
-                <div className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105">
-                    <img src={BannerSixthWinter} alt="WINTER" />
-                    <span className="bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:from-gray-400 hover:to-white">WINTER</span>
-                </div>
-                <div className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105">
-                    <img src={BannerSixthSummer} alt="SUMMER" />
-                    <span className="bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:from-green-400 hover:to-white">SUMMER</span> </div>
-                <div className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105">
-                    <img src={BannerSixthSpring} alt="SPRING" />
-                    <span className="bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:from-pink-400 hover:to-white">SPRING</span> </div>
-                <div className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105">
-                    <img src={BannerSixthAutumn} alt="AUTUMN" />
-                    <span className="bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:from-orange-400 hover:to-white">AUTUMN</span> </div>
-            </div>
-        </>
-    );
+  // Массив данных для каждого сезона
+  const seasons = [
+    {
+      image: BannerSixthWinter,
+      alt: "WINTER",
+      text: "WINTER",
+      hoverFrom: "from-gray-400",
+      hoverTo: "to-white",
+    },
+    {
+      image: BannerSixthSummer,
+      alt: "SUMMER",
+      text: "SUMMER",
+      hoverFrom: "from-green-400",
+      hoverTo: "to-white",
+    },
+    {
+      image: BannerSixthSpring,
+      alt: "SPRING",
+      text: "SPRING",
+      hoverFrom: "from-pink-400",
+      hoverTo: "to-white",
+    },
+    {
+      image: BannerSixthAutumn,
+      alt: "AUTUMN",
+      text: "AUTUMN",
+      hoverFrom: "from-orange-400",
+      hoverTo: "to-white",
+    },
+  ];
+
+  return (
+    <div className="flex mt-[10%] gap-x-2 justify-between">
+      {seasons.map((season, index) => (
+        <div
+          key={index}
+          className="relative w-1/4 h-auto transform transition duration-500 hover:scale-105"
+        >
+          {/* Изображение */}
+          <img src={season.image} alt={season.alt} />
+
+          {/* Текст с градиентом */}
+          <span
+            className={`bg-gradient-to-b from-white from-40% to-black to-100% bg-clip-text text-transparent font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500 hover:bg-gradient-to-t hover:${season.hoverFrom} hover:${season.hoverTo}`}
+          >
+            {season.text}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default BannerSixth;
