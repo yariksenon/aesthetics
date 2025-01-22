@@ -3,7 +3,7 @@ import ProductCarts from './ProductCards';
 import BannerThird from "./BannerThird";
 import SportActivities from './SportsActivities';
 import BannerFifth from "./BannerFifth";
-import BannerSixth from "./BannerSixth";
+import BannerSeasons from "./BannerSeasons";
 import Email from './Email';
 
 function Main(){
@@ -15,7 +15,7 @@ function Main(){
                 <BannerThird />
                 <SportActivities />
                 <BannerFifth />
-                <BannerSixth />
+                <BannerSeasons />
                 <Email />
             </main>
         </>

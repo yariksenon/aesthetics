@@ -1,40 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function Email() {
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
+  const [email, setEmail] = useState("");
 
+  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:8080/api/subscribe', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
+      console.log("Отправляемый email:", email); // Логируем email
+
+      // Отправляем POST-запрос на сервер
+      const response = await axios.post("http://localhost:8080/api/subscribe", {
+        email,
       });
 
-      if (response.ok) {
-        setMessage('Спасибо за подписку!');
+      // Проверяем успешность ответа
+      if (response.status === 200) {
+        console.log("Сервер ответил успешно");
+        // Показываем уведомление об успешной подписке
+        toast.success("Вы успешно подписались!", {
+          position: "top-right",
+          autoClose: 3000, // Уведомление закроется через 3 секунды
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
       } else {
-        setMessage('Ошибка при отправке формы.');
+        console.error("Ошибка при отправке данных на сервер");
       }
     } catch (error) {
-      setMessage('Ошибка при отправке формы.');
+      console.error("Ошибка при отправке запроса:", error);
+      // Показываем уведомление об ошибке
+      toast.error("Ошибка при отправке запроса", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
     }
   };
 
   return (
-    <>
-      <div className="flex bg-black p-4 items-center space-x-0 lg:space-x-4 justify-between mt-[3%]">
-        <h2 className="text-white text-xs sm:text-lg md:text-xl lg:text-2xl xl:text-2xl">
+    <div className="bg-black py-4 px-4 mt-[5%]">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+        {/* Заголовок */}
+        <h2 className="text-white text-center sm:text-left text-sm sm:text-base md:text-lg lg:text-xl font-medium">
           Будьте в курсе наших последних предложений.
         </h2>
 
-        <form onSubmit={handleSubmit} className="flex items-center space-x-4 w-full justify-between">
-          <label htmlFor="email" className="sr-only">Email</label>
+        {/* Форма для подписки */}
+        <form
+          onSubmit={handleSubmit}
+          className="w-full md:max-w-fit flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-3"
+        >
+          {/* Поле ввода email */}
+          <label htmlFor="email" className="sr-only">
+            Email
+          </label>
           <input
             type="email"
             id="email"
@@ -42,19 +73,74 @@ function Email() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="bg-transparent border-b border-white text-white outline-none placeholder-gray-400 w-full sm:w-1/2 lg:w-1/2 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl transition duration-300 ease-in-out focus:border-red-500 hover:border-gray-500"
-            placeholder="Email"
+            className="
+              w-full 
+              md:w-48 
+              lg:w-56 
+              bg-transparent 
+              border-b 
+              border-white 
+              text-white 
+              placeholder-gray-400 
+              outline-none 
+              focus:border-red-500 
+              transition 
+              duration-300 
+              ease-in-out 
+              py-1 
+              px-2 
+              text-sm 
+              sm:text-base 
+              md:text-base 
+              lg:text-base
+            "
+            placeholder="Введите ваш email"
           />
+
+          {/* Кнопка отправки */}
           <button
             type="submit"
-            className="bg-transparent border text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl border-gray-400 text-white px-1 py-1 hover:bg-white hover:text-black w-full sm:w-auto sm:px-4 lg:px-6 transition duration-300 ease-in-out transform hover:scale-105"
+            className="
+              w-full 
+              md:w-auto 
+              bg-white 
+              text-black 
+              font-medium 
+              py-1 
+              px-4 
+              rounded-md 
+              hover:bg-gray-100 
+              focus:outline-none 
+              focus:ring-2 
+              focus:ring-offset-2 
+              focus:ring-white 
+              transition 
+              duration-300 
+              ease-in-out 
+              transform 
+              hover:scale-105 
+              text-sm 
+              sm:text-base
+            "
           >
             Подписаться
           </button>
         </form>
       </div>
-      {message && <p className="text-center mt-4 text-white">{message}</p>}
-    </>
+
+      {/* Контейнер для уведомлений */}
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </div>
   );
 }
 
