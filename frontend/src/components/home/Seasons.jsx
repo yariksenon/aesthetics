@@ -60,7 +60,9 @@ function BannerSixth() {
               e.target.style.color = "transparent"; // Возвращаем градиент при уходе курсора
             }}
           >
-            {season.text}
+            <a href="">
+              {season.text}
+            </a>
           </span>
         </div>
       ))}

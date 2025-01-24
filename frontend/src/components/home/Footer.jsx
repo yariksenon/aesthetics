@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import footerLogo from '../../assets/home/Footer-logo.svg';
 import './custom.css';
 import { motion } from 'framer-motion'; // Импортируем framer-motion
-
+import footerDuaration from '../../assets/home/Footer.svg'
 function Footer() {
   const year = new Date().getFullYear();
   const [activeReview, setActiveReview] = useState(0);
@@ -33,27 +33,31 @@ function Footer() {
 
   return (
     <>
-      <footer className="color-balck mt-[5%] bg-black font-bebas-neue text-white text-center">
+    <div className='mt-[3%]'>
+      <img src={footerDuaration} alt="" className='w-full' />
+    </div>
+    <hr />
+      <footer className=" bg-black font-bebas-neue text-white text-center">
         <div className='relative mx-[15%]'>
-          <div className='flex flex-wrap'>
+          <div className='flex flex-wrap gap-y-4'>
             {/* Блок Telegram */}
-            <div className='w-full md:w-[20%] border-b-2 md:border-r-2 p-4 mb-4 md:mb-0'>
-              <p className='text-sky-500 text-lg md:text-xl lg:text-2xl'>Telegram</p>
-              <a href='#' className='text-sky-200 text-base md:text-lg lg:text-xl'>Aesthetics_Market</a> <br />
+            <div className='w-full md:w-[20%]  py-[2%]'>
+              <p className='text-lg md:text-xl lg:text-2xl'>Telegram</p>
+              <a href='#' className='text-sky-500 text-base md:text-lg lg:text-xl'>Aesthetics_Market</a> <br />
               <a href='#' className='text-sky-300 text-base md:text-lg lg:text-xl'>Aesthetics_Market/bot</a>
             </div>
 
             {/* Блок Instagram */}
-            <div className='w-full md:w-[20%] border-b-2 md:border-r-2 p-4 mb-4 md:mb-0'>
-              <p className='text-pink-700 text-lg md:text-xl lg:text-2xl'>Instagram</p>
-              <a href='#' className='text-pink-500 text-base md:text-lg lg:text-xl'>Aesthetics_Market</a>
+            <div className='w-full md:w-[20%]  md:border-r-2 py-[2%]'>
+              <p className='text-lg md:text-xl lg:text-2xl'>Instagram</p>
+              <a href='#' className='text-pink-700 text-base md:text-lg lg:text-xl'>Aesthetics_Market</a>
             </div>
 
             {/* Блок с отзывами */}
-            <div className='w-full md:w-[20%] border-b-2 p-4 mb-4 md:mb-0 flex items-center justify-center overflow-hidden'>
+            <div className='w-full md:w-[20%]   flex items-center justify-center overflow-hidden'>
               <motion.div
                 className="text-center w-full h-full flex items-center justify-center"
-                style={{ position: 'relative', height: '100px' }}
+                style={{ position: 'relative', height: '50px' }}
               >
                 {/* Анимированные отзывы */}
                 {reviews.map((review, index) => (
@@ -64,7 +68,7 @@ function Footer() {
                     animate={{ x: activeReview === index ? '0%' : '100%', opacity: activeReview === index ? 1 : 0 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <p className='text-purple-300 text-xl md:text-2xl lg:text-3xl  px-4 text-center'>
+                    <p className='text-white text-xl md:text-2xl lg:text-3xl  px-4 text-center'>
                       {review}
                     </p>
                   </motion.div>
@@ -73,18 +77,19 @@ function Footer() {
             </div>
 
             {/* Блок Twitter */}
-            <div className='w-full md:w-[20%] border-b-2 md:border-l-2 p-4 mb-4 md:mb-0'>
+            <div className='w-full md:w-[20%] py-[2%]  md:border-l-2'>
               <p className='text-lg md:text-xl lg:text-2xl'>Twitter</p>
               <a href="" className='text-gray-300 text-base md:text-lg lg:text-xl'>Some text</a>
             </div>
 
             {/* Блок About */}
-            <div className='w-full md:w-[20%] border-b-2 md:border-l-2 p-4 mb-4 md:mb-0'>
-              <p className='text-red-500 text-lg md:text-xl lg:text-2xl'>About</p>
-              <a href="" className='text-red-200 text-base md:text-lg lg:text-xl'>Some text</a> <br />
+            <div className='w-full md:w-[20%] py-[2%]'>
+              <p className='text-lg md:text-xl lg:text-2xl'>About</p>
+              <a href="" className='text-red-500 text-base md:text-lg lg:text-xl'>Some text</a> <br />
               <a href="" className='text-red-300 text-base md:text-lg lg:text-xl'>Some text</a>
             </div>
           </div>
+          <hr />
 
           {/* Логотип и копирайт */}
           <div className='flex justify-center'>
