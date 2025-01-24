@@ -12,7 +12,7 @@ function BannerFifth() {
 
   return (
     <div className="grid grid-cols-3 gap-4 mt-[5%]">
-      <div className="grid grid-rows-2 gap-12 col-span-1">
+      <div className="grid grid-rows-2 gap-10 lg:gap-12 col-span-1 h-[25vh] md:h-[40vh] lg:h-[50vh] xl:h-full">
         {[BannerFifthGym, BannerFifthDayving].map((banner, index) => (
           <div key={index} className="group">
             <img 
@@ -38,7 +38,7 @@ function BannerFifth() {
         ))}
       </div>
 
-      <div className="col-span-2 relative h-full group p-0 m-0 w-full">
+      <div className="col-span-2 relative h-[25vh] md:h-[40vh] lg:h-[50vh] xl:h-full group p-0 m-0 w-full">
         <img 
           src={brandBanner} 
           alt="Brands Banner" 

@@ -6,25 +6,18 @@ import "react-toastify/dist/ReactToastify.css";
 function Email() {
   const [email, setEmail] = useState("");
 
-  // Обработчик отправки формы
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      console.log("Отправляемый email:", email); // Логируем email
-
-      // Отправляем POST-запрос на сервер
       const response = await axios.post("http://localhost:8080/api/subscribe", {
         email,
       });
 
-      // Проверяем успешность ответа
       if (response.status === 200) {
-        console.log("Сервер ответил успешно");
-        // Показываем уведомление об успешной подписке
         toast.success("Вы успешно подписались!", {
           position: "top-right",
-          autoClose: 3000, // Уведомление закроется через 3 секунды
+          autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
           pauseOnHover: true,
@@ -36,7 +29,6 @@ function Email() {
       }
     } catch (error) {
       console.error("Ошибка при отправке запроса:", error);
-      // Показываем уведомление об ошибке
       toast.error("Ошибка при отправке запроса", {
         position: "top-right",
         autoClose: 3000,
@@ -50,19 +42,16 @@ function Email() {
   };
 
   return (
-    <div className="bg-black py-4 px-4 mt-[5%]">
+    <div className="bg-black py-[3%] h-full px-4 mt-[2%]">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 sm:space-x-4">
-        {/* Заголовок */}
         <h2 className="text-white text-center sm:text-left text-sm sm:text-base md:text-lg lg:text-xl font-medium">
           Будьте в курсе наших последних предложений.
         </h2>
 
-        {/* Форма для подписки */}
         <form
           onSubmit={handleSubmit}
           className="w-full md:max-w-fit flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-3"
         >
-          {/* Поле ввода email */}
           <label htmlFor="email" className="sr-only">
             Email
           </label>
@@ -97,7 +86,6 @@ function Email() {
             placeholder="Введите ваш email"
           />
 
-          {/* Кнопка отправки */}
           <button
             type="submit"
             className="
@@ -128,7 +116,6 @@ function Email() {
         </form>
       </div>
 
-      {/* Контейнер для уведомлений */}
       <ToastContainer
         position="bottom-right"
         autoClose={3000}

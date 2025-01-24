@@ -1,9 +1,12 @@
+import React, { useState } from 'react'; // Добавьте этот импорт
 import firstProduct from '../../assets/home/ProductCards/ProductCards-1.svg';
 import secondProduct from '../../assets/home/ProductCards/ProductCards-2.svg';
 import thirdProduct from '../../assets/home/ProductCards/ProductCards-3.svg';
 import fourthProduct from '../../assets/home/ProductCards/ProductCards-4.svg';
 import fifthProduct from '../../assets/home/ProductCards/ProductCards-5.svg';
 import sixthProduct from '../../assets/home/ProductCards/ProductCards-6.svg';
+import heart from '../../assets/home/ProductCards/ProductCard-Heart.svg'
+import feelHeart from '../../assets/home/ProductCards/ProductCard-FeelHeart.svg'
 
 const products = [
   {
@@ -76,6 +79,9 @@ const products = [
 
 
 function productCarts() {
+  const [hoveredProductId, setHoveredProductId] = useState(null);
+  const [hoveredHeartId, setHoveredHeartId] = useState(null);
+
   return (
     <>
       <div className="mt-[10%] lg:mt[8%] xl:mt-[5%]">
@@ -84,14 +90,16 @@ function productCarts() {
             <div
               key={product.id}
               className="relative group overflow-hidden hover:shadow-lg transition-shadow duration-300"
+              onMouseEnter={() => setHoveredProductId(product.id)}
+              onMouseLeave={() => setHoveredProductId(null)}
             >
               {/* Блок с изображением */}
               <div className='relative overflow-hidden'>
                 <img
-                  alt={product.imageAlt}
-                  src={product.imageSrc}
-                  className="w-full object-cover transition-transform duration-300 transform group-hover:scale-110"
-                />
+                    alt={product.imageAlt}
+                    src={product.imageSrc}
+                    className="w-full object-cover transition-transform duration-300 transform group-hover:scale-110"
+                  />
 
                 {/* Блок скидки */}
                 {product.discountPercentage && (
@@ -101,8 +109,26 @@ function productCarts() {
                 )}
 
                 {/* Затемнение при наведении */}
+                <a href="">
                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"></div>
+                </a>
+
+                 {/* Сердечко (появляется при наведении на карточку) */}
+                 {hoveredProductId === product.id && (
+                  <div
+                    className="absolute top-1 right-1 sm:top-2 sm:right-2 cursor-pointer"
+                    onMouseEnter={() => setHoveredHeartId(product.id)}
+                    onMouseLeave={() => setHoveredHeartId(null)}
+                  >
+                    <img
+                      src={hoveredHeartId === product.id ? feelHeart : heart}
+                      alt="heart"
+                      className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
+                    />
+                  </div>
+                )}
               </div>
+
 
               {/* Блок с ценой и названием */}
               <div className='flex justify-between mt-[3%] space-x-0'>

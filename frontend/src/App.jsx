@@ -2,9 +2,9 @@ import { useState } from 'react'
 import Home from './components/home/Home'
 import Cart from './components/cart/Cart'
 import './App.css'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 
-function App() {
+export default function App() {
   return (
     <>
       <Router> 
@@ -17,4 +17,3 @@ function App() {
   )
 }
 
-export default App
