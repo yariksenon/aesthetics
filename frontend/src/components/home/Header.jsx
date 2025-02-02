@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './custom.css';
 import headerLogo from "../../assets/home/header-logo.svg";
+import { Link } from 'react-router-dom';
 import headerBasket from "../../assets/home/header-basket.svg";
 import closeBunnton from "../../assets/home/Header-closeButton.svg";
 import closeBunntonWhite from "../../assets/home/Header-closeButtonWhite.svg";
@@ -64,13 +65,15 @@ function Header() {
 
                 <div className="flex items-center flex-grow">
                     <div className="hidden lg:flex md:space-x-5 lg:space-x-6">
-                        <a href="/mens" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Мужчинам</a>
-                        <a href="/women" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Женщинам</a>
-                        <a href="/new" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Новинки</a>
+                        <a href="/man" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Мужчинам</a>
+                        <a href="/woman" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Женщинам</a>
+                        <a href="/children" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Детям</a>
                     </div>
 
                     <div className='flex justify-center flex-grow'>
-                        <img src={headerLogo} alt="Logo" className="cursor-pointer h-6 md:h-10 w-auto" />
+                        <Link to="/">
+                            <img src={headerLogo} alt="Logo" className="cursor-pointer h-6 md:h-10 w-auto" />
+                        </Link>
                     </div>
                 </div>
 
@@ -87,7 +90,10 @@ function Header() {
                             className="h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer" 
                             alt="Basket" 
                         />
-                        <a href="/cart" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Корзина</a>
+                        <Link to="/cart" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">
+                        <p>Корзина</p>
+                        </Link>
+                        
                     </div>
                 </div>
 

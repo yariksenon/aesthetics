@@ -10,7 +10,7 @@ function Email() {
     e.preventDefault();
 
     try {
-      const response = await axios.post("http://localhost:8080/api/subscribe", {
+      const response = await axios.post("http://localhost:8080/api/v1/subscribe", {
         email,
       });
 
