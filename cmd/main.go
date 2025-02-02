@@ -18,7 +18,7 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Initialize database
+	// Connection to database
 	db, err := database.InitDB(
 		cfg.Database.User,
 		cfg.Database.Password,
@@ -31,6 +31,13 @@ func main() {
 	}
 	defer db.Close()
 
+	// Init tables on database
+	if err = database.InitSchema(db); err != nil {
+		log.Fatalf("Failed to initialize schema: %v", err)
+	}
+
+	// SMTP connect
+	
 	// Create Gin router
 	r := gin.Default()
 

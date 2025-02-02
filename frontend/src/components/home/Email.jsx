@@ -57,9 +57,8 @@ function Email() {
           </label>
           <input
             type="email"
-            id="email"
-            name="email"
-            required
+            id="subscribe"
+            name="subscribe"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="

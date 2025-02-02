@@ -3,4 +3,10 @@ database:
   password: "postgres"
   host: "localhost"
   port: "5432"
-  dbname: "mydatabase"
+  dbname: "aesthetics"
+
+smtp:
+  password: "djlp sdau zhil kutb"
+  from: "aesthetics.team.contacts@gmail.com"
+  host: "smtp.gmail.com"
+  port: "587"
