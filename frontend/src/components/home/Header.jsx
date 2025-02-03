@@ -3,37 +3,27 @@ import './custom.css';
 import headerLogo from "../../assets/home/header-logo.svg";
 import { Link } from 'react-router-dom';
 import headerBasket from "../../assets/home/header-basket.svg";
-import closeBunnton from "../../assets/home/Header-closeButton.svg";
-import closeBunntonWhite from "../../assets/home/Header-closeButtonWhite.svg";
-
-import { FaFacebook, FaGoogle, FaGithub } from 'react-icons/fa'; // Импорт иконок
-import RegisterForm from './RegisterForm'
-import LoginForm from './LoginForm'
+import closeButtonWhite from "../../assets/home/Header-closeButtonWhite.svg";
+import AuthModal from './AuthModal';
 
 function Header() {
-    const [isModalOpen, setIsModalOpen] = useState(false); // Состояние для модального окна
-    const [isMenuOpen, setIsMenuOpen] = useState(false); // Состояние для бургер-меню
-    const [isLogin, setIsLogin] = useState(true); // Состояние для переключения между формами
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isLogin, setIsLogin] = useState(true);
+    const [showSocials, setShowSocials] = useState(false);
+    const [activeMenuItem, setActiveMenuItem] = useState('woman'); // Default active menu item
 
     const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
-    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
-    const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) {
-            closeModal();
-        }
+    const closeModal = (e) => {
+        e.stopPropagation();
+        setIsModalOpen(false);
     };
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     const switchToRegister = () => setIsLogin(false);
     const switchToLogin = () => setIsLogin(true);
 
-    const [showSocials, setShowSocials] = useState(false); // Состояние для управления видимостью списка
-
-    // Функция для переключения видимости списка
-    const toggleSocials = () => {
-        setShowSocials(!showSocials);
-    };
+    const toggleSocials = () => setShowSocials(!showSocials);
 
     const menuItems = [
         { label: 'Женщинам', value: 'woman' },
@@ -47,13 +37,15 @@ function Header() {
         { label: 'Скидки', value: 'discounts' },
     ];
 
-
     const textStyles = {
         small: 'text-[10px] sm:text-xs md:text-sm lg:text-base',
     };
 
-    const MenuItem = ({ label, isActive }) => (
-        <li className={`${textStyles.small} ${isActive ? 'text-red-500' : ''} custom-underline cursor-pointer whitespace-nowrap`}>
+    const MenuItem = ({ label, value }) => (
+        <li
+            onClick={() => setActiveMenuItem(value)}
+            className={`${textStyles.small} ${activeMenuItem === value ? 'text-red-500' : ''} custom-underline cursor-pointer whitespace-nowrap`}
+        >
             {label}
         </li>
     );
@@ -61,7 +53,6 @@ function Header() {
     return (
         <>
             <header className="mx-[15%] mt-[1%] flex justify-between items-center">
-                {/* Бургер-меню */}
                 <div className="lg:hidden">
                     <button onClick={toggleMenu}>
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -72,9 +63,9 @@ function Header() {
 
                 <div className="flex items-center flex-grow">
                     <div className="hidden lg:flex md:space-x-5 lg:space-x-6">
-                        <a href="/man" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Мужчинам</a>
-                        <a href="/woman" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Женщинам</a>
-                        <a href="/children" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Детям</a>
+                        <Link to="/man" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Мужчинам</Link>
+                        <Link to="/woman" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Женщинам</Link>
+                        <Link to="/children" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Детям</Link>
                     </div>
 
                     <div className='flex justify-center flex-grow'>
@@ -100,88 +91,36 @@ function Header() {
                         <Link to="/cart" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">
                             <p>Корзина</p>
                         </Link>
-                        
                     </div>
                 </div>
 
                 {isModalOpen && (
-                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-70 z-50" onClick={handleOverlayClick}>
-                        <div className="bg-white p-6 shadow-lg w-full relative max-w-2xl">
-                            <div className='flex justify-center'>
-                                <a onClick={closeModal} className='cursor-pointer'>
-                                    <img src={headerLogo} alt="Logo" />
-                                </a>
-                            </div>
-
-                            
-                            <a>
-                                <img onClick={closeModal} src={closeBunnton} alt="Close menu" className='absolute right-4 top-4 cursor-pointer'/>
-                            </a>
-
-                            {isLogin ?  (
-                    <LoginForm
+                    <AuthModal
+                        isLogin={isLogin}
+                        closeModal={closeModal}
                         switchToRegister={switchToRegister}
-                        handleOverlayClick={handleOverlayClick}
-                        closeModal={closeModal}
-                        headerLogo="path_to_headerLogo"
-                        closeBunnton="path_to_closeBunnton"
-                    />
-                ) : (
-                    <RegisterForm
                         switchToLogin={switchToLogin}
-                        handleOverlayClick={handleOverlayClick}
-                        closeModal={closeModal}
-                        headerLogo="path_to_headerLogo"
-                        closeBunnton="path_to_closeBunnton"
+                        showSocials={showSocials}
+                        toggleSocials={toggleSocials}
                     />
-                )}
-
-            <p className="mt-4 text-sm text-center text-gray-600">
-                Войти через{' '}
-                <a
-                    onClick={toggleSocials}
-                    className="underline underline-offset-2 cursor-pointer hover:text-gray-800"
-                >
-                    соцсеть
-                </a>
-            </p>
-
-            {showSocials && (
-                <div className="mt-2 flex items-center w-full space-x-5">
-                    <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 flex items-center justify-center">
-                        <FaFacebook className="mr-2" />
-                    </button>
-                    <button className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 flex items-center justify-center">
-                        <FaGoogle className="mr-2" />
-                    </button>
-                    <button className="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-900 flex items-center justify-center">
-                        <FaGithub className="mr-2" />
-                    </button>
-                </div>
-            )}
-                        </div>
-                    </div>
                 )}
 
                 {isMenuOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-70 z-40 lg:hidden" onClick={toggleMenu}>
-                        {/* Блок меню */}
                         <div className="bg-white w-3/4 h-full p-6 relative">
-                            {/* Список меню */}
                             <ul className="space-y-4">
                                 {menuItems.map((item, index) => (
-                                    <MenuItem key={index} label={item.label} isActive={item.isActive} />
+                                    <MenuItem key={index} label={item.label} value={item.value} />
                                 ))}
                             </ul>
                         </div>
 
-                        {/* Кнопка закрытия (справа от блока) */}
                         <button
                             onClick={toggleMenu}
                             className="fixed right-[5%] sm:right-[10%] md:right-[15%] top-4 cursor-pointer z-50"
                         >
                             <img 
-                                src={closeBunntonWhite} 
+                                src={closeButtonWhite} 
                                 alt="Close menu" 
                                 className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" 
                             />

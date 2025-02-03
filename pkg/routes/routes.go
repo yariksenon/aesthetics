@@ -13,28 +13,22 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		v1.GET("/", handlers.HomePage)
 
 		// Группа маршрутов для товаров
-		sexGroup := v1.Group("/:sex")
+		sexGroup := v1.Group("/:gender")
 		{
-			sexGroup.GET("/") //пол
+			sexGroup.GET("/", handlers.GetGender) //пол
 
 			categoryGroup := sexGroup.Group("/:category")
 			{
-				categoryGroup.GET("/") //категории
-				categoryGroup.POST("/")
-				categoryGroup.PUT("/")
-				categoryGroup.DELETE("/")
+				categoryGroup.GET("/", handlers.GetCategory) //категории
 
-				categoryGroup.GET("/:subcategory")
-				categoryGroup.POST("/:subcategory")
-				categoryGroup.PUT("/:subcategory")
-				categoryGroup.DELETE("/:subcategory")
-
-				productGroup := categoryGroup.Group("/:subcategory/:productId")
+				subCategoryGroup := categoryGroup.Group("/:subcategory")
 				{
-					productGroup.GET("/") //конкретный товар
-					productGroup.POST("/")
-					productGroup.PUT("/")
-					productGroup.DELETE("/")
+					subCategoryGroup.GET("/", handlers.GetSubCategory)
+
+					productGroup := subCategoryGroup.Group("/:productId")
+					{
+						productGroup.GET("/", handlers.GetProduct) //конкретный товар
+					}
 				}
 			}
 		}
