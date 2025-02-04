@@ -40,4 +40,5 @@ func HandleEmail(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Email send successfully",
 	})
+
 }

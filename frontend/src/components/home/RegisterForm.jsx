@@ -1,5 +1,6 @@
 // RegisterForm.js
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
 
 const RegisterForm = ({ switchToLogin }) => {
     const {
@@ -9,8 +10,13 @@ const RegisterForm = ({ switchToLogin }) => {
         formState: { errors },
     } = useForm();
 
-    const onSubmit = (data) => {
-        console.log(data); // Обработка данных формы
+    const onSubmit = async (data) => {
+        try {
+            const response = await axios.post('http://localhost:8080/api/v1/register', data);
+            console.log(response.data); // Обработка данных, полученных с сервера
+        } catch (error) {
+            console.error('Ошибка отправки данных формы:', error);
+        }
     };
 
     return (
@@ -45,17 +51,18 @@ const RegisterForm = ({ switchToLogin }) => {
                 <div className='mt-[5%]'>
                     {/* Поле для имени */}
                     <div className="mb-5">
-                        <input
-                            type="text"
-                            id="name"
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.name ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Введите своё имя"
-                            {...register('name', {
-                                required: 'Имя обязательно',
-                            })}
-                        />
+                    <input
+                        type="text"
+                        id="username"
+                        className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
+                            errors.username ? 'border-red-500 animate-shake' : 'border-black'
+                        }`}
+                        placeholder="Введите имя пользователя"
+                        {...register('username', {
+                            required: 'Имя пользователя обязательно',
+                        })}
+                    />
+
                         <div className="h-4">
                             {errors.name && (
                                 <p className="text-red-500 text-sm mt-1 animate-fadeIn">{errors.name.message}</p>

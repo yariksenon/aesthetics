@@ -46,10 +46,10 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		v1.PUT("/orders/:id/cancel") // Отменить заказ
 
 		// ПОЛЬЗОВАТЕЛЬ
-		v1.POST("/register") // Зарегистрироваться
-		v1.POST("/login")    // Залогиниться
-		v1.GET("/profile")   // Просмотреть профиль
-		v1.PUT("/profile")   // Обновить профиль
+		v1.POST("/register", handlers.RegisterPage(db)) // Зарегистрироваться
+		v1.POST("/login")                               // Залогиниться
+		v1.GET("/profile")                              // Просмотреть профиль
+		v1.PUT("/profile")                              // Обновить профиль
 
 		//Email
 		v1.POST("/subscribe", handlers.HandleEmail)

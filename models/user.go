@@ -6,10 +6,10 @@ type User struct {
 	Id        int       `json:"-"`
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
-	Phone     string    `json:"phone"`
+	Username  string    `json:"username" binding:"required"`
+	Email     string    `json:"email" binding:"required"`
+	Password  string    `json:"password" binding:"required,min=6"`
+	Phone     string    `json:"phone" binding:"required"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
 }
