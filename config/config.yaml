@@ -10,3 +10,9 @@ smtp:
   from: "aesthetics.team.contacts@gmail.com"
   host: "smtp.gmail.com"
   port: "587"
+
+redis:
+  host: "localhost:"
+  port: "6379"
+  password: ""
+  db: "0"

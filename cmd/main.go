@@ -4,6 +4,7 @@ import (
 	"aesthetics/config"
 	"aesthetics/database"
 	"aesthetics/pkg/routes"
+	"aesthetics/smtp"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -36,10 +37,14 @@ func main() {
 		log.Fatalf("Failed to initialize schema: %v", err)
 	}
 
-	// SMTP connect
-	
 	// Create Gin router
 	r := gin.Default()
+
+	//Init SMTPClient
+	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
+
+	//Init Redis
+	redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 
 	// Cors policy
 	r.Use(cors.New(cors.Config{
@@ -50,7 +55,7 @@ func main() {
 	}))
 
 	// Setup routes
-	routes.SetupRoutes(r, db)
+	routes.SetupRoutes(r, db, smtpClient, redisClient)
 
 	// Run server
 	if err := r.Run(":8080"); err != nil {

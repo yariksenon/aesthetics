@@ -20,6 +20,13 @@ type Config struct {
 		Host     string `yaml:"host"`
 		Port     string `yaml:"port"`
 	} `yaml:"smtp"`
+
+	Redis struct {
+		Password string `yaml:"password"`
+		Host     string `yaml:"host"`
+		Port     string `yaml:"port"`
+		DB       int    `yaml:"db"`
+	} `yaml:"redis"`
 }
 
 func LoadConfig() (*Config, error) {

@@ -1,44 +1,30 @@
 package handlers
 
 import (
-	"aesthetics/config"
+	"aesthetics/smtp"
 	"github.com/gin-gonic/gin"
-	"log"
+
 	"net/http"
-	"net/smtp"
 )
 
 type SubscribeRequest struct {
 	Email string `json:"email"`
 }
 
-func HandleEmail(c *gin.Context) {
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatal("Can't load config smtp", err)
-	}
+func HandleEmail(smtpClient *smtp.SMTPClient) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req SubscribeRequest
+		if err := c.BindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
-	var req SubscribeRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	auth := smtp.PlainAuth("", cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host)
-	to := []string{req.Email}
-	msg := []byte("To: " + req.Email + "\r\n" +
-		"Subject: Подписка на рассылку\r\n" +
-		"\r\n" +
-		"Вы успешно подписались на нашу рассылку.\r\n")
+		err := smtpClient.SendMail("aesthetics.team.contacts@gmail.com", req.Email, "Подписка на рассылку", "Вы успешно подписались на нашу рассылку.")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при отправке письма"})
+			return
+		}
 
-	err = smtp.SendMail(cfg.Smtp.Host+":"+cfg.Smtp.Port, auth, cfg.Smtp.From, to, msg)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		return
+		c.JSON(http.StatusOK, gin.H{"message": "Email успешно отправлен"})
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Email send successfully",
-	})
-
 }

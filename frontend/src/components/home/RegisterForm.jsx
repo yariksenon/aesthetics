@@ -13,7 +13,7 @@ const RegisterForm = ({ switchToLogin }) => {
     const onSubmit = async (data) => {
         try {
             const response = await axios.post('http://localhost:8080/api/v1/register', data);
-            console.log(response.data); // Обработка данных, полученных с сервера
+            console.log(response.data);
         } catch (error) {
             console.error('Ошибка отправки данных формы:', error);
         }

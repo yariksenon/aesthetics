@@ -2,11 +2,13 @@ package routes
 
 import (
 	"aesthetics/pkg/handlers"
+	"aesthetics/smtp"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-func SetupRoutes(r *gin.Engine, db *sql.DB) {
+func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client) {
 	v1 := r.Group("/api/v1")
 	{
 		// ГЛАВНАЯ
@@ -52,6 +54,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB) {
 		v1.PUT("/profile")                              // Обновить профиль
 
 		//Email
-		v1.POST("/subscribe", handlers.HandleEmail)
+		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 	}
 }

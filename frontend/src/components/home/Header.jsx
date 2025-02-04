@@ -119,11 +119,11 @@ function Header() {
                             onClick={toggleMenu}
                             className="fixed right-[5%] sm:right-[10%] md:right-[15%] top-4 cursor-pointer z-50"
                         >
-                            <img 
-                                src={closeButtonWhite} 
-                                alt="Close menu" 
-                                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" 
-                            />
+                        <img 
+                            src={closeButtonWhite} 
+                            alt="Close menu" 
+                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" 
+                        />
                         </button>
                     </div>
                 )}
