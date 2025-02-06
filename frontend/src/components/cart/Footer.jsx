@@ -93,11 +93,14 @@ function Footer() {
 
           {/* Логотип и копирайт */}
           <div className='flex justify-center'>
-            <Link to="/" className='my-[5%]'>
-              <img src={footerLogo} alt="Logo" className='cursor-pointer w-full' />
-            </Link>
-
-            <p href="#" className="absolute left-0 bottom-0 hover:text-red-400 hover:-translate-y-1 transition-all duration-300 text-sm md:text-base lg:text-lg">
+            <div className='my-[5%]'>
+              <Link to={"/"}>
+                <img src={footerLogo} alt="Logo" className='cursor-pointer w-full transform transition-transform duration-300 ease-in-out hover:scale-110 hover:shadow-lg'
+                onClick={() => window.scrollTo({top:0, behavior:'smooth'})} />
+              </Link>
+            </div>
+          
+            <p className="absolute left-0 bottom-0 hover:text-red-400 hover:-translate-y-1 transition-all duration-300 text-sm md:text-base lg:text-lg cursor-default">
               ©{year} Aesthetic’s
             </p>
           </div>

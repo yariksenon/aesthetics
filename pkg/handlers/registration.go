@@ -15,7 +15,6 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			log.Println("error:", err)
 			return
 		}
 

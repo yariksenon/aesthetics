@@ -49,7 +49,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		// ПОЛЬЗОВАТЕЛЬ
 		v1.POST("/register", handlers.RegisterPage(db)) // Зарегистрироваться
-		v1.POST("/login")                               // Залогиниться
+		v1.POST("/login", handlers.LoginPage(db))       // Залогиниться
 		v1.GET("/profile")                              // Просмотреть профиль
 		v1.PUT("/profile")                              // Обновить профиль
 

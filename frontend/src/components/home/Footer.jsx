@@ -6,16 +6,16 @@ import { motion } from 'framer-motion'; // Импортируем framer-motion
 import footerDuaration from '../../assets/home/Footer.svg'
 
 const TelegramBlock = () => (
-  <div className='w-full md:w-[20%]  py-[2%]'>
+  <div className='w-full md:w-[20%] py-[2%]'>
     <p className='text-lg md:text-xl lg:text-2xl'>Telegram</p>
-    <a href='https://t.me/Aesthetics_Market' target="_blank"  className='text-sky-500 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market</a> <br />
+    <a href='https://t.me/Aesthetics_Market' target="_blank"  className='text-sky-500 text-base md:text-lg lg:text-xl custom-underline cursor-default'>Aesthetics_Market</a> <br />
     <a href='https://t.me/Aesthetics_Market' target="_blank" className='text-sky-300 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market/bot</a>
   </div>
 );
 
 const InstagramBlock = () => (
   <div className='w-full md:w-[20%]  md:border-r-2 py-[2%]'>
-    <p className='text-lg md:text-xl lg:text-2xl'>Instagram</p>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>Instagram</p>
     <a href='#' target="_blank" className='text-pink-700 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market</a>
   </div>
 );
@@ -45,14 +45,14 @@ const ReviewsBlock = ({ reviews, activeReview }) => (
 
 const TwitterBlock = () => (
   <div className='w-full md:w-[20%] py-[2%] md:border-l-2'>
-    <p className='text-lg md:text-xl lg:text-2xl'>Twitter</p>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>Twitter</p>
     <a href="" target="_blank" className='text-gray-300 text-base md:text-lg lg:text-xl custom-underline'>Some text</a>
   </div>
 );
 
 const AboutBlock = () => (
   <div className='w-full md:w-[20%] py-[2%]'>
-    <p className='text-lg md:text-xl lg:text-2xl'>About</p>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>About</p>
     <a href="" target="_blank" className='text-red-500 text-base md:text-lg lg:text-xl custom-underline'>Some text</a> <br />
     <a href="" target="_blank" className='text-red-300 text-base md:text-lg lg:text-xl custom-underline'>Some text</a>
   </div>
@@ -89,7 +89,7 @@ function Footer() {
 
   return (
     <>
-    <div className='mt-[3%]'>
+    <div className='mt-[2%]'>
       <img src={footerDuaration} alt="" className='w-full' />
     </div>
     <hr />
@@ -103,7 +103,7 @@ function Footer() {
             <InstagramBlock />
 
             {/* Блок с отзывами */}
-            <div className='w-full md:w-[20%]   flex items-center justify-center overflow-hidden'>
+            <div className='w-full md:w-[20%]   flex items-center justify-center overflow-hidden cursor-default'>
               <motion.div
                 className="text-center w-full h-full flex items-center justify-center"
                 style={{ position: 'relative', height: '50px' }}
@@ -135,11 +135,14 @@ function Footer() {
 
           {/* Логотип и копирайт */}
           <div className='flex justify-center'>
-            <Link to="/" className='my-[5%]'>
-              <img src={footerLogo} alt="Logo" className='cursor-pointer w-full' />
-            </Link>
+          <div className='my-[5%]'>
+            <a onClick={() => window.scrollTo({top:0, behavior:'smooth'})}>
+              <img src={footerLogo} alt="Logo" className='cursor-pointer w-full transform transition-transform duration-300 ease-in-out hover:scale-110 hover:shadow-lg' />
+            </a>
+          </div>
 
-            <p className="absolute left-0 bottom-0 hover:text-red-400 hover:-translate-y-1 transition-all duration-300 text-sm md:text-base lg:text-lg">
+
+            <p className="absolute left-0 bottom-0 hover:text-red-400 hover:-translate-y-1 transition-all duration-300 text-sm md:text-base lg:text-lg cursor-default">
               ©{year} Aesthetic’s
             </p>
           </div>

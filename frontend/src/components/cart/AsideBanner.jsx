@@ -31,16 +31,17 @@ function AsideBanner() {
     >
       <p className="text-center text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl mr-0 md:mr-4 lg:mr-6 xl:mr-10">
         Зарегистрируйтесь и получите {salary}% скидку на первый заказ.{' '}
-        <a href="#" className="underline">
-          Зарегистрироваться сейчас.
-        </a>
       </p>
-      <img
-        className="w-4 h-4 object-cover cursor-pointer ml-2 md:ml-4 lg:ml-6 xl:ml-10"
-        src={navClose}
-        alt="Close"
-        onClick={handleClose}
-      />
+
+      <a className='cursor-pointer'>
+        <img
+          className="object-cover ml-2"
+          src={navClose}
+          alt="Close"
+          onClick={handleClose}
+        />
+      </a>
+      
     </aside>
   );
 }
