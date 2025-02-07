@@ -1,50 +1,42 @@
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Импортируем useNavigate
+import './custom.css'; // Подключение внешнего файла стилей
 
 const LoginForm = ({ switchToRegister }) => {
     const {
         register,
         handleSubmit,
         formState: { errors },
+        clearErrors,
+        reset
     } = useForm();
+    const [errorMessage, setErrorMessage] = useState('');
+    const navigate = useNavigate(); // Используем useNavigate
 
     const onSubmit = async (data) => {
+        clearErrors(); // Очистить все ошибки перед отправкой данных
         try {
-            const response = await axios.post('http://localhost:8080/api/v1/login', data);
+            const response = await axios.post('http://localhost:8080/api/v1/login', data, { withCredentials: true }); // Включение cookies
             console.log(response.data);
+            setErrorMessage(''); // Очистить предыдущие сообщения об ошибках
+            reset(); // Сбросить все значения формы и ошибки после успешной отправки
+            navigate('/profile'); // Перенаправление на страницу профиля при успешном логине
         } catch (error) {
-            console.error('Ошибка отправки данных формы:', error);
+            const message = error.response?.data?.message || 'Ошибка при отправке данных формы';
+            console.error('Ошибка отправки данных формы:', message);
+            setErrorMessage(message);
         }
     };
 
-    // Общий стиль для полей ввода
-    const inputClassName = (error) =>
+    const getInputClassName = (error) =>
         `w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
             error ? 'border-red-500 animate-shake' : 'border-black'
         }`;
 
     return (
         <div>
-            <style>
-                {`
-                    @keyframes shake {
-                        0%, 100% { transform: translateX(0); }
-                        25% { transform: translateX(-5px); }
-                        50% { transform: translateX(5px); }
-                        75% { transform: translateX(-5px); }
-                    }
-                    .animate-shake {
-                        animation: shake 0.5s linear;
-                    }
-                    @keyframes fadeIn {
-                        0% { opacity: 0; }
-                        100% { opacity: 1; }
-                    }
-                    .animate-fadeIn {
-                        animation: fadeIn 0.5s ease-in-out;
-                    }
-                `}
-            </style>
             <form onSubmit={handleSubmit(onSubmit)} className='mt-[5%]'>
                 <p>
                     Твой первый визит?{' '}
@@ -53,12 +45,14 @@ const LoginForm = ({ switchToRegister }) => {
                     </a>
                 </p>
                 <div className='mt-[5%]'>
-                    {/* Поле для почты */}
+                    {errorMessage && (
+                        <div className="text-red-500 text-sm mb-4 animate-fadeIn">{errorMessage}</div>
+                    )}
                     <div className="mb-5">
                         <input
                             type="email"
                             id="email"
-                            className={inputClassName(errors.email)}
+                            className={getInputClassName(errors.email)}
                             placeholder="Почта"
                             {...register('email', {
                                 required: 'Почта обязательна',
@@ -75,12 +69,11 @@ const LoginForm = ({ switchToRegister }) => {
                         </div>
                     </div>
 
-                    {/* Поле для пароля */}
                     <div className="mb-4">
                         <input
                             type="password"
                             id="password"
-                            className={inputClassName(errors.password)}
+                            className={getInputClassName(errors.password)}
                             placeholder="Пароль"
                             {...register('password', {
                                 required: 'Пароль обязателен',
@@ -98,7 +91,6 @@ const LoginForm = ({ switchToRegister }) => {
                     </div>
                 </div>
 
-                {/* Кнопка отправки формы */}
                 <button
                     type="submit"
                     className="w-full bg-black text-white py-4 hover:bg-gray-800"

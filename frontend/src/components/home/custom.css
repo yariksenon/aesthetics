@@ -21,3 +21,27 @@
 .font-bebas-neue {
     font-family: 'Bebas Neue', sans-serif;
 }
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+}
+.animate-shake {
+    animation: shake 0.5s linear;
+}
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+.animate-fadeIn {
+    animation: fadeIn 0.5s ease-in-out;
+}
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+.animate-fadeOut {
+    animation: fadeOut 0.5s ease-in-out;
+}

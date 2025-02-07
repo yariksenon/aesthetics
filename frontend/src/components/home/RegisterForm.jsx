@@ -1,6 +1,6 @@
-// RegisterForm.js
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // Импортируем useNavigate
 
 const RegisterForm = ({ switchToLogin }) => {
     const {
@@ -9,13 +9,21 @@ const RegisterForm = ({ switchToLogin }) => {
         watch,
         formState: { errors },
     } = useForm();
+    const navigate = useNavigate(); // Используем useNavigate
 
     const onSubmit = async (data) => {
         try {
-            const response = await axios.post('http://localhost:8080/api/v1/register', data);
+            const response = await axios.post('http://localhost:8080/api/v1/register', data, { withCredentials: true });
             console.log(response.data);
+            navigate('/profile'); // Перенаправление на страницу профиля при успешной регистрации
         } catch (error) {
-            console.error('Ошибка отправки данных формы:', error);
+            if (error.response) {
+                console.error('Ошибка отправки данных формы:', error.response.data);
+                alert(`Ошибка: ${error.response.data.message}`);
+            } else {
+                console.error('Ошибка отправки данных формы:', error);
+                alert('Ошибка при отправке данных формы.');
+            }
         }
     };
 
@@ -33,7 +41,7 @@ const RegisterForm = ({ switchToLogin }) => {
                         animation: shake 0.5s linear;
                     }
                     @keyframes fadeIn {
-                        0% { opacity: 0; }
+                        0% { opacity: 0); }
                         100% { opacity: 1; }
                     }
                     .animate-fadeIn {
@@ -62,10 +70,9 @@ const RegisterForm = ({ switchToLogin }) => {
                             required: 'Имя пользователя обязательно',
                         })}
                     />
-
                         <div className="h-4">
-                            {errors.name && (
-                                <p className="text-red-500 text-sm mt-1 animate-fadeIn">{errors.name.message}</p>
+                            {errors.username && (
+                                <p className="text-red-500 text-sm mt-1 animate-fadeIn">{errors.username.message}</p>
                             )}
                         </div>
                     </div>

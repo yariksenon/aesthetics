@@ -32,13 +32,22 @@ CREATE TABLE IF NOT EXISTS "user" (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR,
     last_name VARCHAR,
-    username VARCHAR,
-    email VARCHAR,
-    subscribe BOOLEAN DEFAULT FALSE,
+    username VARCHAR UNIQUE NOT NULL,
+    email VARCHAR UNIQUE NOT NULL,
+    subscription BOOLEAN DEFAULT FALSE,
     password VARCHAR,
     phone VARCHAR,
     role VARCHAR DEFAULT 'customer',
     created_at TIMESTAMP
+);
+
+-- Таблица сессий
+CREATE TABLE IF NOT EXISTS session (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES "user"(id),
+    session_token VARCHAR UNIQUE NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
 );
 
 -- Таблица адресов пользователей
@@ -99,6 +108,7 @@ CREATE TABLE IF NOT EXISTS wishlist (
 CREATE TABLE IF NOT EXISTS cart (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES "user"(id),
+    session_id INTEGER REFERENCES session(id),
     total DECIMAL,
     created_at TIMESTAMP,
     updated_at TIMESTAMP

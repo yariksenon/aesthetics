@@ -36,22 +36,25 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		}
 
 		// КОРЗИНА
-		v1.GET("/cart")               // Получить корзину пользователя
-		v1.POST("/cart/add")          // Добавить товар в корзину
-		v1.PUT("/cart/update/:id")    // Обновить количество товаров в корзине
-		v1.DELETE("/cart/remove/:id") // Удалить товар из корзины
+		v1.GET("/cart", handlers.AuthMiddleware(db))               // Получить корзину пользователя
+		v1.POST("/cart/add", handlers.AuthMiddleware(db))          // Добавить товар в корзину
+		v1.PUT("/cart/update/:id", handlers.AuthMiddleware(db))    // Обновить количество товаров в корзине
+		v1.DELETE("/cart/remove/:id", handlers.AuthMiddleware(db)) // Удалить товар из корзины
 
 		// ЗАКАЗ
-		v1.GET("/orders")            // Получить все заказы пользователя
-		v1.GET("/orders/:id")        // Получить заказы по ID
-		v1.POST("/orders")           // Создать новый заказ
-		v1.PUT("/orders/:id/cancel") // Отменить заказ
+		v1.GET("/orders", handlers.AuthMiddleware(db))            // Получить все заказы пользователя
+		v1.GET("/orders/:id", handlers.AuthMiddleware(db))        // Получить заказы по ID
+		v1.POST("/orders", handlers.AuthMiddleware(db))           // Создать новый заказ
+		v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
 
 		// ПОЛЬЗОВАТЕЛЬ
 		v1.POST("/register", handlers.RegisterPage(db)) // Зарегистрироваться
 		v1.POST("/login", handlers.LoginPage(db))       // Залогиниться
-		v1.GET("/profile")                              // Просмотреть профиль
-		v1.PUT("/profile")                              // Обновить профиль
+
+		protected := v1.Group("/profile")
+		protected.Use(handlers.AuthMiddleware(db))
+		protected.GET("/") // Просмотреть профиль
+		protected.PUT("/") // Обновить профиль
 
 		//Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
