@@ -1,18 +1,21 @@
 package models
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type User struct {
-	Id        int       `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email" binding:"required"`
-	Password  string    `json:"password" binding:"required,min=6"`
-	Subscribe bool      `json:"subscribe"`
-	Phone     string    `json:"phone"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	Id        int            `json:"id"`
+	FirstName sql.NullString `json:"first_name"`
+	LastName  sql.NullString `json:"last_name"`
+	Username  string         `json:"username"`
+	Email     string         `json:"email" binding:"required"`
+	Password  string         `json:"password" binding:"required,min=6"`
+	Subscribe bool           `json:"subscribe"`
+	Phone     string         `json:"phone"`
+	Role      string         `json:"role"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 type UserAddress struct {

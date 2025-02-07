@@ -17,17 +17,23 @@ const LoginForm = ({ switchToRegister }) => {
 
     const onSubmit = async (data) => {
         clearErrors(); // Очистить все ошибки перед отправкой данных
-        try {
-            const response = await axios.post('http://localhost:8080/api/v1/login', data, { withCredentials: true }); // Включение cookies
-            console.log(response.data);
-            setErrorMessage(''); // Очистить предыдущие сообщения об ошибках
-            reset(); // Сбросить все значения формы и ошибки после успешной отправки
-            navigate('/profile'); // Перенаправление на страницу профиля при успешном логине
-        } catch (error) {
-            const message = error.response?.data?.message || 'Ошибка при отправке данных формы';
-            console.error('Ошибка отправки данных формы:', message);
-            setErrorMessage(message);
+    try {
+        const response = await axios.post('http://localhost:8080/api/v1/login', data, { withCredentials: true }); // Включение cookies
+        console.log(response.data);
+        setErrorMessage(''); // Очистить предыдущие сообщения об ошибках
+        reset(); // Сбросить все значения формы и ошибки после успешной отправки
+
+        // Проверка роли пользователя
+        if (response.data.role === 'admin') {
+            navigate('/admin'); // Перенаправление на страницу администратора
+        } else {
+            navigate('/profile'); // Перенаправление на страницу профиля
         }
+    } catch (error) {
+        const message = error.response?.data?.message || 'Ошибка при отправке данных формы';
+        console.error('Ошибка отправки данных формы:', message);
+        setErrorMessage(message);
+    }
     };
 
     const getInputClassName = (error) =>
