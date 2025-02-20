@@ -49,8 +49,8 @@ func main() {
 	// Cors policy
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{http.MethodPost, http.MethodGet, http.MethodDelete, http.MethodPut, http.MethodOptions},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Access-Control-Allow-Origin"},
 		AllowCredentials: true,
 	}))
 

@@ -4,20 +4,12 @@ import (
 	"aesthetics/pkg/handlers"
 	"aesthetics/smtp"
 	"database/sql"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"net/http"
 )
 
 func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client) {
 	// CORS configuration
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		AllowCredentials: true,
-	}))
 
 	v1 := r.Group("/api/v1")
 	{
@@ -57,8 +49,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/orders", handlers.AuthMiddleware(db))           // Создать новый заказ
 		v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
 
-		v1.GET("/admin/users", handlers.AdminPage(db))
-
 		// ПОЛЬЗОВАТЕЛЬ
 		v1.POST("/register", handlers.RegisterPage(db)) // Зарегистрироваться
 		v1.POST("/login", handlers.LoginPage(db))       // Залогиниться
@@ -70,5 +60,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
+
+		//Admin panel
+		v1.GET("/admin/users", handlers.AdminPage(db))
+		v1.PUT("/admin/users/:id", handlers.UpdateUser(db))
+		v1.DELETE("/admin/users/:id", handlers.DeleteUser(db))
+		//v1.PUT("/admin/users/:id/role", handlers.UpdateUserRole(db))
 	}
 }

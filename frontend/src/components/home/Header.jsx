@@ -69,7 +69,7 @@ function Header() {
                     </div>
 
                     <div className='flex justify-center flex-grow'>
-                        <Link to="/">
+                        <Link to="/" target='_top'>
                             <img src={headerLogo} alt="Logo" className="cursor-pointer h-6 md:h-10 w-auto" />
                         </Link>
                     </div>

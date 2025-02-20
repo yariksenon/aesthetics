@@ -31,7 +31,6 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 		var user models.User
 		var dbPassword string
 		var userID int
-		var role string
 
 		if err := c.ShouldBindJSON(&user); err != nil {
 			log.Println("Ошибка получения данных из запроса:", err)
@@ -91,7 +90,7 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 		}
 		http.SetCookie(c.Writer, cookie)
 
-		log.Println("Успешный вход:", user.Email, "role:", role)
+		log.Println("Успешный вход:", user.Email, "role:", user.Role)
 		c.JSON(http.StatusOK, gin.H{"role": user.Role})
 	}
 }

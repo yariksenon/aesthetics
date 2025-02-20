@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import footerLogo from '../../assets/home/Footer-logo.svg';
 import './custom.css';
-import { motion } from 'framer-motion'; // Импортируем framer-motion
+import { motion } from 'framer-motion';
 import footerDuaration from '../../assets/home/Footer.svg'
 
 const TelegramBlock = () => (
   <div className='w-full md:w-[20%] py-[2%]'>
-    <p className='text-lg md:text-xl lg:text-2xl'>Telegram</p>
+    <p className='text-lg md:text-xl lg:text-2xl mb-2'>Telegram</p>
     <a href='https://t.me/Aesthetics_Market' target="_blank"  className='text-sky-500 text-base md:text-lg lg:text-xl custom-underline cursor-default'>Aesthetics_Market</a> <br />
     <a href='https://t.me/Aesthetics_Market' target="_blank" className='text-sky-300 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market/bot</a>
   </div>
@@ -15,8 +15,8 @@ const TelegramBlock = () => (
 
 const InstagramBlock = () => (
   <div className='w-full md:w-[20%]  md:border-r-2 py-[2%]'>
-    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>Instagram</p>
-    <a href='#' target="_blank" className='text-pink-700 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market</a>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default mb-2'>Instagram</p>
+    <a href='https://www.instagram.com/aestheticsss.shop/' target="_blank" className='text-pink-700 text-base md:text-lg lg:text-xl custom-underline'>aestheticsss.shop</a>
   </div>
 );
 
@@ -45,16 +45,16 @@ const ReviewsBlock = ({ reviews, activeReview }) => (
 
 const TwitterBlock = () => (
   <div className='w-full md:w-[20%] py-[2%] md:border-l-2'>
-    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>Twitter</p>
-    <a href="" target="_blank" className='text-gray-300 text-base md:text-lg lg:text-xl custom-underline'>Some text</a>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default mb-2'>Twitter</p>
+    <a href="https://x.com/Aesthetic_sshop" target="_blank" className='text-gray-500 text-base md:text-lg lg:text-xl custom-underline'>Aesthetic_sshop</a>
   </div>
 );
 
 const AboutBlock = () => (
   <div className='w-full md:w-[20%] py-[2%]'>
-    <p className='text-lg md:text-xl lg:text-2xl cursor-default'>About</p>
-    <a href="" target="_blank" className='text-red-500 text-base md:text-lg lg:text-xl custom-underline'>Some text</a> <br />
-    <a href="" target="_blank" className='text-red-300 text-base md:text-lg lg:text-xl custom-underline'>Some text</a>
+    <p className='text-lg md:text-xl lg:text-2xl cursor-default mb-2'>About</p>
+    <Link to="/about" target="_top" className="text-red-500 text-base md:text-lg lg:text-xl custom-underline">Why us</Link> <br />
+    <Link to="/category" className='text-red-300 text-base md:text-lg lg:text-xl custom-underline'>Our products</Link>
   </div>
 );
   
