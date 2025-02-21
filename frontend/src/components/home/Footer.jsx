@@ -9,7 +9,7 @@ const TelegramBlock = () => (
   <div className='w-full md:w-[20%] py-[2%]'>
     <p className='text-lg md:text-xl lg:text-2xl mb-2'>Telegram</p>
     <a href='https://t.me/Aesthetics_Market' target="_blank"  className='text-sky-500 text-base md:text-lg lg:text-xl custom-underline cursor-default'>Aesthetics_Market</a> <br />
-    <a href='https://t.me/Aesthetics_Market' target="_blank" className='text-sky-300 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market/bot</a>
+    <a href='https://t.me/Aesthetics_Market_bot' target="_blank" className='text-sky-300 text-base md:text-lg lg:text-xl custom-underline'>Aesthetics_Market_bot</a>
   </div>
 );
 

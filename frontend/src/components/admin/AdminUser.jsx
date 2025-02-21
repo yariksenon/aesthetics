@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { fetchUsers, deleteUser, updateUserRole, updateUser } from '../../services/user';
-import { FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa'; // Иконки для кнопок
-import Swal from 'sweetalert2'; // Для красивых подтверждений
+import { FaEdit, FaTrash, FaSave, FaTimes, FaFileExcel } from 'react-icons/fa'; // Добавлена иконка для Excel
+import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx'; // Импорт библиотеки для работы с Excel
 
 const AdminUser = () => {
     const [users, setUsers] = useState([]);
@@ -11,9 +12,9 @@ const AdminUser = () => {
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const [usersPerPage] = useState(10);
-    const [editingUserId, setEditingUserId] = useState(null); // ID редактируемого пользователя
-    const [editedUser, setEditedUser] = useState({}); // Данные редактируемого пользователя
-    const [searchTerm, setSearchTerm] = useState(''); // Поиск по username
+    const [editingUserId, setEditingUserId] = useState(null);
+    const [editedUser, setEditedUser] = useState({});
+    const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -68,40 +69,32 @@ const AdminUser = () => {
     };
 
     const handleEditUser = (user) => {
-        setEditingUserId(user.id); // Устанавливаем ID редактируемого пользователя
+        setEditingUserId(user.id);
         setEditedUser({
             ...user,
-            first_name: user.first_name?.String || user.first_name || '', // Извлекаем строку из объекта
-            last_name: user.last_name?.String || user.last_name || '', // Извлекаем строку из объекта
+            first_name: user.first_name?.String || user.first_name || '',
+            last_name: user.last_name?.String || user.last_name || '',
         });
     };
 
     const handleCancelEdit = () => {
-        setEditingUserId(null); // Отменяем редактирование
-        setEditedUser({}); // Очищаем данные
+        setEditingUserId(null);
+        setEditedUser({});
     };
 
     const handleSaveUser = async () => {
         try {
-            // Преобразуем данные перед отправкой
             const dataToSend = {
                 ...editedUser,
-                first_name: editedUser.first_name?.String || editedUser.first_name || '', // Извлекаем строку из объекта
-                last_name: editedUser.last_name?.String || editedUser.last_name || '', // Извлекаем строку из объекта
+                first_name: editedUser.first_name?.String || editedUser.first_name || '',
+                last_name: editedUser.last_name?.String || editedUser.last_name || '',
             };
 
-            // Логируем данные перед отправкой
-            console.log('Отправляемые данные:', dataToSend);
-
-            // Отправляем данные на бэкенд
             const response = await updateUser(editingUserId, dataToSend);
-            console.log('Ответ от сервера:', response.data);
-
-            // Обновляем состояние
             setUsers(users.map(user => 
                 user.id === editingUserId ? { ...user, ...dataToSend } : user
             ));
-            setEditingUserId(null); // Завершаем редактирование
+            setEditingUserId(null);
         } catch (err) {
             setError('Ошибка при обновлении пользователя: ' + err.message);
             console.error('Ошибка:', err);
@@ -117,10 +110,9 @@ const AdminUser = () => {
     };
 
     const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value); // Обновляем поисковый запрос
+        setSearchTerm(e.target.value);
     };
 
-    // Фильтрация пользователей по username
     const filteredUsers = users.filter(user =>
         user.username.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -130,6 +122,22 @@ const AdminUser = () => {
     const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    // Функция для экспорта всей таблицы в Excel
+    const exportAllToExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(users);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Users");
+        XLSX.writeFile(wb, "all_users.xlsx");
+    };
+
+    // Функция для экспорта результатов поиска в Excel
+    const exportFilteredToExcel = () => {
+        const ws = XLSX.utils.json_to_sheet(filteredUsers);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Filtered Users");
+        XLSX.writeFile(wb, "filtered_users.xlsx");
+    };
 
     if (loading) {
         return <div className="flex justify-center items-center h-screen">Загрузка...</div>;
@@ -149,6 +157,24 @@ const AdminUser = () => {
                     onChange={handleSearchChange}
                     className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+            </div>
+
+            {/* Кнопки для экспорта */}
+            <div className="mb-4 flex space-x-4">
+                <button
+                    onClick={exportAllToExcel}
+                    className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 flex items-center"
+                >
+                    <FaFileExcel className="mr-2" />
+                    Экспорт всей таблицы
+                </button>
+                <button
+                    onClick={exportFilteredToExcel}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center"
+                >
+                    <FaFileExcel className="mr-2" />
+                    Экспорт результатов поиска
+                </button>
             </div>
 
             <div className="overflow-x-auto">
