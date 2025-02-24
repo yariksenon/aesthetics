@@ -7,19 +7,18 @@ import AdminPanelUser from './components/admin/AdminUser';
 import WhyUs from './components/home/WhyUs'
 import NotFound from './components/notFound/NotFound'; // Импортируем компонент для страницы 404
 
-import Gender from './components/gender/gender';
 import Category from './components/category/category';
 import SubCategory from './components/subCategory/subCategory';
 import Product from './components/product/product';
 import './App.css'
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route,  Navigate } from 'react-router-dom';
 
 export default function App() {
   return (
     <>
       <Router> 
         <Routes> 
-          <Route path="/" element={<Home />} />
+        <Route path="/" element={<Navigate to="/woman" />} /> {/* Перенаправление на /woman по умолчанию */}
 
           <Route path="/about" element={<WhyUs />} />
           <Route path="/cart" element={<Cart />}/> 
@@ -28,13 +27,13 @@ export default function App() {
           <Route path="/admin/users/:id" element={<AdminPanelUser />}/>
 
           {/* Маршруты для товаров */}
-          <Route path="/:gender" element={<Gender />}>
-  <Route path=":category" element={<Category />}>
-    <Route path=":subcategory" element={<SubCategory />}>
-      <Route path=":productid" element={<Product />} />
-    </Route>
-  </Route>
-</Route>
+          <Route path="/:gender" element={<Home />}>
+            <Route path=":category" element={<Category />}>
+              <Route path=":subcategory" element={<SubCategory />}>
+                <Route path=":productid" element={<Product />} />
+              </Route>
+            </Route>
+          </Route>
 
           {/* Маршрут для страницы 404 */}
           <Route path="/404" element={<NotFound />} />

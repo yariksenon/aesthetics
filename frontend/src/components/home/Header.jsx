@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './custom.css';
 import headerLogo from "../../assets/home/header-logo.svg";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // Добавляем useNavigate
 import headerBasket from "../../assets/home/header-basket.svg";
 import closeButtonWhite from "../../assets/home/Header-closeButtonWhite.svg";
 import AuthModal from './AuthModal';
@@ -11,7 +11,8 @@ function Header() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLogin, setIsLogin] = useState(true);
     const [showSocials, setShowSocials] = useState(false);
-    const [activeMenuItem, setActiveMenuItem] = useState('woman'); // Default active menu item
+    const [activeMenuItem, setActiveMenuItem] = useState('woman'); // По умолчанию "Женщинам"
+    const navigate = useNavigate(); // Хук для навигации
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = (e) => {
@@ -25,10 +26,16 @@ function Header() {
 
     const toggleSocials = () => setShowSocials(!showSocials);
 
+    // Обработчик выбора категории
+    const handleCategoryChange = (value) => {
+        setActiveMenuItem(value); // Устанавливаем активный элемент меню
+        navigate(`/${value}`); // Перенаправляем на выбранный маршрут
+    };
+
     const menuItems = [
         { label: 'Женщинам', value: 'woman' },
         { label: 'Мужчинам', value: 'man' },
-        { label: 'Детям', value: 'children'},
+        { label: 'Детям', value: 'children' },
         { label: 'Новинки', value: 'new' },
         { label: 'Обувь', value: 'shoes' },
         { label: 'Одежда', value: 'clothes' },
@@ -43,8 +50,10 @@ function Header() {
 
     const MenuItem = ({ label, value }) => (
         <li
-            onClick={() => setActiveMenuItem(value)}
-            className={`${textStyles.small} ${activeMenuItem === value ? 'text-red-500' : ''} custom-underline cursor-pointer whitespace-nowrap`}
+            onClick={() => handleCategoryChange(value)} // Обработчик клика
+            className={`${textStyles.small} ${
+                activeMenuItem === value ? 'text-red-500' : ''
+            } custom-underline cursor-pointer whitespace-nowrap`}
         >
             {label}
         </li>
@@ -55,22 +64,59 @@ function Header() {
             <header className="mx-[15%] mt-[1%] flex justify-between items-center">
                 <div className="lg:hidden">
                     <button onClick={toggleMenu}>
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                        <svg
+                            className="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 6h16M4 12h16m-7 6h7"
+                            ></path>
                         </svg>
                     </button>
                 </div>
 
                 <div className="flex items-center flex-grow">
                     <div className="hidden lg:flex md:space-x-5 lg:space-x-6">
-                        <Link to="/man" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Мужчинам</Link>
-                        <Link to="/woman" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Женщинам</Link>
-                        <Link to="/children" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">Детям</Link>
+                        {/* Кнопки для выбора категории */}
+                        <button
+                            onClick={() => handleCategoryChange('woman')}
+                            className={`${textStyles.small} ${
+                                activeMenuItem === 'woman' ? 'text-red-500' : 'text-black'
+                            } custom-underline`}
+                        >
+                            Женщинам
+                        </button>
+                        <button
+                            onClick={() => handleCategoryChange('man')}
+                            className={`${textStyles.small} ${
+                                activeMenuItem === 'man' ? 'text-red-500' : 'text-black'
+                            } custom-underline`}
+                        >
+                            Мужчинам
+                        </button>
+                        <button
+                            onClick={() => handleCategoryChange('children')}
+                            className={`${textStyles.small} ${
+                                activeMenuItem === 'children' ? 'text-red-500' : 'text-black'
+                            } custom-underline`}
+                        >
+                            Детям
+                        </button>
                     </div>
 
-                    <div className='flex justify-center flex-grow'>
-                        <Link to="/" target='_top'>
-                            <img src={headerLogo} alt="Logo" className="cursor-pointer h-6 md:h-10 w-auto" />
+                    <div className="flex justify-center flex-grow">
+                        <Link to="/" target="_top">
+                            <img
+                                src={headerLogo}
+                                alt="Logo"
+                                className="cursor-pointer h-6 md:h-10 w-auto"
+                            />
                         </Link>
                     </div>
                 </div>
@@ -83,10 +129,10 @@ function Header() {
                         Войти
                     </button>
                     <div className="flex items-center transition-transform duration-300 ease-in-out hover:scale-110">
-                        <img 
-                            src={headerBasket} 
-                            className="h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer" 
-                            alt="Basket" 
+                        <img
+                            src={headerBasket}
+                            className="h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer"
+                            alt="Basket"
                         />
                         <Link to="/cart" className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline">
                             <p>Корзина</p>
@@ -119,11 +165,11 @@ function Header() {
                             onClick={toggleMenu}
                             className="fixed right-[5%] sm:right-[10%] md:right-[15%] top-4 cursor-pointer z-50"
                         >
-                        <img 
-                            src={closeButtonWhite} 
-                            alt="Close menu" 
-                            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8" 
-                        />
+                            <img
+                                src={closeButtonWhite}
+                                alt="Close menu"
+                                className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
+                            />
                         </button>
                     </div>
                 )}

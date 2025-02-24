@@ -84,7 +84,7 @@ function productCarts() {
 
   return (
     <>
-      <div className="mt-[10%] lg:mt[8%] xl:mt-[5%]">
+      <div className="mt-[15%] lg:mt[10%] xl:mt-[7%]">
         <div className="grid grid-cols-6 gap-2 overflow-hidden" style={{ maxWidth: '100%' }}>
           {products.slice(0, 6).map((product) => (
             <div
