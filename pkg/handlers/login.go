@@ -97,6 +97,7 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 
 func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Получение куки с токеном сессии
 		cookie, err := c.Cookie("session_token")
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Необходимо войти в систему"})
@@ -104,16 +105,36 @@ func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		// Получение user_id и роли пользователя из базы данных
 		var userID int
-		err = db.QueryRow("SELECT user_id FROM session WHERE session_token = $1", cookie).Scan(&userID)
+		var role string
+		err = db.QueryRow(`
+            SELECT u.id, u.role 
+            FROM session s 
+            JOIN "user" u ON s.user_id = u.id 
+            WHERE s.session_token = $1`, cookie).Scan(&userID, &role)
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительная сессия"})
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительная сессия"})
+			} else {
+				log.Println("Ошибка получения данных пользователя:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
+			}
 			c.Abort()
 			return
 		}
 
-		// Сохранение userID в контексте
+		// Сохранение userID и роли в контексте
 		c.Set("userID", userID)
+		c.Set("role", role)
+
+		// Проверка роли для доступа к /admin
+		if c.Request.URL.Path == "/admin" && role != "admin" {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }
