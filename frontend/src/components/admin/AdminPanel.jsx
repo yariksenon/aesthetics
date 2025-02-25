@@ -23,7 +23,7 @@ const AdminPanel = () => {
     return (
         <div className="min-h-screen bg-white text-black p-8">
             <img src={headerLogo} alt="Logo" className="mx-auto" />
-            <p className="text-center bold text-xl text-gray-700 font-bold mt-5">Управление всеми аспектами вашего приложения</p>
+            <p className="text-center bold text-xl text-gray-700 font-bold mt-5">Управление всеми аспектами приложения</p>
             <div className="grid mt-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
                 {buttons.map((button, index) => (
                     <button

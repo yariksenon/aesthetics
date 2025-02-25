@@ -83,11 +83,6 @@ func DeleteUser(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-//	func UpdateUserRole(db *sql.DB) gin.HandlerFunc {
-//		return func(c *gin.Context) {
-//
-//		}
-//	}
 func UpdateUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
