@@ -1,6 +1,6 @@
 import React from 'react';
 import './custom.css';
-import sectionGlass from '../../assets/home/section-glass.svg';
+import sectionGlass from '../../assets/home/Section/Glass.svg';
 
 const menuItems = [
     { label: 'Новинки', isActive: false },

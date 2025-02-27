@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // Импортируем useNavigate
+import { useNavigate } from 'react-router-dom';
 
 const RegisterForm = ({ switchToLogin }) => {
     const {
@@ -9,13 +9,13 @@ const RegisterForm = ({ switchToLogin }) => {
         watch,
         formState: { errors },
     } = useForm();
-    const navigate = useNavigate(); // Используем useNavigate
+    const navigate = useNavigate();
 
     const onSubmit = async (data) => {
         try {
             const response = await axios.post('http://localhost:8080/api/v1/register', data, { withCredentials: true });
             console.log(response.data);
-            navigate('/profile'); // Перенаправление на страницу профиля при успешной регистрации
+            navigate('/profile'); 
         } catch (error) {
             if (error.response) {
                 console.error('Ошибка отправки данных формы:', error.response.data);
@@ -57,7 +57,6 @@ const RegisterForm = ({ switchToLogin }) => {
                     </a>
                 </p>
                 <div className='mt-[5%]'>
-                    {/* Поле для имени */}
                     <div className="mb-5">
                     <input
                         type="text"
@@ -77,7 +76,6 @@ const RegisterForm = ({ switchToLogin }) => {
                         </div>
                     </div>
 
-                    {/* Поле для почты */}
                     <div className="mb-4">
                         <input
                             type="email"
@@ -101,7 +99,6 @@ const RegisterForm = ({ switchToLogin }) => {
                         </div>
                     </div>
 
-                    {/* Поле для телефона */}
                     <div className="mb-4">
                         <input
                             type="tel"
@@ -125,7 +122,6 @@ const RegisterForm = ({ switchToLogin }) => {
                         </div>
                     </div>
 
-                    {/* Поле для пароля */}
                     <div className="mb-4">
                         <input
                             type="password"
@@ -149,7 +145,6 @@ const RegisterForm = ({ switchToLogin }) => {
                         </div>
                     </div>
 
-                    {/* Поле для подтверждения пароля */}
                     <div className="mb-4">
                         <input
                             type="password"
@@ -171,7 +166,6 @@ const RegisterForm = ({ switchToLogin }) => {
                         </div>
                     </div>
 
-                    {/* Чекбокс согласия */}
                     <div className="flex items-center mb-4">
                         <input
                             type="checkbox"
@@ -190,7 +184,6 @@ const RegisterForm = ({ switchToLogin }) => {
                     )}
                 </div>
 
-                {/* Кнопка отправки формы */}
                 <button
                     type="submit"
                     className="w-full bg-black text-white py-2 hover:bg-gray-800 py-4"

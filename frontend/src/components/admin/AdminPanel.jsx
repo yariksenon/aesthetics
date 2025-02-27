@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import headerLogo from "../../assets/home/header-logo.svg";
+import headerLogo from "../../assets/home/Header/Logo.svg";
 import { FaUsers, FaBox, FaList, FaShoppingCart, FaCreditCard, FaHeart, FaShoppingBag } from 'react-icons/fa';
 
 const AdminPanel = () => {

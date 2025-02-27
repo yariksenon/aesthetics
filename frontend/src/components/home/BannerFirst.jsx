@@ -9,11 +9,11 @@ import advirtisement_1_4 from '../../assets/home/Advertisement/advertisement-1.4
 import hockeyBanner from '../../assets/home/Advertisement/first_top.jpg';
 import tenisBanner from '../../assets/home/Advertisement/first_low.jpg';
 
-import leftArrow from '../../assets/home/bannerFirst-leftArrow.svg';
-import rightArrow from '../../assets/home/bannerFirst-rightArrow.svg';
-import slash from '../../assets/home/bannerFirst-slash.svg';
-import longLine from '../../assets/home/BannerFifth-longLine.svg';
-import shortLine from '../../assets/home/BannerFifth-shortLine.svg';
+import leftArrow from '../../assets/home/Banner/LeftArrow.svg';
+import rightArrow from '../../assets/home/Banner/RightArrow.svg';
+import slash from '../../assets/home/Banner/Slash.svg';
+import longLine from '../../assets/home/Banner/LongLine.svg';
+import shortLine from '../../assets/home/Banner/ShortLine.svg';
 
 const slides = [advirtisement_1_1, advirtisement_1_2, advirtisement_1_3, advirtisement_1_4];
 const totalSlides = slides.length;

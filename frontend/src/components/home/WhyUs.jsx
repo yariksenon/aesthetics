@@ -1,5 +1,5 @@
 import React from 'react';
-import Logo from '../../assets/home/Footer-logo.svg';
+import Logo from '../../assets/home/Footer/Logo.svg';
 import { Link } from 'react-router-dom';
 
 function WhyUs() {

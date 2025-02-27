@@ -1,4 +1,4 @@
-import React, { useState } from 'react'; // Добавьте этот импорт
+import React, { useState } from 'react';
 import firstProduct from '../../assets/home/ProductCards/ProductCards-1.svg';
 import secondProduct from '../../assets/home/ProductCards/ProductCards-2.svg';
 import thirdProduct from '../../assets/home/ProductCards/ProductCards-3.svg';

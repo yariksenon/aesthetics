@@ -9,11 +9,11 @@ import advirtisement_5_4 from '../../assets/home/Advertisement/advertisement-2.4
 import BannerFifthGym from '../../assets/home/Advertisement/second_top.jpg';
 import BannerFifthDayving from '../../assets/home/Advertisement/second_low.jpg';
 
-import leftArrow from '../../assets/home/bannerFirst-leftArrow.svg';
-import rightArrow from '../../assets/home/bannerFirst-rightArrow.svg';
-import slash from '../../assets/home/bannerFirst-slash.svg';
-import longLine from '../../assets/home/BannerFifth-longLine.svg';
-import shortLine from '../../assets/home/BannerFifth-shortLine.svg';
+import leftArrow from '../../assets/home/Banner/LeftArrow.svg';
+import rightArrow from '../../assets/home/Banner/RightArrow.svg';
+import slash from '../../assets/home/Banner/Slash.svg';
+import longLine from '../../assets/home/Banner/LongLine.svg';
+import shortLine from '../../assets/home/Banner/ShortLine.svg';
 
 const slides = [advirtisement_2_1, advirtisement_3_2, advirtisement_4_3, advirtisement_5_4];
 const totalSlides = slides.length;
@@ -26,8 +26,8 @@ const slideData = [
 ];
 
 const bannerData = [
-  { text: "Снаряжение для зала", about: "Тренируйтесь с комфортом", category: "gym" },
-  { text: "Снаряжение для дайвинга", about: "Откройте подводные глубины", category: "diving" },
+  { text: "Снаряжение для зала", about: "Для новых открытий", category: "gym" },
+  { text: "Снаряжение для дайвинга", about: "Для новых открытий", category: "diving" },
 ];
 
 function BannerFifth() {
@@ -41,7 +41,7 @@ function BannerFifth() {
     setTimeout(() => {
       setCurrentSlide((prevSlide) => (prevSlide + 1) % totalSlides);
       setIsTransitioning(false);
-    }, 300);
+    }, 500);
   }, [totalSlides]);
 
   const handlePrevSlide = useCallback(() => {
@@ -49,7 +49,7 @@ function BannerFifth() {
     setTimeout(() => {
       setCurrentSlide((prevSlide) => (prevSlide - 1 + totalSlides) % totalSlides);
       setIsTransitioning(false);
-    }, 300);
+    }, 500); 
   }, [totalSlides]);
 
   const handleClick = useCallback((category) => {

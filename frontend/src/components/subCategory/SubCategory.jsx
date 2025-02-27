@@ -1,3 +1,4 @@
+// components/subCategory/SubCategory.jsx
 import { useParams } from 'react-router-dom';
 
 function SubCategory() {

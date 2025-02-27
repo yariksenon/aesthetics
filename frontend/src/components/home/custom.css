@@ -45,3 +45,59 @@
 .animate-fadeOut {
     animation: fadeOut 0.5s ease-in-out;
 }
+
+
+
+/* Анимация для спиннера загрузки */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Стили для спиннера */
+.loading-spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 4px solid #ffffff;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Стили для кнопки при загрузке */
+.button-loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Анимация для кнопки при наведении */
+.button-hover-effect {
+    transition: transform 0.2s ease-in-out;
+}
+
+.button-hover-effect:hover {
+    transform: scale(1.05);
+}
+
+/* Анимация для ошибок */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Анимация для появления сообщений */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
+}

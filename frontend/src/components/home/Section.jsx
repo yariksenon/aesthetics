@@ -1,15 +1,8 @@
-import React from 'react';
-import './custom.css';
-import sectionGlass from '../../assets/home/section-glass.svg';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 
-const menuItems = [
-    { label: 'Новинки', isActive: false },
-    { label: 'Обувь', isActive: false },
-    { label: 'Одежда', isActive: false },
-    { label: 'Аксессуары', isActive: false },
-    { label: 'Красота', isActive: false },
-    { label: 'Скидки', isActive: true },
-];
+import './custom.css';
+import sectionGlass from '../../assets/home/Section/Glass.svg';
 
 const textStyles = {
     small: 'text-[10px] sm:text-xs md:text-sm lg:text-base',
@@ -42,24 +35,51 @@ const SearchButton = () => (
     </button>
 );
 
-const MenuItem = ({ label, isActive }) => (
-    <li className={`${textStyles.small} ${isActive ? 'text-red-500' : ''} custom-underline cursor-pointer whitespace-nowrap`}>
+const MenuItem = ({ label, onClick }) => (
+    <li 
+        className={`${textStyles.small} custom-underline cursor-pointer whitespace-nowrap ${
+            label === 'Скидки %' ? 'text-red-500' : ''
+        }`}
+        onClick={onClick}
+    >
         {label}
     </li>
 );
 
 function Section() {
+    const [activeItemId, setActiveItemId] = useState(null);
+
+    const menuItems = useMemo(() => [
+        { id: 1, label: 'Новинки', category: 'new'},
+        { id: 2, label: 'Обувь', category: 'shoes' },
+        { id: 3, label: 'Одежда', category: 'clothes' },
+        { id: 4, label: 'Тренировка', category: 'training' },
+        { id: 5, label: 'Красота', category: 'beauty' },
+        { id: 6, label: 'Скидки %', category: 'discounts' },
+    ], []);
+
+    const navigate = useNavigate();
+    const { gender } = useParams();
+
+    const handleClick = useCallback((category, id) => {
+        setActiveItemId(id);
+        navigate(`/${gender}/${category.toLowerCase()}`);
+    }, [navigate, gender]);
+
     return (
         <>
             <nav className="mx-[15%] mt-[1%] flex flex-col lg:flex-row justify-between items-start lg:items-center">
-                {/* Меню */}
                 <ul className="hidden lg:flex lg:space-x-4 justify-between lg:justify-normal w-full lg:w-auto">
-                    {menuItems.map((item, index) => (
-                        <MenuItem key={index} label={item.label} isActive={item.isActive} />
+                    {menuItems.map((item) => (
+                        <MenuItem
+                            key={item.id}
+                            label={item.label}
+                            isActive={item.id}
+                            onClick={() => handleClick(item.category, item.id)}
+                        />
                     ))}
                 </ul>
 
-                {/* Поисковая строка */}
                 <div className="flex w-full lg:w-[35%]">
                     <SearchInput />
                     <SearchButton />

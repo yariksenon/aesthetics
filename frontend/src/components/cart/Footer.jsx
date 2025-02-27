@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import footerLogo from '../../assets/home/Footer-logo.svg';
+import footerLogo from '../../assets/home/Footer/Logo.svg';
 import './custom.css';
 import { motion } from 'framer-motion'; // Импортируем framer-motion
-import footerDuaration from '../../assets/home/Footer.svg'
+import footerDuaration from '../../assets/home/Footer/Arch.svg'
+
 function Footer() {
   const year = new Date().getFullYear();
   const [activeReview, setActiveReview] = useState(0);

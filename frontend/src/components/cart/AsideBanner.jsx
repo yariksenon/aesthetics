@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import navClose from '../../assets/home/nav-close.svg';
+import navClose from '../../assets/home/AsideBanner/nav-close.svg';
 
 function AsideBanner() {
   const salary = 20;

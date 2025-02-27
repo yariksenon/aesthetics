@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -6,16 +6,31 @@ import "react-toastify/dist/ReactToastify.css";
 function Email() {
   const [email, setEmail] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    try {
-      const response = await axios.post("http://localhost:8080/api/v1/subscribe", {
-        email,
-      });
+      try {
+        const response = await axios.post("http://localhost:8080/api/v1/subscribe", {
+          email,
+        });
 
-      if (response.status === 200) {
-        toast.success("Вы успешно подписались!", {
+        if (response.status === 200) {
+          toast.success("Вы успешно подписались!", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          });
+        } else {
+          console.error("Ошибка при отправке данных на сервер");
+        }
+      } catch (error) {
+        console.error("Ошибка при отправке запроса:", error);
+        toast.error("Ошибка при отправке запроса", {
           position: "top-right",
           autoClose: 3000,
           hideProgressBar: false,
@@ -24,22 +39,10 @@ function Email() {
           draggable: true,
           progress: undefined,
         });
-      } else {
-        console.error("Ошибка при отправке данных на сервер");
       }
-    } catch (error) {
-      console.error("Ошибка при отправке запроса:", error);
-      toast.error("Ошибка при отправке запроса", {
-        position: "top-right",
-        autoClose: 3000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
-    }
-  };
+    },
+    [email]
+  );
 
   return (
     <div className="bg-black py-[3%] h-full px-4 mt-[2%]">
@@ -83,6 +86,7 @@ function Email() {
               lg:text-base
             "
             placeholder="Введите ваш email"
+            required
           />
 
           <button

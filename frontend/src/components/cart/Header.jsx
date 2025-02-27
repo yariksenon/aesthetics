@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import './custom.css';
-import headerLogo from "../../assets/home/header-logo.svg";
+import headerLogo from "../../assets/home/Header/Logo.svg";
 import { Link } from 'react-router-dom';
-import headerBasket from "../../assets/home/header-basket.svg";
-import closeButtonWhite from "../../assets/home/Header-closeButtonWhite.svg";
+import headerBasket from "../../assets/home/Header/Basket.svg";
+import closeButtonWhite from "../../assets/home/Header/CloseButtonWhite.svg";
 import AuthModal from './../home/AuthModal';
 
 function Header() {

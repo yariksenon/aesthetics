@@ -1,51 +1,71 @@
-import React from "react";
-import BannerSeasonsWinter from "../../assets/home/BannerSeasons-winter.svg";
-import BannerSeasonsSummer from "../../assets/home/BannerSeasons-summer.svg";
-import BannerSeasonsSpring from "../../assets/home/BannerSeasons-spring.svg";
-import BannerSeasonsAutumn from "../../assets/home/BannerSeasons-autumn.svg";
+import React, { useCallback, useMemo } from "react";
+import { useNavigate, useParams } from 'react-router-dom';
+import BannerSeasonsWinter from "../../assets/home/Seasons/Winter.svg";
+import BannerSeasonsSummer from "../../assets/home/Seasons/Summer.svg";
+import BannerSeasonsSpring from "../../assets/home/Seasons/Spring.svg";
+import BannerSeasonsAutumn from "../../assets/home/Seasons/Autumn.svg";
 import "./custom.css";
 
+const seasonsData = [
+  {
+    image: BannerSeasonsWinter,
+    alt: "Winter",
+    text: "WINTER",
+    hoverColor: "#9CA3AF",
+    category: "winter",
+  },
+  {
+    image: BannerSeasonsSummer,
+    alt: "Summer",
+    text: "SUMMER",
+    hoverColor: "#4ADE80",
+    category: "summer",
+  },
+  {
+    image: BannerSeasonsSpring,
+    alt: "Spring",
+    text: "SPRING",
+    hoverColor: "#F472B6",
+    category: "spring",
+  },
+  {
+    image: BannerSeasonsAutumn,
+    alt: "Autumn",
+    text: "AUTUMN",
+    hoverColor: "#FB923C",
+    category: "autumn",
+  },
+];
+
 function BannerSixth() {
-  // Массив данных для каждого сезона
-  const seasons = [
-    {
-      image: BannerSeasonsWinter,
-      alt: "WINTER",
-      text: "WINTER",
-      hoverColor: "#9CA3AF", // gray-400
-    },
-    {
-      image: BannerSeasonsSummer,
-      alt: "SUMMER",
-      text: "SUMMER",
-      hoverColor: "#4ADE80", // green-400
-    },
-    {
-      image: BannerSeasonsSpring,
-      alt: "SPRING",
-      text: "SPRING",
-      hoverColor: "#F472B6", // pink-400
-    },
-    {
-      image: BannerSeasonsAutumn,
-      alt: "AUTUMN",
-      text: "AUTUMN",
-      hoverColor: "#FB923C", // orange-400
-    },
-  ];
+  const navigate = useNavigate();
+  const { gender } = useParams();
+
+  const handleClick = useCallback((category) => {
+    navigate(`/${gender}/${category}`);
+  }, [navigate, gender]);
+
+  const seasons = useMemo(() => seasonsData, []);
+
+  const handleMouseEnter = useCallback((e, hoverColor) => {
+    e.target.style.color = hoverColor;
+  }, []);
+
+  const handleMouseLeave = useCallback((e) => {
+    e.target.style.color = "transparent";
+  }, []);
 
   return (
     <div className="flex mt-[10%] gap-x-2 justify-between">
-      {seasons.map((season, index) => (
-        <div
-          key={index}
-          className="relative h-auto transform transition duration-500 hover:scale-105"
+      {seasons.map((season) => (
+        <figure
+          key={season.category}
+          className="relative h-auto transform transition duration-500 hover:scale-105 cursor-pointer"
+          onClick={() => handleClick(season.category)}
         >
-          {/* Изображение */}
-          <img src={season.image} alt={season.alt} />
+          <img src={season.image} alt={season.alt} className="w-full" />
 
-          {/* Текст с градиентом */}
-          <span
+          <figcaption
             className="font-bebas-neue absolute inset-0 flex items-center justify-center text-xl lg:text-5xl animate-fade-in transition duration-500"
             style={{
               background: "linear-gradient(to bottom, white 80%, black 100%)",
@@ -53,18 +73,12 @@ function BannerSixth() {
               backgroundClip: "text",
               color: "transparent",
             }}
-            onMouseEnter={(e) => {
-              e.target.style.color = season.hoverColor; // Меняем цвет текста при наведении
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = "transparent"; // Возвращаем градиент при уходе курсора
-            }}
+            onMouseEnter={(e) => handleMouseEnter(e, season.hoverColor)}
+            onMouseLeave={handleMouseLeave}
           >
-            <a href="">
-              {season.text}
-            </a>
-          </span>
-        </div>
+            {season.text}
+          </figcaption>
+        </figure>
       ))}
     </div>
   );

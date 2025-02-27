@@ -1,18 +1,15 @@
 import React from 'react';
 import { useParams, Outlet, Navigate } from 'react-router-dom'; 
 
+export const VALID_GENDERS = ['man', 'woman', 'children'];
+
 function GenderRoute() {
-  const { gender } = useParams(); // Получаем gender из URL
+  const { gender } = useParams();
 
-  // Допустимые значения gender
-  const validGenders = ['man', 'woman', 'children'];
-
-  // Если gender недопустим, перенаправляем на страницу 404
-  if (!validGenders.includes(gender)) {
+  if (!VALID_GENDERS.includes(gender)) {
     return <Navigate to="/404" />;
   }
 
-  // Если gender допустим, рендерим Outlet для отображения вложенных маршрутов
   return <Outlet />;
 }
 

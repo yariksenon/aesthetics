@@ -1,59 +1,52 @@
-import { useState } from 'react';
-import Home from './components/home/Home';
-import Cart from './components/cart/Cart';
-import AdminPanel from './components/admin/AdminPanel';
-import AdminPanelUser from './components/admin/AdminUser';
-import WhyUs from './components/home/WhyUs';
-import NotFound from './components/notFound/NotFound'; // Импортируем компонент для страницы 404
-
-import Category from './components/category/category';
-import SubCategory from './components/subCategory/subCategory';
-import Product from './components/product/product';
-import './App.css';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
+import Loading from './components/loading/Loading';
+import { VALID_CATEGORIES } from './components/categories/Сategories';
+import { VALID_GENDERS } from './components/gender/Gender';
 
-// Компонент для проверки допустимых значений gender
+const Home = lazy(() => import('./components/home/Home'));
+const Cart = lazy(() => import('./components/cart/Cart'));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
+const Categories = lazy(() => import('./components/categories/Сategories'));
+const AdminPanelUser = lazy(() => import('./components/admin/AdminUser'));
+const WhyUs = lazy(() => import('./components/home/WhyUs'));
+const NotFound = lazy(() => import('./components/notFound/NotFound'));
+const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
+const Product = lazy(() => import('./components/product/Product'));
+
+
 function GenderRoute() {
-  const { gender } = useParams(); // Получаем gender из URL
+  const { gender } = useParams();
+  return VALID_GENDERS.includes(gender) ? <Home /> : <Navigate to="/404" />;
+}
 
-  // Допустимые значения gender
-  const validGenders = ['man', 'woman', 'children'];
-
-  // Если gender недопустим, перенаправляем на страницу 404
-  if (!validGenders.includes(gender)) {
-    return <Navigate to="/404" />;
-  }
-
-  // Если gender допустим, рендерим Home
-  return <Home />;
+function CategoryRoute() {
+  const { category } = useParams();
+  return VALID_CATEGORIES.includes(category) ? <Categories /> : <Navigate to="/404" />;
 }
 
 export default function App() {
-  return (
-    <>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Navigate to="/woman" />} /> {/* Перенаправление на /woman по умолчанию */}
+  const savedGender = localStorage.getItem('activeMenuItem');
+  const initialGender = VALID_GENDERS.includes(savedGender) ? savedGender : 'woman';
 
+  return (
+    <Router>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/" element={<Navigate to={`/${initialGender}`} />} />
           <Route path="/about" element={<WhyUs />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin/users" element={<AdminPanelUser />} />
-
-          {/* Маршруты для товаров */}
-          <Route path="/:gender" element={<GenderRoute />}>
-            <Route path=":category" element={<Category />}>
-              <Route path=":subcategory" element={<SubCategory />}>
-                <Route path=":productid" element={<Product />} />
-              </Route>
-            </Route>
-          </Route>
-
-          {/* Маршрут для страницы 404 */}
           <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" />} /> {/* Перенаправление на 404 для любых других маршрутов */}
+          <Route path="*" element={<Navigate to="/404" />} />
+
+          <Route path="/:gender" element={<GenderRoute />} />
+          <Route path="/:gender/:category" element={<CategoryRoute />} />
+          <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
+          <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
         </Routes>
-      </Router>
-    </>
+      </Suspense>
+    </Router>
   );
 }
