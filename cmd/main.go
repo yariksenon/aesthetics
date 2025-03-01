@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -18,6 +19,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+
+	// Create Gin router
+	r := gin.Default()
+
+	// Configure CORS
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // Разрешить запросы с этого origin
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true, // Разрешить передачу куки и авторизационных данных
+		ExposeHeaders:    []string{"Content-Length"},
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Connection to database
 	db, err := database.InitDB(
@@ -37,22 +51,11 @@ func main() {
 		log.Fatalf("Failed to initialize schema: %v", err)
 	}
 
-	// Create Gin router
-	r := gin.Default()
-
-	//Init SMTPClient
+	// Init SMTPClient
 	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
 
-	//Init Redis
+	// Init Redis
 	redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
-
-	// Cors policy
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization", "Access-Control-Allow-Origin"},
-		AllowCredentials: true,
-	}))
 
 	// Setup routes
 	routes.SetupRoutes(r, db, smtpClient, redisClient)

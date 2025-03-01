@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { fetchUsers, deleteUser, updateUserRole, updateUser } from '../../services/user';
-import { FaEdit, FaTrash, FaSave, FaTimes, FaFileExcel } from 'react-icons/fa'; // Добавлена иконка для Excel
+import { FaEdit, FaTrash, FaSave, FaTimes, FaFileExcel } from 'react-icons/fa';
 import Swal from 'sweetalert2';
-import * as XLSX from 'xlsx'; // Импорт библиотеки для работы с Excel
+import * as XLSX from 'xlsx';
 
 const AdminUser = () => {
     const [users, setUsers] = useState([]);
@@ -20,8 +20,16 @@ const AdminUser = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await fetchUsers();
-                setUsers(data);
+                // Запрос к бэкенду
+                const response = await axios.get('http://localhost:8080/api/v1/admin/users');
+                console.log('API Response:', response.data); // Логируем ответ
+    
+                // Проверяем, что response.data является массивом
+                if (Array.isArray(response.data)) {
+                    setUsers(response.data); // Устанавливаем данные
+                } else {
+                    setError('Ошибка: Данные не являются массивом');
+                }
             } catch (err) {
                 setError(err.response?.data?.message || 'Ошибка при загрузке пользователей');
                 console.error('Ошибка:', err);
@@ -29,7 +37,7 @@ const AdminUser = () => {
                 setLoading(false);
             }
         };
-
+    
         fetchData();
     }, []);
 

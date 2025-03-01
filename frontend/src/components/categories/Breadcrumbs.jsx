@@ -6,7 +6,7 @@ const translations = {
   new: "новинки",
   shoes: "обувь",
   clothes: "одежда",
-  training: "тренировка",
+  training: "тренировки",
   beauty: "красота",
   discounts: "скидки",
   hockey: "хоккей",

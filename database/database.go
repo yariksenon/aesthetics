@@ -65,8 +65,7 @@ CREATE TABLE IF NOT EXISTS user_address (
 CREATE TABLE IF NOT EXISTS category (
     id SERIAL PRIMARY KEY,
     name VARCHAR,
-    created_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    created_at TIMESTAMP
 );
 
 -- Таблица подкатегорий
@@ -74,8 +73,7 @@ CREATE TABLE IF NOT EXISTS sub_category (
     id SERIAL PRIMARY KEY,
     parent_id INTEGER REFERENCES category(id),
     name VARCHAR,
-    created_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    created_at TIMESTAMP
 );
 
 -- Таблица товаров
@@ -90,8 +88,7 @@ CREATE TABLE IF NOT EXISTS product (
     sku VARCHAR UNIQUE,
     price NUMERIC,
     quantity INTEGER,
-    created_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    created_at TIMESTAMP
 );
 
 -- Таблица списка желаний
@@ -100,7 +97,6 @@ CREATE TABLE IF NOT EXISTS wishlist (
     user_id INTEGER REFERENCES "user"(id),
     product_id INTEGER REFERENCES product(id),
     created_at TIMESTAMP,
-    deleted_at TIMESTAMP,
     UNIQUE(user_id, product_id)
 );
 

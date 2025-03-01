@@ -9,21 +9,18 @@ import (
 )
 
 func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client) {
-	// CORS configuration
-
 	v1 := r.Group("/api/v1")
 	{
-		// ГЛАВНАЯ
 		v1.GET("/", handlers.HomePage)
 
-		// Группа маршрутов для товаров
 		sexGroup := v1.Group("/:gender")
 		{
-			sexGroup.GET("/", handlers.GetGender) //пол
+			sexGroup.GET("/", handlers.GetGender)
 
 			categoryGroup := sexGroup.Group("/:category")
 			{
-				categoryGroup.GET("/", handlers.GetCategory) //категории
+
+				categoryGroup.GET("/", handlers.GetCategory(db)) //категории
 
 				subCategoryGroup := categoryGroup.Group("/:subcategory")
 				{
@@ -31,13 +28,12 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 					productGroup := subCategoryGroup.Group("/:productId")
 					{
-						productGroup.GET("/", handlers.GetProduct) //конкретный товар
+						productGroup.GET("/", handlers.GetProduct)
 					}
 				}
 			}
 		}
 
-		// КОРЗИНА
 		v1.GET("/cart", handlers.AuthMiddleware(db))               // Получить корзину пользователя
 		v1.POST("/cart/add", handlers.AuthMiddleware(db))          // Добавить товар в корзину
 		v1.PUT("/cart/update/:id", handlers.AuthMiddleware(db))    // Обновить количество товаров в корзине
@@ -65,6 +61,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/admin/users", handlers.AdminPage(db))
 		v1.PUT("/admin/users/:id", handlers.UpdateUser(db))
 		v1.DELETE("/admin/users/:id", handlers.DeleteUser(db))
-		//v1.PUT("/admin/users/:id/role", handlers.UpdateUserRole(db))
+
+		v1.GET("/admin/category", handlers.GetCategory(db))           // Получение конкретной категории по id
+		v1.PUT("/admin/category/:id", handlers.UpdateCategory(db))    // Обновление категории по id
+		v1.DELETE("/admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
+		v1.POST("/admin/category", handlers.CreateCategory(db))       // Создание новой категории
+
 	}
 }

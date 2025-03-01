@@ -18,7 +18,7 @@ type User struct {
 }
 
 type UserAddress struct {
-	Id          int       `json:"-"`
+	Id          int       `json:"id"`
 	UserId      int       `json:"user_id"`
 	AddressLine string    `json:"address_line"`
 	Country     string    `json:"country"`

@@ -3,7 +3,7 @@ package models
 import "time"
 
 type PaymentDetail struct {
-	Id        int       `json:"-"`
+	Id        int       `json:"id"`
 	OrderId   int       `json:"order_id"`
 	Amount    float64   `json:"amount"`
 	Provider  string    `json:"provider"`

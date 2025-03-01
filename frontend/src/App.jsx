@@ -8,12 +8,12 @@ const Home = lazy(() => import('./components/home/Home'));
 const Cart = lazy(() => import('./components/cart/Cart'));
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
 const Categories = lazy(() => import('./components/categories/Сategories'));
-const AdminPanelUser = lazy(() => import('./components/admin/AdminUser'));
 const WhyUs = lazy(() => import('./components/home/WhyUs'));
 const NotFound = lazy(() => import('./components/notFound/NotFound'));
 const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
 const Product = lazy(() => import('./components/product/Product'));
-
+const AdminUser = lazy(() => import('./components/admin/AdminUser'));
+const AdminCategory = lazy(() => import('./components/admin/AdminCategory'))
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -36,8 +36,7 @@ export default function App() {
           <Route path="/" element={<Navigate to={`/${initialGender}`} />} />
           <Route path="/about" element={<WhyUs />} />
           <Route path="/cart" element={<Cart />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/admin/users" element={<AdminPanelUser />} />
+
           <Route path="/404" element={<NotFound />} />
           <Route path="*" element={<Navigate to="/404" />} />
 
@@ -45,6 +44,11 @@ export default function App() {
           <Route path="/:gender/:category" element={<CategoryRoute />} />
           <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
           <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
+
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin/users" element={<AdminUser />} />
+          <Route path="/admin/category" element={<AdminCategory />} />
+          
         </Routes>
       </Suspense>
     </Router>
