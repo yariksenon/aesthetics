@@ -24,7 +24,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 				subCategoryGroup := categoryGroup.Group("/:subcategory")
 				{
-					subCategoryGroup.GET("/", handlers.GetSubCategory)
+					subCategoryGroup.GET("/", handlers.GetSubCategory(db))
 
 					productGroup := subCategoryGroup.Group("/:productId")
 					{
@@ -58,14 +58,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
 		//Admin panel
-		v1.GET("/admin/users", handlers.AdminPage(db))
-		v1.PUT("/admin/users/:id", handlers.UpdateUser(db))
-		v1.DELETE("/admin/users/:id", handlers.DeleteUser(db))
 
-		v1.GET("/admin/category", handlers.GetCategory(db))           // Получение конкретной категории по id
-		v1.PUT("/admin/category/:id", handlers.UpdateCategory(db))    // Обновление категории по id
-		v1.DELETE("/admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
-		v1.POST("/admin/category", handlers.CreateCategory(db))       // Создание новой категории
+		v1.GET("admin/users", handlers.AdminPage(db))
+		v1.PUT("admin/users/:id", handlers.UpdateUser(db))
+		v1.DELETE("admin/users/:id", handlers.DeleteUser(db))
+
+		v1.GET("admin/category", handlers.GetCategory(db))           // Получение конкретной категории по id
+		v1.PUT("admin/category/:id", handlers.UpdateCategory(db))    // Обновление категории по id
+		v1.DELETE("admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
+		v1.POST("admin/category", handlers.CreateCategory(db))
 
 	}
 }

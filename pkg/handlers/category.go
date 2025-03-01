@@ -13,7 +13,7 @@ func GetCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var categories []models.Category // Используем структуру из пакета models
 
-		rows, err := db.Query("SELECT id, name, created_at FROM category")
+		rows, err := db.Query("SELECT id, name, created_at FROM category ORDER BY id")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении категорий"})
 			log.Println(err)

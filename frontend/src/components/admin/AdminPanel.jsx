@@ -14,6 +14,7 @@ const AdminPanel = () => {
         { path: '/admin/users', label: 'Пользователи', icon: <FaUsers className="mr-2" /> },
         { path: '/admin/product', label: 'Товары', icon: <FaBox className="mr-2" /> },
         { path: '/admin/category', label: 'Категории', icon: <FaList className="mr-2" /> },
+        { path: '/admin/subcategory', label: 'Подкатегории', icon: <FaList className="mr-2" /> }, // Новая кнопка
         { path: '/admin/order', label: 'Заказы', icon: <FaShoppingBag className="mr-2" /> },
         { path: '/admin/payment', label: 'Платежи', icon: <FaCreditCard className="mr-2" /> },
         { path: '/admin/wishlist', label: 'Список желаний', icon: <FaHeart className="mr-2" /> },

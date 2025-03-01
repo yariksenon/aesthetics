@@ -12,7 +12,7 @@ func AdminPage(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var users []models.User
 
-		rows, err := db.Query("SELECT id, first_name, last_name, username, email, subscription, password, phone, role, created_at FROM \"user\"")
+		rows, err := db.Query("SELECT id, first_name, last_name, username, email, subscription, password, phone, role, created_at FROM \"user\" ORDER BY id;")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке пользователей"})
 			log.Println(err)

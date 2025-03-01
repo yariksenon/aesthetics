@@ -9,7 +9,7 @@ type Category struct {
 }
 
 type SubCategory struct {
-	Id        int       `json:"id"`
+	ID        int       `json:"id"`
 	ParentId  int       `json:"parent_id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`

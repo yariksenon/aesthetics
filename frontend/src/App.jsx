@@ -14,6 +14,7 @@ const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
 const Product = lazy(() => import('./components/product/Product'));
 const AdminUser = lazy(() => import('./components/admin/AdminUser'));
 const AdminCategory = lazy(() => import('./components/admin/AdminCategory'))
+const AdminSubCategory = lazy(() => import('./components/admin/AdminSubCategory'))
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/admin/users" element={<AdminUser />} />
           <Route path="/admin/category" element={<AdminCategory />} />
+          <Route path="/admin/subcategory" element={<AdminSubCategory />} />
           
         </Routes>
       </Suspense>

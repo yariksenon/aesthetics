@@ -5,18 +5,31 @@ import Arrow from '../../assets/category/accordion/DownArrow.svg';
 const Accordion = () => {
   const [openIndexes, setOpenIndexes] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState({});
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/v1/gender/category/');
-        setCategories(response.data.categories);
+        const categoriesResponse = await axios.get('http://localhost:8080/api/v1/gender/category/');
+        setCategories(categoriesResponse.data.categories);
+
+        const subCategoriesResponse = await axios.get('http://localhost:8080/api/v1/gender/category/subCategory/');
+        
+        const subCategoriesMap = subCategoriesResponse.data.subCategories.reduce((acc, subCategory) => {
+          if (!acc[subCategory.parent_id]) {
+            acc[subCategory.parent_id] = [];
+          }
+          acc[subCategory.parent_id].push(subCategory);
+          return acc;
+        }, {});
+
+        setSubCategories(subCategoriesMap);
       } catch (error) {
-        console.error('Ошибка при загрузке категорий:', error);
+        console.error('Ошибка при загрузке данных:', error);
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, []);
 
   const toggleAccordion = (index) => {
@@ -30,10 +43,10 @@ const Accordion = () => {
   return (
     <ul className="mt-2">
       {categories.slice(0, 8).map((category, index) => (
-        <li key={index} className="py-1">
+        <li key={category.id} className="py-1">
           <button
             onClick={() => toggleAccordion(index)}
-            className="w-full text-left  focus:outline-none flex justify-between items-center"
+            className="w-full text-left focus:outline-none flex justify-between items-center"
           >
             <span className="text-lg py-2 font-semibold">{category.name}</span>
             <img
@@ -46,8 +59,11 @@ const Accordion = () => {
           </button>
           {openIndexes.includes(index) && (
             <div className="mt-2">
-              
-              test
+              {subCategories[category.id]?.map((subCategory) => (
+                <div key={subCategory.id} className="pl-4 py-1">
+                  <span className="text-md cursor-pointer">{subCategory.name}</span>
+                </div>
+              ))}
             </div>
           )}
         </li>
