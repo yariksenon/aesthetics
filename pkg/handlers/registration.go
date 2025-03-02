@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 
 		// Проверка уникальности email
 		var emailExists bool
-		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM "user" WHERE email = $1)`, user.Email).Scan(&emailExists)
+		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM "user" WHERE email = $1)`, strings.ToLower(user.Email)).Scan(&emailExists)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
 			return
@@ -54,7 +55,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 		}
 
 		// Вставка данных пользователя в базу данных
-		_, err = db.Exec(`INSERT INTO "user" (username, email, password, phone, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)`, user.Username, user.Email, user.Password, user.Phone, "user", time.Now())
+		_, err = db.Exec(`INSERT INTO "user" (username, email, password, phone, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)`, user.Username, strings.ToLower(user.Email), user.Password, user.Phone, "user", time.Now())
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных пользователя"})

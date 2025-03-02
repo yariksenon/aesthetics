@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -38,8 +39,9 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Проверка существования email и получение пароля и id пользователя
-		err := db.QueryRow("SELECT id, password FROM \"user\" WHERE email=$1", user.Email).Scan(&userID, &dbPassword)
+		log.Println(strings.ToLower(user.Email))
+		err := db.QueryRow("SELECT id, password FROM \"user\" WHERE email=$1", strings.ToLower(user.Email)).Scan(&userID, &dbPassword)
+
 		if err != nil {
 			if err == sql.ErrNoRows {
 				log.Println("Email не существует")
@@ -90,7 +92,6 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 		}
 		http.SetCookie(c.Writer, cookie)
 
-		log.Println("Успешный вход:", user.Email, "role:", user.Role)
 		c.JSON(http.StatusOK, gin.H{"role": user.Role})
 	}
 }

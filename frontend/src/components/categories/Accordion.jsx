@@ -60,8 +60,8 @@ const Accordion = () => {
           {openIndexes.includes(index) && (
             <div className="mt-2">
               {subCategories[category.id]?.map((subCategory) => (
-                <div key={subCategory.id} className="pl-4 py-1">
-                  <span className="text-md cursor-pointer">{subCategory.name}</span>
+                <div key={subCategory.id} className=" py-2">
+                  <span className="text-md cursor-pointer text-gray-600 hover:text-stone-900">{subCategory.name}</span>
                 </div>
               ))}
             </div>

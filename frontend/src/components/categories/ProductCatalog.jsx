@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
 import Accordion from './Accordion'
+import ProductFilters from './ProductFilters'
 
 const ProductCatalog = () => {
   return (
@@ -8,6 +8,7 @@ const ProductCatalog = () => {
         <Accordion />
       </div>
       <div className="w-4/5">
+        <ProductFilters />
         {/* <div>Форма фильтрации</div>
           
         <div>форма товаров</div> */}

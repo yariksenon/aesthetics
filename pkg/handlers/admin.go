@@ -85,7 +85,15 @@ func DeleteUser(db *sql.DB) gin.HandlerFunc {
 
 func UpdateUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var user models.User
+		var user struct {
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+			Username  string `json:"username"`
+			Email     string `json:"email"`
+			Phone     string `json:"phone"`
+			Password  string `json:"password"`
+			Role      string `json:"role"`
+		}
 
 		if err := c.ShouldBindJSON(&user); err != nil {
 			log.Printf("Ошибка при парсинге JSON: %v\n", err)
