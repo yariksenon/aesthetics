@@ -11,7 +11,7 @@ import (
 
 func GetCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var categories []models.Category // Используем структуру из пакета models
+		var categories []models.Category
 
 		rows, err := db.Query("SELECT id, name, created_at FROM category ORDER BY id")
 		if err != nil {
@@ -21,7 +21,6 @@ func GetCategory(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		// Обработка каждой строки
 		for rows.Next() {
 			var category models.Category
 
@@ -44,7 +43,7 @@ func GetCategory(db *sql.DB) gin.HandlerFunc {
 
 func UpdateCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		id := c.Param("id") // Получаем ID из параметров запроса
+		id := c.Param("id")
 
 		var updatedCategory models.Category
 		if err := c.ShouldBindJSON(&updatedCategory); err != nil {
@@ -52,7 +51,6 @@ func UpdateCategory(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Обновление категории в базе данных
 		_, err := db.Exec(
 			"UPDATE category SET name = $1 WHERE id = $2",
 			updatedCategory.Name, id,

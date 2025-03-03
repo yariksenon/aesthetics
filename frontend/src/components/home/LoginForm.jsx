@@ -39,7 +39,12 @@ const LoginForm = ({ switchToRegister }) => {
             const response = await axios.post('http://localhost:8080/api/v1/login', data, { withCredentials: true });
             setErrorMessage('');
             reset();
-
+    
+            // Сохраняем данные пользователя
+            localStorage.setItem('token', response.data.token); // Сохраняем токен
+            localStorage.setItem('userId', response.data.userId); // Сохраняем ID пользователя
+            localStorage.setItem('role', response.data.role); // Сохраняем роль
+    
             // Перенаправление в зависимости от роли
             if (response.data.role === 'admin') {
                 navigate('/admin');

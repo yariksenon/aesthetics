@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { FaEdit, FaTrash, FaSave, FaTimes, FaPlus } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSortUp, FaSortDown, FaArrowLeft } from 'react-icons/fa';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://localhost:8080/api/v1/admin/category';
 
@@ -16,6 +17,9 @@ const AdminCategory = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [newCategory, setNewCategory] = useState({ name: '' });
     const [isAdding, setIsAdding] = useState(false);
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+    const navigate = useNavigate();
 
     const fetchCategories = useCallback(async () => {
         try {
@@ -108,13 +112,33 @@ const AdminCategory = () => {
         }
     };
 
-    const filteredCategories = categories.filter(category =>
+    const handleSort = useCallback((key) => {
+        let direction = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    }, [sortConfig]);
+
+    const filteredCategories = useMemo(() => categories.filter(category =>
         category.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ), [categories, searchTerm]);
+
+    const sortedCategories = useMemo(() => filteredCategories.sort((a, b) => {
+        if (sortConfig.key) {
+            if (a[sortConfig.key] < b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? -1 : 1;
+            }
+            if (a[sortConfig.key] > b[sortConfig.key]) {
+                return sortConfig.direction === 'asc' ? 1 : -1;
+            }
+        }
+        return 0;
+    }), [filteredCategories, sortConfig]);
 
     const indexOfLastCategory = currentPage * categoriesPerPage;
     const indexOfFirstCategory = indexOfLastCategory - categoriesPerPage;
-    const currentCategories = filteredCategories.slice(indexOfFirstCategory, indexOfLastCategory);
+    const currentCategories = sortedCategories.slice(indexOfFirstCategory, indexOfLastCategory);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
@@ -124,9 +148,17 @@ const AdminCategory = () => {
 
     return (
         <div className="p-8 bg-white min-h-screen">
+            <button
+                onClick={() => navigate(-1)}
+                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center mb-4"
+            >
+                <FaArrowLeft className="mr-2" />
+                Назад
+            </button>
+    
             <h1 className="text-2xl font-bold mb-4 text-black">Категории</h1>
             {error && <div className="text-red-500 mb-4">{error}</div>}
-
+    
             <div className="mb-4">
                 <input
                     type="text"
@@ -136,17 +168,7 @@ const AdminCategory = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-black"
                 />
             </div>
-
-            <div className="mb-4">
-                <button
-                    onClick={() => setIsAdding(!isAdding)}
-                    className="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 flex items-center"
-                >
-                    <FaPlus className="mr-2" />
-                    Добавить категорию
-                </button>
-            </div>
-
+    
             {isAdding && (
                 <div className="mb-4">
                     <input
@@ -165,7 +187,7 @@ const AdminCategory = () => {
                     </button>
                 </div>
             )}
-
+    
             <CategoryTable
                 categories={currentCategories}
                 editingCategoryId={editingCategoryId}
@@ -175,14 +197,20 @@ const AdminCategory = () => {
                 handleCancelEdit={handleCancelEdit}
                 handleDeleteCategory={handleDeleteCategory}
                 setEditedCategory={setEditedCategory}
+                handleSort={handleSort}
+                sortConfig={sortConfig}
             />
-
+    
             <Pagination
                 totalCategories={filteredCategories.length}
                 categoriesPerPage={categoriesPerPage}
                 currentPage={currentPage}
                 paginate={paginate}
             />
+    
+            <div className="mt-4 text-gray-700">
+                Показано {currentCategories.length} из {filteredCategories.length} категорий
+            </div>
         </div>
     );
 };
@@ -195,15 +223,44 @@ const CategoryTable = ({
     handleSaveCategory,
     handleCancelEdit,
     handleDeleteCategory,
-    setEditedCategory
+    setEditedCategory,
+    handleSort,
+    sortConfig
 }) => (
     <div className="overflow-x-auto">
         <table className="w-full text-center border-collapse border border-gray-300 shadow-lg">
             <thead className="bg-gray-800 text-white">
                 <tr>
-                    <th className="border border-gray-300 p-2">ID</th>
-                    <th className="border border-gray-300 p-2">Название</th>
-                    <th className="border border-gray-300 p-2">Дата создания</th>
+                    <th className="border border-gray-300 p-2 cursor-pointer relative" onClick={() => handleSort('id')}>
+                        <div className="flex items-center justify-center">
+                            <span>ID</span>
+                            {sortConfig.key === 'id' && (
+                                <span className="ml-2 absolute right-2">
+                                    {sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />}
+                                </span>
+                            )}
+                        </div>
+                    </th>
+                    <th className="border border-gray-300 p-2 cursor-pointer relative" onClick={() => handleSort('name')}>
+                        <div className="flex items-center justify-center">
+                            <span>Название</span>
+                            {sortConfig.key === 'name' && (
+                                <span className="ml-2 absolute right-2">
+                                    {sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />}
+                                </span>
+                            )}
+                        </div>
+                    </th>
+                    <th className="border border-gray-300 p-2 cursor-pointer relative" onClick={() => handleSort('created_at')}>
+                        <div className="flex items-center justify-center">
+                            <span>Дата создания</span>
+                            {sortConfig.key === 'created_at' && (
+                                <span className="ml-2 absolute right-2">
+                                    {sortConfig.direction === 'asc' ? <FaSortUp /> : <FaSortDown />}
+                                </span>
+                            )}
+                        </div>
+                    </th>
                     <th className="border border-gray-300 p-2">Действия</th>
                 </tr>
             </thead>

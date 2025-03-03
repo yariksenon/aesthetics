@@ -51,15 +51,16 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		protected := v1.Group("/profile")
 		protected.Use(handlers.AuthMiddleware(db))
-		protected.GET("/") // Просмотреть профиль
-		protected.PUT("/") // Обновить профиль
+		protected.GET("/", handlers.GetProfile(db)) // Просмотреть профиль
+		protected.PUT("/")                          // Обновить профиль
+		protected.POST("/address")                  // Обновить профиль
 
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
 		//Admin panel
 
-		v1.GET("admin/users", handlers.AdminPage(db))
+		v1.GET("admin/users", handlers.GetUsers(db))
 		v1.PUT("admin/users/:id", handlers.UpdateUser(db))
 		v1.DELETE("admin/users/:id", handlers.DeleteUser(db))
 

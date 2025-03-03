@@ -39,7 +39,6 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		log.Println(strings.ToLower(user.Email))
 		err := db.QueryRow("SELECT id, password FROM \"user\" WHERE email=$1", strings.ToLower(user.Email)).Scan(&userID, &dbPassword)
 
 		if err != nil {
@@ -92,28 +91,33 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 		}
 		http.SetCookie(c.Writer, cookie)
 
-		c.JSON(http.StatusOK, gin.H{"role": user.Role})
+		c.JSON(http.StatusOK, gin.H{
+			"role":   user.Role,
+			"token":  sessionToken,
+			"userId": userID},
+		)
 	}
 }
 
 func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Получение куки с токеном сессии
-		cookie, err := c.Cookie("session_token")
-		if err != nil {
+		// Получение токена из заголовка Authorization
+		token := c.GetHeader("Authorization")
+		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Необходимо войти в систему"})
 			c.Abort()
 			return
 		}
 
-		// Получение user_id и роли пользователя из базы данных
+		token = strings.TrimPrefix(token, "Bearer ")
+
 		var userID int
 		var role string
-		err = db.QueryRow(`
+		err := db.QueryRow(`
             SELECT u.id, u.role 
             FROM session s 
             JOIN "user" u ON s.user_id = u.id 
-            WHERE s.session_token = $1`, cookie).Scan(&userID, &role)
+            WHERE s.session_token = $1`, token).Scan(&userID, &role)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Недействительная сессия"})
@@ -125,16 +129,8 @@ func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Сохранение userID и роли в контексте
 		c.Set("userID", userID)
 		c.Set("role", role)
-
-		// Проверка роли для доступа к /admin
-		if c.Request.URL.Path == "/admin" && role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен"})
-			c.Abort()
-			return
-		}
 
 		c.Next()
 	}

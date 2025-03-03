@@ -6,7 +6,7 @@ import (
 )
 
 type User struct {
-	Id        int            `json:"id"`
+	ID        int            `json:"id"`
 	FirstName sql.NullString `json:"first_name"`
 	LastName  sql.NullString `json:"last_name"`
 	Username  string         `json:"username"`
