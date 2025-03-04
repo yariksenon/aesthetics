@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'rea
 import Loading from './components/loading/Loading';
 import { VALID_CATEGORIES } from './components/categories/Сategories';
 import { VALID_GENDERS } from './components/gender/Gender';
+import ProtectedRoute from './components/admin/ProtectedRoute'; 
 
 const Home = lazy(() => import('./components/home/Home'));
 const Cart = lazy(() => import('./components/cart/Cart'));
@@ -47,11 +48,40 @@ export default function App() {
           <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
           <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
 
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/admin/users" element={<AdminUser />} />
-          <Route path="/admin/category" element={<AdminCategory />} />
-          <Route path="/admin/subcategory" element={<AdminSubCategory />} />
-          
+          {/* Защищённые маршруты для админ-панели */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPanel />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <AdminUser />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/category"
+            element={
+              <ProtectedRoute>
+                <AdminCategory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/subcategory"
+            element={
+              <ProtectedRoute>
+                <AdminSubCategory />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </Suspense>

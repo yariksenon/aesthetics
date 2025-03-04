@@ -37,7 +37,7 @@ func GetProfile(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user profile"})
 			return
 		}
-
+		
 		c.JSON(http.StatusOK, user)
 	}
 }

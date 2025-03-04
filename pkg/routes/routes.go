@@ -69,5 +69,10 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.DELETE("admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
 		v1.POST("admin/category", handlers.CreateCategory(db))
 
+		v1.GET("admin/subcategory", handlers.GetSubCategory(db))           // Получение конкретной категории по id
+		v1.PUT("admin/subcategory/:id", handlers.UpdateSubCategory(db))    // Обновление категории по id
+		v1.DELETE("admin/subcategory/:id", handlers.DeleteSubCategory(db)) // Удаление категории по id
+		//v1.POST("admin/subcategory", handlers.CreateCategory(db))
+
 	}
 }

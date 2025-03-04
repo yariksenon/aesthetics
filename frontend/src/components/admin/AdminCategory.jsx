@@ -155,10 +155,71 @@ const AdminCategory = () => {
                 <FaArrowLeft className="mr-2" />
                 Назад
             </button>
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
     
             <h1 className="text-2xl font-bold mb-4 text-black">Категории</h1>
             {error && <div className="text-red-500 mb-4">{error}</div>}
     
+            <button
+                onClick={() => setIsAdding(true)}
+                className="bg-black text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center mb-4"
+            >
+                <FaPlus className="mr-2" />
+                Добавить категорию
+            </button>
+
+            {isAdding && (
+                <div className="mb-4 flex flex-col items-start">
+                    <input
+                        type="text"
+                        placeholder="Название категории"
+                        value={newCategory.name}
+                        onChange={(e) => setNewCategory({ name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-black"
+                    />
+                    <div className="flex mt-2">
+                        <button
+                            onClick={handleCreateCategory}
+                            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition duration-300 ease-in-out flex items-center mr-2"
+                        >
+                            <FaSave className="mr-2" />
+                            Сохранить
+                        </button>
+                        <button
+                            onClick={() => setIsAdding(false)}
+                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-300 ease-in-out flex items-center"
+                        >
+                            <FaTimes className="mr-2" />
+                            Отмена
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="mb-4">
                 <input
                     type="text"
@@ -169,24 +230,9 @@ const AdminCategory = () => {
                 />
             </div>
     
-            {isAdding && (
-                <div className="mb-4">
-                    <input
-                        type="text"
-                        placeholder="Название категории"
-                        value={newCategory.name}
-                        onChange={(e) => setNewCategory({ name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 bg-white text-black"
-                    />
-                    <button
-                        onClick={handleCreateCategory}
-                        className="mt-2 bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 flex items-center"
-                    >
-                        <FaSave className="mr-2" />
-                        Сохранить
-                    </button>
-                </div>
-            )}
+            
+
+            
     
             <CategoryTable
                 categories={currentCategories}
