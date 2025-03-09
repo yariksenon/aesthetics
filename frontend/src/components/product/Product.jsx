@@ -1,16 +1,16 @@
 import { useParams } from 'react-router-dom';
+import AsideBanner from '../home/AsideBanner';
+import Header from '../home/Header';
+import Section from '../home/Section';
+import Footer from '../home/Footer'
 
 function Product() {
-  const { gender, category, subcategory, productid } = useParams(); // Получаем ID товара из URL
 
   return (
-    <div>
-      <h2>Гендер: {gender}</h2>
-      <h2>Категория: {category}</h2>
-      <h2>Подкатегория: {subcategory}</h2>
-      <h2>Товар: {productid}</h2>
-      {/* Здесь можно отображать детали товара */}
-    </div>
+    <>
+      <Header />
+      <Footer />
+    </>
   );
 }
 

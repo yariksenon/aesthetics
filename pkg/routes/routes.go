@@ -20,15 +20,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			categoryGroup := sexGroup.Group("/:category")
 			{
 
-				categoryGroup.GET("/", handlers.GetCategory(db)) //категории
+				categoryGroup.GET("/", handlers.GetCategory(db))
 
 				subCategoryGroup := categoryGroup.Group("/:subcategory")
 				{
 					subCategoryGroup.GET("/", handlers.GetSubCategory(db))
 
-					productGroup := subCategoryGroup.Group("/:productId")
+					productGroup := subCategoryGroup.Group("/:productID")
 					{
-						productGroup.GET("/", handlers.GetProduct)
+						productGroup.GET("/", handlers.GetProducts(db))
 					}
 				}
 			}
@@ -59,7 +59,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
 		//Admin panel
-
 		v1.GET("admin/users", handlers.GetUsers(db))
 		v1.PUT("admin/users/:id", handlers.UpdateUser(db))
 		v1.DELETE("admin/users/:id", handlers.DeleteUser(db))
@@ -69,10 +68,23 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.DELETE("admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
 		v1.POST("admin/category", handlers.CreateCategory(db))
 
-		v1.GET("admin/subcategory", handlers.GetSubCategory(db))           // Получение конкретной категории по id
-		v1.PUT("admin/subcategory/:id", handlers.UpdateSubCategory(db))    // Обновление категории по id
-		v1.DELETE("admin/subcategory/:id", handlers.DeleteSubCategory(db)) // Удаление категории по id
-		//v1.POST("admin/subcategory", handlers.CreateCategory(db))
+		v1 := r.Group("/api/v1")
+		{
+			admin := v1.Group("/admin")
+			{
+				admin.GET("/subcategories", handlers.GetSubCategories(db))
+				admin.GET("/subcategories/:id", handlers.GetSubCategory(db))
+				admin.POST("/subcategories", handlers.CreateSubCategory(db))
+				admin.PUT("/subcategories/:id", handlers.UpdateSubCategory(db))
+				admin.DELETE("/subcategories/:id", handlers.DeleteSubCategory(db))
+			}
+		}
 
+		v1.GET("admin/products", handlers.GetProducts(db))
+		v1.GET("admin/products/:productID", handlers.GetProduct(db))
+		v1.POST("admin/products", handlers.AddProduct(db))
+		v1.PUT("admin/products/:id", handlers.UpdateProduct(db))
+		v1.DELETE("admin/products/:id", handlers.DeleteProduct(db))
+		v1.POST("admin/products/refresh", handlers.RefreshProducts(db))
 	}
 }

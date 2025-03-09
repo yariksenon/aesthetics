@@ -7,16 +7,20 @@ import ProtectedRoute from './components/admin/ProtectedRoute';
 
 const Home = lazy(() => import('./components/home/Home'));
 const Cart = lazy(() => import('./components/cart/Cart'));
-const AdminPanel = lazy(() => import('./components/admin/AdminPanel'));
+
 const Categories = lazy(() => import('./components/categories/Сategories'));
 const WhyUs = lazy(() => import('./components/home/WhyUs'));
 const NotFound = lazy(() => import('./components/notFound/NotFound'));
 const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
 const Product = lazy(() => import('./components/product/Product'));
-const AdminUser = lazy(() => import('./components/admin/AdminUser'));
-const AdminCategory = lazy(() => import('./components/admin/AdminCategory'))
-const AdminSubCategory = lazy(() => import('./components/admin/AdminSubCategory'))
+//Profile
 const Profile = lazy(() => import('./components/profile/Profile'))
+//Admin
+const AdminUser = lazy(() => import('./components/admin/User'));
+const AdminCategory = lazy(() => import('./components/admin/Category'))
+const AdminPanel = lazy(() => import('./components/admin/Panel'));
+const AdminProduct = lazy(() => import('./components/admin/Products'));
+const AdminSubCategories = lazy(() => import('./components/admin/SubCategories'))
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -48,7 +52,6 @@ export default function App() {
           <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
           <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
 
-          {/* Защищённые маршруты для админ-панели */}
           <Route
             path="/admin"
             element={
@@ -66,7 +69,7 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/category"
+            path="/admin/categories"
             element={
               <ProtectedRoute>
                 <AdminCategory />
@@ -74,10 +77,58 @@ export default function App() {
             }
           />
           <Route
-            path="/admin/subcategory"
+            path="/admin/subcategories"
             element={
               <ProtectedRoute>
-                <AdminSubCategory />
+                <AdminSubCategories />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <ProtectedRoute>
+                <AdminProduct />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/orders"
+            element={
+              <ProtectedRoute>
+                <SubCategory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/payments"
+            element={
+              <ProtectedRoute>
+                <SubCategory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/wishlists"
+            element={
+              <ProtectedRoute>
+                <SubCategory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/carts"
+            element={
+              <ProtectedRoute>
+                <SubCategory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/statistics"
+            element={
+              <ProtectedRoute>
+                <SubCategory />
               </ProtectedRoute>
             }
           />

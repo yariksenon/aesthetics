@@ -158,7 +158,7 @@ const UserRow = React.memo(({ user, editingUserId, editedUser, handleInputChange
     );
 });
 
-const AdminUser = () => {
+const User = () => {
     const [users, setUsers] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -530,4 +530,4 @@ const AdminUser = () => {
     );
 };
 
-export default AdminUser;
+export default User;

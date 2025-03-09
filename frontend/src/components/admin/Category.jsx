@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 
 const API_URL = 'http://localhost:8080/api/v1/admin/category';
 
-const AdminCategory = () => {
+const Category = () => {
     const [categories, setCategories] = useState([]);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(true);
@@ -155,31 +155,6 @@ const AdminCategory = () => {
                 <FaArrowLeft className="mr-2" />
                 Назад
             </button>
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
     
             <h1 className="text-2xl font-bold mb-4 text-black">Категории</h1>
             {error && <div className="text-red-500 mb-4">{error}</div>}
@@ -385,4 +360,4 @@ const Pagination = ({ totalCategories, categoriesPerPage, currentPage, paginate 
     </div>
 );
 
-export default AdminCategory;
+export default Category;

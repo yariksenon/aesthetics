@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSearch, FaSync, FaSortUp, FaSortDown } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSearch, FaSortUp, FaSortDown } from "react-icons/fa";
 import Swal from "sweetalert2";
 
 const SubCategories = () => {
@@ -122,7 +122,7 @@ const SubCategories = () => {
             if (result.isConfirmed) {
                 try {
                     const dataToSend = {
-                        ...editingSubCategory,
+                        name: editingSubCategory.name,
                         parent_id: Number(editingSubCategory.parent_id),
                     };
                     const response = await axios.put(`http://localhost:8080/api/v1/admin/subcategories/${editingSubCategory.id}`, dataToSend);
@@ -173,6 +173,11 @@ const SubCategories = () => {
         }
         if (sortConfig.key) {
             result.sort((a, b) => {
+                if (sortConfig.key === "created_at") {
+                    const dateA = new Date(a[sortConfig.key]);
+                    const dateB = new Date(b[sortConfig.key]);
+                    return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
+                }
                 if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
                 if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
                 return 0;

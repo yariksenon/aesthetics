@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS category (
 );
 
 -- Таблица подкатегорий
-CREATE TABLE IF NOT EXISTS sub_category (
+CREATE TABLE IF NOT EXISTS subcategories (
     id SERIAL PRIMARY KEY,
     parent_id INTEGER REFERENCES category(id),
     name VARCHAR,
@@ -85,11 +85,14 @@ CREATE TABLE IF NOT EXISTS product (
     sub_category_id INTEGER REFERENCES sub_category(id),
     color VARCHAR,
     size VARCHAR,
-    sku VARCHAR UNIQUE,
+    sku INTEGER UNIQUE DEFAULT nextval('sku_seq'),
     price NUMERIC,
     quantity INTEGER,
     created_at TIMESTAMP
 );
+
+-- Последовательность
+CREATE SEQUENCE IF NOT EXISTS sku_seq START 100000;
 
 -- Таблица списка желаний
 CREATE TABLE IF NOT EXISTS wishlist (
