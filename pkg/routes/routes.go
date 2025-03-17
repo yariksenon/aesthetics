@@ -59,32 +59,48 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
 		//Admin panel
-		v1.GET("admin/users", handlers.GetUsers(db))
-		v1.PUT("admin/users/:id", handlers.UpdateUser(db))
-		v1.DELETE("admin/users/:id", handlers.DeleteUser(db))
-
-		v1.GET("admin/category", handlers.GetCategory(db))           // Получение конкретной категории по id
-		v1.PUT("admin/category/:id", handlers.UpdateCategory(db))    // Обновление категории по id
-		v1.DELETE("admin/category/:id", handlers.DeleteCategory(db)) // Удаление категории по id
-		v1.POST("admin/category", handlers.CreateCategory(db))
-
-		v1 := r.Group("/api/v1")
+		admin := v1.Group("/admin")
 		{
-			admin := v1.Group("/admin")
+			category := admin.Group("/category")
 			{
-				admin.GET("/subcategories", handlers.GetSubCategories(db))
-				admin.GET("/subcategories/:id", handlers.GetSubCategory(db))
-				admin.POST("/subcategories", handlers.CreateSubCategory(db))
-				admin.PUT("/subcategories/:id", handlers.UpdateSubCategory(db))
-				admin.DELETE("/subcategories/:id", handlers.DeleteSubCategory(db))
+				category.GET("", handlers.GetCategory(db))           // Получение имеющих категорий
+				category.PUT("/:id", handlers.UpdateCategory(db))    // Обновление категории по id
+				category.DELETE("/:id", handlers.DeleteCategory(db)) // Удаление категории по id
+				category.POST("", handlers.CreateCategory(db))       // Создание новой категории
+			}
+
+			subCategory := admin.Group("/subcategory")
+			{
+				subCategory.GET("", handlers.GetSubCategories(db))
+				subCategory.POST("", handlers.CreateSubCategory(db))
+
+				subCategory.GET("/:id", handlers.GetSubCategory(db))
+				subCategory.PUT("/:id", handlers.UpdateSubCategory(db))
+				subCategory.DELETE("/:id", handlers.DeleteSubCategory(db))
+			}
+
+			user := admin.Group("/user")
+			{
+				user.GET("", handlers.GetUsers(db))
+				user.PUT("/:id", handlers.UpdateUser(db))
+				user.DELETE("/:id", handlers.DeleteUser(db))
+			}
+
+			product := admin.Group("/product")
+			{
+				product.GET("", handlers.GetProducts(db))
+				product.GET("/:productID", handlers.GetProduct(db))
+				product.POST("", handlers.AddProduct(db))
+				product.PUT("/:id", handlers.UpdateProduct(db))
+				product.DELETE("/:id", handlers.DeleteProduct(db))
 			}
 		}
 
-		v1.GET("admin/products", handlers.GetProducts(db))
-		v1.GET("admin/products/:productID", handlers.GetProduct(db))
-		v1.POST("admin/products", handlers.AddProduct(db))
-		v1.PUT("admin/products/:id", handlers.UpdateProduct(db))
-		v1.DELETE("admin/products/:id", handlers.DeleteProduct(db))
-		v1.POST("admin/products/refresh", handlers.RefreshProducts(db))
+		//v1.GET("admin/products", handlers.GetProducts(db))
+		//v1.GET("admin/products/:productID", handlers.GetProduct(db))
+		//v1.POST("admin/products", handlers.AddProduct(db))
+		//v1.PUT("admin/products/:id", handlers.UpdateProduct(db))
+		//v1.DELETE("admin/products/:id", handlers.DeleteProduct(db))
+		//v1.POST("admin/products/refresh", handlers.RefreshProducts(db))
 	}
 }

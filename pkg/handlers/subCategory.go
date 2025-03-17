@@ -12,7 +12,7 @@ import (
 
 func GetSubCategories(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, parent_id, name, created_at FROM subcategories")
+		rows, err := db.Query("SELECT id, parent_id, name, created_at FROM sub_category")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -33,7 +33,6 @@ func GetSubCategories(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// GetSubCategory возвращает подкатегорию по ID
 func GetSubCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
@@ -57,17 +56,26 @@ func GetSubCategory(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// CreateSubCategory создает новую подкатегорию
 func CreateSubCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var sc models.SubCategory
 		if err := c.ShouldBindJSON(&sc); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
+			return
+		}
+
+		// Валидация
+		if sc.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Название не может быть пустым"})
+			return
+		}
+		if sc.ParentId == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Родительская категория не указана"})
 			return
 		}
 
 		err := db.QueryRow(
-			"INSERT INTO subcategories (parent_id, name, created_at) VALUES ($1, $2, $3) RETURNING id, created_at",
+			"INSERT INTO sub_category (parent_id, name, created_at) VALUES ($1, $2, $3) RETURNING id, created_at",
 			sc.ParentId, sc.Name, time.Now(),
 		).Scan(&sc.ID, &sc.CreatedAt)
 		if err != nil {
@@ -79,7 +87,6 @@ func CreateSubCategory(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// UpdateSubCategory обновляет подкатегорию
 func UpdateSubCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))
@@ -121,7 +128,6 @@ func UpdateSubCategory(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// DeleteSubCategory удаляет подкатегорию
 func DeleteSubCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id, err := strconv.Atoi(c.Param("id"))

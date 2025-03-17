@@ -24,17 +24,15 @@ const Category = () => {
     const fetchCategories = useCallback(async () => {
         try {
             const response = await axios.get(API_URL);
-            if (response.data && Array.isArray(response.data.categories)) {
+            if (response.data?.categories) {
                 setCategories(response.data.categories);
-            } else {
-                setError('Ошибка: Данные не являются массивом');
             }
         } catch (err) {
             setError(err.response?.data?.message || 'Ошибка при загрузке категорий');
             console.error('Ошибка:', err);
         } finally {
             setLoading(false);
-        }
+        }        
     }, []);
 
     useEffect(() => {
@@ -99,10 +97,10 @@ const Category = () => {
             setError('Название категории не может быть пустым');
             return;
         }
-
+    
         try {
             const response = await axios.post(API_URL, newCategory);
-            setCategories([...categories, response.data]);
+            setCategories([...categories, response.data]); // Добавляем новую категорию в состояние
             setIsAdding(false);
             setNewCategory({ name: '' });
             Swal.fire('Успех!', 'Категория успешно создана.', 'success');
@@ -286,59 +284,67 @@ const CategoryTable = ({
                 </tr>
             </thead>
             <tbody>
-                {categories.map((category) => (
-                    <tr key={category.id} className="hover:bg-gray-100 transition-colors">
-                        <td className="border border-gray-300 p-2">{category.id}</td>
-                        <td className="border border-gray-300 p-2">
-                            {editingCategoryId === category.id ? (
-                                <input
-                                    type="text"
-                                    value={editedCategory.name}
-                                    onChange={(e) => setEditedCategory({ ...editedCategory, name: e.target.value })}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded bg-white text-black"
-                                />
-                            ) : (
-                                category.name
-                            )}
-                        </td>
-                        <td className="border border-gray-300 p-2">
-                            {new Date(category.created_at).toLocaleString()}
-                        </td>
-                        <td className="border border-gray-300 p-2">
-                            {editingCategoryId === category.id ? (
-                                <>
-                                    <button
-                                        onClick={handleSaveCategory}
-                                        className="bg-gray-800 text-white px-2 py-1 rounded hover:bg-gray-900 mr-2"
-                                    >
-                                        <FaSave />
-                                    </button>
-                                    <button
-                                        onClick={handleCancelEdit}
-                                        className="bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
-                                    >
-                                        <FaTimes />
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={() => handleEditCategory(category)}
-                                        className="bg-gray-800 text-white px-2 py-1 rounded hover:bg-gray-900 mr-2"
-                                    >
-                                        <FaEdit />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteCategory(category.id)}
-                                        className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
-                                    >
-                                        <FaTrash />
-                                    </button>
-                                </>
-                            )}
+                {categories.length > 0 ? (
+                    categories.map((category) => (
+                        <tr key={category.id} className="hover:bg-gray-100 transition-colors">
+                            <td className="border border-gray-300 p-2">{category.id}</td>
+                            <td className="border border-gray-300 p-2">
+                                {editingCategoryId === category.id ? (
+                                    <input
+                                        type="text"
+                                        value={editedCategory.name}
+                                        onChange={(e) => setEditedCategory({ ...editedCategory, name: e.target.value })}
+                                        className="w-full px-2 py-1 border border-gray-300 rounded bg-white text-black"
+                                    />
+                                ) : (
+                                    category.name
+                                )}
+                            </td>
+                            <td className="border border-gray-300 p-2">
+                                {new Date(category.created_at).toLocaleString()}
+                            </td>
+                            <td className="border border-gray-300 p-2">
+                                {editingCategoryId === category.id ? (
+                                    <>
+                                        <button
+                                            onClick={handleSaveCategory}
+                                            className="bg-gray-800 text-white px-2 py-1 rounded hover:bg-gray-900 mr-2"
+                                        >
+                                            <FaSave />
+                                        </button>
+                                        <button
+                                            onClick={handleCancelEdit}
+                                            className="bg-gray-500 text-white px-2 py-1 rounded hover:bg-gray-600"
+                                        >
+                                            <FaTimes />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => handleEditCategory(category)}
+                                            className="bg-gray-800 text-white px-2 py-1 rounded hover:bg-gray-900 mr-2"
+                                        >
+                                            <FaEdit />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteCategory(category.id)}
+                                            className="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                                        >
+                                            <FaTrash />
+                                        </button>
+                                    </>
+                                )}
+                            </td>
+                        </tr>
+                    ))
+                ) : (
+                    <tr>
+                        <td colSpan="4" className="py-4 text-center text-gray-500 italic">
+                            Категории отсутствуют
                         </td>
                     </tr>
-                ))}
+                )}
             </tbody>
         </table>
     </div>

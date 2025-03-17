@@ -181,7 +181,6 @@ const User = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const response = await axios.get('http://localhost:8080/api/v1/admin/users');
                 const adaptedUsers = response.data.map(user => ({
                     ...user,
                     first_name: user.first_name?.String || '',
@@ -268,7 +267,7 @@ const User = () => {
             if (result.isConfirmed) {
                 try {
                     await Promise.all(selectedUsers.map(userId =>
-                        axios.delete(`http://localhost:8080/api/v1/admin/users/${userId}`)
+                        axios.delete(`http://localhost:8080/api/v1/admin/user/${userId}`)
                     ));
                     setUsers(users.filter(user => !selectedUsers.includes(user.id)));
                     setSelectedUsers([]);
@@ -469,7 +468,7 @@ const User = () => {
                                     }).then(async (result) => {
                                         if (result.isConfirmed) {
                                             try {
-                                                await axios.delete(`http://localhost:8080/api/v1/admin/users/${userId}`);
+                                                await axios.delete(`http://localhost:8080/api/v1/admin/user/${userId}`);
                                                 setUsers(users.filter(user => user.id !== userId));
                                                 Swal.fire('Удалено!', 'Пользователь был удален.', 'success');
                                             } catch (err) {
@@ -492,7 +491,7 @@ const User = () => {
 
                                     if (result.isConfirmed) {
                                         try {
-                                            const response = await axios.put(`http://localhost:8080/api/v1/admin/users/${editingUserId}`, editedUser);
+                                            const response = await axios.put(`http://localhost:8080/api/v1/admin/user/${editingUserId}`, editedUser);
                                             setUsers(users.map(user =>
                                                 user.id === editingUserId ? { ...user, ...editedUser } : user
                                             ));

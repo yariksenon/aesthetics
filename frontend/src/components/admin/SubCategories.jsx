@@ -26,7 +26,7 @@ const SubCategories = () => {
 
     const fetchSubCategories = async () => {
         try {
-            const response = await axios.get("http://localhost:8080/api/v1/admin/subcategories");
+            const response = await axios.get("http://localhost:8080/api/v1/admin/subcategory");
             const subCategoriesData = Array.isArray(response.data) ? response.data : [];
             setSubCategories(subCategoriesData);
             setFilteredSubCategories(subCategoriesData);
@@ -85,21 +85,21 @@ const SubCategories = () => {
             setFormErrors(errors);
             return;
         }
-
+    
         try {
             const dataToSend = {
                 ...newSubCategory,
                 parent_id: Number(newSubCategory.parent_id),
             };
-            const response = await axios.post("http://localhost:8080/api/v1/admin/subcategories", dataToSend);
+            const response = await axios.post("http://localhost:8080/api/v1/admin/subcategory", dataToSend);
             if (response.status === 201) {
+                setSubCategories([...subCategories, response.data]); // Добавляем новую подкатегорию в состояние
                 setShowAddForm(false);
                 setNewSubCategory({ name: "", parent_id: "" });
-                fetchSubCategories();
                 Swal.fire("Успех!", "Подкатегория успешно добавлена.", "success");
             }
         } catch (err) {
-            Swal.fire("Ошибка!", "Ошибка при добавлении подкатегории.", "error");
+            Swal.fire("Ошибка!", err.response?.data?.error || "Ошибка при добавлении подкатегории.", "error");
         }
     };
 
@@ -125,7 +125,7 @@ const SubCategories = () => {
                         name: editingSubCategory.name,
                         parent_id: Number(editingSubCategory.parent_id),
                     };
-                    const response = await axios.put(`http://localhost:8080/api/v1/admin/subcategories/${editingSubCategory.id}`, dataToSend);
+                    const response = await axios.put(`http://localhost:8080/api/v1/admin/subcategory/${editingSubCategory.id}`, dataToSend);
                     if (response.status === 200) {
                         setShowEditForm(false);
                         fetchSubCategories();
@@ -154,7 +154,7 @@ const SubCategories = () => {
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    const response = await axios.delete(`http://localhost:8080/api/v1/admin/subcategories/${subCategoryId}`);
+                    const response = await axios.delete(`http://localhost:8080/api/v1/admin/subcategory/${subCategoryId}`);
                     if (response.status === 200) {
                         fetchSubCategories();
                         Swal.fire("Удалено!", "Подкатегория успешно удалена.", "success");

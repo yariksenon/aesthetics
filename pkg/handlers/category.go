@@ -51,19 +51,24 @@ func UpdateCategory(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err := db.Exec(
-			"UPDATE category SET name = $1 WHERE id = $2",
+		// Обновление категории в базе данных
+		var createdAt time.Time
+		err := db.QueryRow(
+			"UPDATE category SET name = $1 WHERE id = $2 RETURNING created_at",
 			updatedCategory.Name, id,
-		)
+		).Scan(&createdAt)
 
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении категории"})
 			return
 		}
 
+		// Возвращаем обновлённую категорию
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Категория успешно обновлена",
+			"id":         id,
+			"name":       updatedCategory.Name,
+			"created_at": createdAt,
 		})
 	}
 }
@@ -95,19 +100,24 @@ func CreateCategory(db *sql.DB) gin.HandlerFunc {
 		}
 
 		// Вставка новой категории в базу данных
-		_, err := db.Exec(
-			"INSERT INTO category (name, created_at) VALUES ($1, $2)",
+		var id int
+		var createdAt time.Time
+		err := db.QueryRow(
+			"INSERT INTO category (name, created_at) VALUES ($1, $2) RETURNING id, created_at",
 			newCategory.Name, time.Now(),
-		)
+		).Scan(&id, &createdAt)
 
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании категории"})
 			return
 		}
 
+		// Возвращаем созданную категорию
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Категория успешно создана",
+			"id":         id,
+			"name":       newCategory.Name,
+			"created_at": createdAt,
 		})
 	}
 }
