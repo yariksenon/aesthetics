@@ -20,7 +20,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 
 		// Проверка уникальности username
 		var usernameExists bool
-		err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM "user" WHERE username = $1)`, user.Username).Scan(&usernameExists)
+		err := db.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`, user.Username).Scan(&usernameExists)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
 			return
@@ -32,7 +32,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 
 		// Проверка уникальности email
 		var emailExists bool
-		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM "user" WHERE email = $1)`, strings.ToLower(user.Email)).Scan(&emailExists)
+		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`, strings.ToLower(user.Email)).Scan(&emailExists)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
 			return
@@ -44,7 +44,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 
 		// Проверка уникальности phone
 		var phoneExists bool
-		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM "user" WHERE phone = $1)`, user.Phone).Scan(&phoneExists)
+		err = db.QueryRow(`SELECT EXISTS (SELECT 1 FROM users WHERE phone = $1)`, user.Phone).Scan(&phoneExists)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера"})
 			return
@@ -55,7 +55,7 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 		}
 
 		// Вставка данных пользователя в базу данных
-		_, err = db.Exec(`INSERT INTO "user" (username, email, password, phone, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)`, user.Username, strings.ToLower(user.Email), user.Password, user.Phone, "user", time.Now())
+		_, err = db.Exec(`INSERT INTO users (username, email, password, phone, role, created_at) VALUES ($1, $2, $3, $4, $5, $6)`, user.Username, strings.ToLower(user.Email), user.Password, user.Phone, "customer", time.Now())
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении данных пользователя"})

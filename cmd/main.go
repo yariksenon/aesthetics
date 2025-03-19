@@ -51,6 +51,10 @@ func main() {
 		log.Fatalf("Failed to initialize schema: %v", err)
 	}
 
+	if err = database.InitDate(db); err != nil {
+		log.Fatalf("Failed to initialize date: %v", err)
+	}
+
 	// Init SMTPClient
 	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
 

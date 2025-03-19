@@ -39,7 +39,7 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		err := db.QueryRow("SELECT id, password FROM \"user\" WHERE email=$1", strings.ToLower(user.Email)).Scan(&userID, &dbPassword)
+		err := db.QueryRow("SELECT id, password FROM users WHERE email=$1", strings.ToLower(user.Email)).Scan(&userID, &dbPassword)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -59,7 +59,7 @@ func LoginPage(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		err = db.QueryRow("SELECT role FROM \"user\" WHERE id=$1", userID).Scan(&user.Role)
+		err = db.QueryRow("SELECT role FROM users WHERE id=$1", userID).Scan(&user.Role)
 		if err != nil {
 			log.Println("Ошибка получения роли пользователя:", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера при получении роли пользователя"})
@@ -116,7 +116,7 @@ func AuthMiddleware(db *sql.DB) gin.HandlerFunc {
 		err := db.QueryRow(`
             SELECT u.id, u.role 
             FROM session s 
-            JOIN "user" u ON s.user_id = u.id 
+            JOIN users u ON s.user_id = u.id 
             WHERE s.session_token = $1`, token).Scan(&userID, &role)
 		if err != nil {
 			if err == sql.ErrNoRows {

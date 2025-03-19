@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-type OrderDetail struct {
+type Order struct {
 	Id        int       `json:"id"`
 	UserId    int       `json:"user_id"`
 	PaymentId int       `json:"payment_id"`

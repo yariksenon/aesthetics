@@ -1,27 +1,34 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import headerLogo from "../../assets/home/Header/Logo.svg";
-import { FaUsers, FaBox, FaList, FaShoppingCart, FaStream, FaCreditCard, FaHeart, FaShoppingBag, FaChartBar, FaSignOutAlt, FaBell } from 'react-icons/fa';
+import { FaUsers, FaBox, FaList, FaShoppingCart, FaStream, FaCreditCard, FaHeart, FaShoppingBag, FaChartBar, FaSignOutAlt, FaBell, FaMapMarkerAlt, FaClipboardList, FaMoneyBillAlt } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const Panel = () => {
+    const adminPath = '/admin';
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
-    const [notifications, setNotifications] = useState(3);
+    const [notifications, setNotifications] = useState(2);
 
     useEffect(() => {
         document.title = "Admin Panel";
     }, []);
 
+
     const buttons = [
-        { path: '/admin/users', label: 'Пользователи', icon: <FaUsers className="mr-2" /> },
-        { path: '/admin/products', label: 'Товары', icon: <FaBox className="mr-2" /> },
-        { path: '/admin/categories', label: 'Категории', icon: <FaList className="mr-2" /> },
-        { path: '/admin/subcategories', label: 'Подкатегории', icon: <FaStream className="mr-2" /> },
-        { path: '/admin/orders', label: 'Заказы', icon: <FaShoppingBag className="mr-2" /> },
-        { path: '/admin/payments', label: 'Платежи', icon: <FaCreditCard className="mr-2" /> },
-        { path: '/admin/wishlists', label: 'Список желаний', icon: <FaHeart className="mr-2" /> },
-        { path: '/admin/carts', label: 'Корзина', icon: <FaShoppingCart className="mr-2" /> },
-        { path: '/admin/statistics', label: 'Статистика', icon: <FaChartBar className="mr-2" /> },
+        { path: `${adminPath}/users`, label: 'Пользователи', icon: <FaUsers className="mr-2" /> },
+        { path: `${adminPath}/user_addresses`, label: 'Адреса пользователей', icon: <FaMapMarkerAlt className="mr-2" /> },
+        { path: `${adminPath}/sessions`, label: 'Сессии', icon: <FaClipboardList className="mr-2" /> },
+        { path: `${adminPath}/products`, label: 'Товары', icon: <FaBox className="mr-2" /> },
+        { path: `${adminPath}/categories`, label: 'Категории', icon: <FaList className="mr-2" /> },
+        { path: `${adminPath}/subcategories`, label: 'Подкатегории', icon: <FaStream className="mr-2" /> },
+        { path: `${adminPath}/carts`, label: 'Корзина', icon: <FaShoppingCart className="mr-2" /> },
+        { path: `${adminPath}/cart_items`, label: 'Элемент корзины', icon: <FaShoppingCart className="mr-2" /> },
+        { path: `${adminPath}/wishlists`, label: 'Список желаний', icon: <FaHeart className="mr-2" /> },
+        { path: `${adminPath}/orders`, label: 'Заказы', icon: <FaShoppingBag className="mr-2" /> },
+        { path: `${adminPath}/order_items`, label: 'Детали заказа', icon: <FaClipboardList className="mr-2" /> },
+        { path: `${adminPath}/payment_details`, label: 'Способ оплаты', icon: <FaMoneyBillAlt className="mr-2" /> },
+        { path: `${adminPath}/statistics`, label: 'Статистика', icon: <FaChartBar className="mr-2" />, fullWidth: true },
     ];
 
     const filteredButtons = buttons.filter((button) =>
@@ -42,7 +49,11 @@ const Panel = () => {
         <div className="min-h-screen bg-white text-black p-8">
             <div className="flex justify-between items-center relative">
                 <div className="absolute left-1/2 transform -translate-x-1/2">
-                    <img src={headerLogo} alt="Logo" />
+                    <Link 
+                        to="/" 
+                    >
+                        <img  src={headerLogo} alt="Logo" />
+                    </Link>
                 </div>
 
                 <div className="flex items-center space-x-4 ml-auto">
@@ -93,7 +104,9 @@ const Panel = () => {
                     <button
                         key={index}
                         onClick={() => navigate(button.path)}
-                        className="flex items-center justify-center bg-gradient-to-r from-black to-gray-800 text-white px-6 py-4 rounded-lg shadow-lg hover:from-gray-800 hover:to-black transition duration-200 transform hover:scale-105 border border-gray-700 w-full"
+                        className={`flex items-center justify-center bg-gradient-to-r from-black to-gray-800 text-white px-6 py-4 rounded-lg shadow-lg hover:from-gray-800 hover:to-black transition duration-200 transform hover:scale-105 border border-gray-700 ${
+                            button.fullWidth ? 'col-span-full' : 'w-full'
+                        }`}
                     >
                         {button.icon}
                         <span className="text-xl font-semibold">{button.label}</span>

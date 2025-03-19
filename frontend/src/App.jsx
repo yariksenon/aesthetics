@@ -15,8 +15,9 @@ const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
 const Product = lazy(() => import('./components/product/Product'));
 //Profile
 const Profile = lazy(() => import('./components/profile/Profile'))
+
 //Admin
-const AdminUser = lazy(() => import('./components/admin/User'));
+const AdminUsers = lazy(() => import('./components/admin/Users'));
 const AdminCategory = lazy(() => import('./components/admin/Category'))
 const AdminPanel = lazy(() => import('./components/admin/Panel'));
 const AdminProduct = lazy(() => import('./components/admin/Products'));
@@ -64,7 +65,7 @@ export default function App() {
             path="/admin/users"
             element={
               <ProtectedRoute>
-                <AdminUser />
+                <AdminUsers />
               </ProtectedRoute>
             }
           />
