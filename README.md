@@ -19,6 +19,6 @@
 - **Caching**: Redis
 
 ## ETC.
-SMTP
-reCAPTCHA
-Twilio
+- SMTP
+- reCAPTCHA
+- Twilio
