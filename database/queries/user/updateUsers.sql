@@ -1,0 +1,1 @@
+UPDATE users SET first_name = $1, last_name = $2, username = $3, email = $4, password = $5, phone = $6, role = $7 WHERE id = $8;

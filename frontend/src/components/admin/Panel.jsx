@@ -1,82 +1,57 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import headerLogo from "../../assets/home/Header/Logo.svg";
-import { FaUsers, FaBox, FaList, FaShoppingCart, FaStream, FaCreditCard, FaHeart, FaShoppingBag, FaChartBar, FaSignOutAlt, FaBell, FaMapMarkerAlt, FaClipboardList, FaMoneyBillAlt } from 'react-icons/fa';
+import { FaUsers, FaBox, FaList, FaShoppingCart, FaStream, FaHeart, FaShoppingBag, FaChartBar, FaMapMarkerAlt, FaClipboardList, FaMoneyBillAlt } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import headerLogo from "../../assets/home/Header/Logo.svg";
+
+const buttons = [
+    { path: '/admin/users', label: 'Пользователи', icon: <FaUsers className="mr-2" /> },
+    { path: '/admin/user_addresses', label: 'Адреса пользователей', icon: <FaMapMarkerAlt className="mr-2" /> },
+    { path: '/admin/sessions', label: 'Сессии', icon: <FaClipboardList className="mr-2" /> },
+    { path: '/admin/products', label: 'Товары', icon: <FaBox className="mr-2" /> },
+    { path: '/admin/categories', label: 'Категории', icon: <FaList className="mr-2" /> },
+    { path: '/admin/subcategories', label: 'Подкатегории', icon: <FaStream className="mr-2" /> },
+    { path: '/admin/carts', label: 'Корзина', icon: <FaShoppingCart className="mr-2" /> },
+    { path: '/admin/cart_items', label: 'Элемент корзины', icon: <FaShoppingCart className="mr-2" /> },
+    { path: '/admin/wishlists', label: 'Список желаний', icon: <FaHeart className="mr-2" /> },
+    { path: '/admin/orders', label: 'Заказы', icon: <FaShoppingBag className="mr-2" /> },
+    { path: '/admin/order_items', label: 'Детали заказа', icon: <FaClipboardList className="mr-2" /> },
+    { path: '/admin/payment_details', label: 'Способ оплаты', icon: <FaMoneyBillAlt className="mr-2" /> },
+    { path: '/admin/statistics', label: 'Статистика', icon: <FaChartBar className="mr-2" />, fullWidth: true },
+];
 
 const Panel = () => {
-    const adminPath = '/admin';
     const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
-    const [notifications, setNotifications] = useState(2);
+    const [stats, setStats] = useState({ users: 0, products: 0, orders: 0 });
 
     useEffect(() => {
         document.title = "Admin Panel";
+        fetchStats();
     }, []);
 
-
-    const buttons = [
-        { path: `${adminPath}/users`, label: 'Пользователи', icon: <FaUsers className="mr-2" /> },
-        { path: `${adminPath}/user_addresses`, label: 'Адреса пользователей', icon: <FaMapMarkerAlt className="mr-2" /> },
-        { path: `${adminPath}/sessions`, label: 'Сессии', icon: <FaClipboardList className="mr-2" /> },
-        { path: `${adminPath}/products`, label: 'Товары', icon: <FaBox className="mr-2" /> },
-        { path: `${adminPath}/categories`, label: 'Категории', icon: <FaList className="mr-2" /> },
-        { path: `${adminPath}/subcategories`, label: 'Подкатегории', icon: <FaStream className="mr-2" /> },
-        { path: `${adminPath}/carts`, label: 'Корзина', icon: <FaShoppingCart className="mr-2" /> },
-        { path: `${adminPath}/cart_items`, label: 'Элемент корзины', icon: <FaShoppingCart className="mr-2" /> },
-        { path: `${adminPath}/wishlists`, label: 'Список желаний', icon: <FaHeart className="mr-2" /> },
-        { path: `${adminPath}/orders`, label: 'Заказы', icon: <FaShoppingBag className="mr-2" /> },
-        { path: `${adminPath}/order_items`, label: 'Детали заказа', icon: <FaClipboardList className="mr-2" /> },
-        { path: `${adminPath}/payment_details`, label: 'Способ оплаты', icon: <FaMoneyBillAlt className="mr-2" /> },
-        { path: `${adminPath}/statistics`, label: 'Статистика', icon: <FaChartBar className="mr-2" />, fullWidth: true },
-    ];
+    const fetchStats = async () => {
+        try {
+            const response = await axios.get('http://localhost:8080/api/v1/admin');
+            setStats(response.data);
+        } catch (error) {
+            console.error("Ошибка при загрузке статистики:", error);
+        }
+    };
 
     const filteredButtons = buttons.filter((button) =>
         button.label.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const stats = [
-        { label: 'Пользователи', value: 1200, icon: <FaUsers className="text-2xl" /> },
-        { label: 'Товары', value: 450, icon: <FaBox className="text-2xl" /> },
-        { label: 'Заказы', value: 320, icon: <FaShoppingBag className="text-2xl" /> },
-    ];
-
-    const handleLogout = () => {
-        navigate('/login');
-    };
-
     return (
         <div className="min-h-screen bg-white text-black p-8">
-            <div className="flex justify-between items-center relative">
-                <div className="absolute left-1/2 transform -translate-x-1/2">
-                    <Link 
-                        to="/" 
-                    >
-                        <img  src={headerLogo} alt="Logo" />
-                    </Link>
-                </div>
-
-                <div className="flex items-center space-x-4 ml-auto">
-                    <button
-                        onClick={() => navigate('/admin/notifications')}
-                        className="relative p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition duration-200"
-                    >
-                        <FaBell className="text-xl" />
-                        {notifications > 0 && (
-                            <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5">
-                                {notifications}
-                            </span>
-                        )}
-                    </button>
-                    <button
-                        onClick={handleLogout}
-                        className="flex items-center bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200"
-                    >
-                        <FaSignOutAlt className="mr-2" />
-                        Выйти
-                    </button>
-                </div>
+            <div className="flex justify-center items-center">
+                <Link to="/" className="flex">
+                    <img src={headerLogo} alt="Logo" />
+                </Link>
             </div>
+
             <p className="text-center bold text-xl text-gray-700 font-bold mt-5">Управление всеми аспектами приложения</p>
 
             <input
@@ -88,7 +63,11 @@ const Panel = () => {
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-8">
-                {stats.map((stat, index) => (
+                {[
+                    { label: 'Пользователи', value: stats.users, icon: <FaUsers className="text-2xl" /> },
+                    { label: 'Товары', value: stats.products, icon: <FaBox className="text-2xl" /> },
+                    { label: 'Заказы', value: stats.orders, icon: <FaShoppingBag className="text-2xl" /> },
+                ].map((stat, index) => (
                     <div key={index} className="bg-gray-100 p-6 rounded-lg shadow-md flex items-center space-x-4">
                         {stat.icon}
                         <div>

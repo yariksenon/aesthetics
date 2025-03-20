@@ -1,8 +1,10 @@
 package admin
 
 import (
+	"aesthetics/database"
 	"aesthetics/models"
 	"database/sql"
+	_ "embed"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -11,9 +13,13 @@ import (
 
 func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var users []models.User
+		query, ok := database.Queries["user/getUsers"]
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Query for getting users not found"})
+			return
+		}
 
-		rows, err := db.Query("SELECT id, first_name, last_name, username, email, subscription, password, phone, role, created_at FROM users ORDER BY id;")
+		rows, err := db.Query(query)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке пользователей"})
 			log.Println(err)
@@ -21,11 +27,7 @@ func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке часового пояса"})
-			log.Println("Ошибка при загрузке часового пояса:", err)
-			return
-		}
+		var users []models.User
 
 		for rows.Next() {
 			var user models.User
@@ -36,7 +38,7 @@ func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 				&user.LastName,
 				&user.Username,
 				&user.Email,
-				&user.Subscribe,
+				&user.Subscription,
 				&user.Password,
 				&user.Phone,
 				&user.Role,
@@ -46,9 +48,7 @@ func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 				return
 			}
 
-			// Преобразуем время в часовой пояс Беларуси и форматируем
 			user.CreatedAt = createdAt.UTC().Format("2006-01-02 15:04:05")
-
 			users = append(users, user)
 		}
 
@@ -58,37 +58,23 @@ func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 
 func AdminDeleteUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Получаем ID пользователя из параметров запроса
 		userID := c.Param("id")
 
-		// Выполняем SQL-запрос на удаление пользователя
-		query := `DELETE FROM users WHERE id = $1`
-		result, err := db.Exec(query, userID)
+		query, ok := database.Queries["user/deleteUser"]
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Query for getting users not found"})
+			return
+		}
+
+		_, err := db.Exec(query, userID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
+				"id":    userID,
 				"error": "Не удалось удалить пользователя",
 			})
 			return
 		}
 
-		// Проверяем, был ли удалён хотя бы один пользователь
-		rowsAffected, err := result.RowsAffected()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Ошибка при проверке количества удалённых строк",
-			})
-			return
-		}
-
-		// Если ни одна строка не была удалена, возвращаем ошибку 404
-		if rowsAffected == 0 {
-			c.JSON(http.StatusNotFound, gin.H{
-				"error": "Пользователь с указанным ID не найден",
-			})
-			return
-		}
-
-		// Возвращаем успешный ответ
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Пользователь успешно удалён",
 		})
@@ -97,7 +83,14 @@ func AdminDeleteUser(db *sql.DB) gin.HandlerFunc {
 
 func AdminUpdateUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		query, ok := database.Queries["user/updateUsers"]
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Query for getting users not found"})
+			return
+		}
+
 		var user models.User
+		userId := c.Param("id")
 
 		if err := c.ShouldBindJSON(&user); err != nil {
 			log.Printf("Ошибка при парсинге JSON: %v\n", err)
@@ -105,10 +98,7 @@ func AdminUpdateUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		userId := c.Param("id")
-
-		query := `UPDATE users SET first_name = $1, last_name = $2, username = $3, email = $4, phone = $5, password = $6, role = $7 WHERE id = $8`
-		_, err := db.Exec(query, user.FirstName, user.LastName, user.Username, user.Email, user.Phone, user.Password, user.Role, userId)
+		_, err := db.Exec(query, user.FirstName, user.LastName, user.Username, user.Email, user.Password, user.Phone, user.Role, userId)
 		if err != nil {
 			log.Printf("Не удалось изменить данные о пользователе: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})

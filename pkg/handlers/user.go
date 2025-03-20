@@ -28,7 +28,7 @@ func GetUsers(db *sql.DB) gin.HandlerFunc {
 				&user.LastName,
 				&user.Username,
 				&user.Email,
-				&user.Subscribe,
+				&user.Subscription,
 				&user.Password,
 				&user.Phone,
 				&user.Role,

@@ -14,26 +14,22 @@ import (
 )
 
 func main() {
-	// Load config
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Create Gin router
 	r := gin.Default()
 
-	// Configure CORS
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173"}, // Разрешить запросы с этого origin
+		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		AllowCredentials: true, // Разрешить передачу куки и авторизационных данных
+		AllowCredentials: true,
 		ExposeHeaders:    []string{"Content-Length"},
 		MaxAge:           12 * time.Hour,
 	}))
 
-	// Connection to database
 	db, err := database.InitDB(
 		cfg.Database.User,
 		cfg.Database.Password,
@@ -46,7 +42,6 @@ func main() {
 	}
 	defer db.Close()
 
-	// Init tables on database
 	if err = database.InitSchema(db); err != nil {
 		log.Fatalf("Failed to initialize schema: %v", err)
 	}
@@ -55,16 +50,16 @@ func main() {
 		log.Fatalf("Failed to initialize date: %v", err)
 	}
 
-	// Init SMTPClient
+	if err = database.LoadQueries("database/queries"); err != nil {
+		log.Fatalf("Ошибка загрузки SQL-запросов: %v", err)
+	}
+
 	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
 
-	// Init Redis
 	redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 
-	// Setup routes
 	routes.SetupRoutes(r, db, smtpClient, redisClient)
 
-	// Run server
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}

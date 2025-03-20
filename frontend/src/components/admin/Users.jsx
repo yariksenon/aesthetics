@@ -7,9 +7,37 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { motion } from 'framer-motion';
 
-
 const UserRow = React.memo(({ user, editingUserId, editedUser, handleInputChange, handleEdit, handleDelete, handleSave, handleCancel, isSelected, handleSelect }) => {
     const isEditing = editingUserId === user.id;
+
+    const renderCell = (name, value, type = 'text') => (
+        isEditing ? (
+            type === 'select' ? (
+                <select
+                    name={name}
+                    value={editedUser[name] || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-2 py-1 border rounded"
+                >
+                    <option value="customer">customer</option>
+                    <option value="admin">admin</option>
+                    <option value="manager">manager</option>
+                </select>
+            ) : (
+                <input
+                    type={type}
+                    name={name}
+                    value={editedUser[name] || ''}
+                    onChange={handleInputChange}
+                    className="w-full px-2 py-1 border rounded"
+                />
+            )
+        ) : (
+            <span className="block truncate" title={value}>
+                {name === 'subscription' ? (value ? "Yes" : "No") : value}
+            </span>
+        )
+    );
 
     return (
         <motion.tr
@@ -20,61 +48,15 @@ const UserRow = React.memo(({ user, editingUserId, editedUser, handleInputChange
             onClick={() => handleSelect(user.id)}
         >
             <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{user.id}</td>
-            {['first_name', 'last_name', 'username', 'email', 'password', 'phone'].map((field) => (
-                <td key={field} className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                    {isEditing ? (
-                        <input
-                            type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
-                            name={field}
-                            value={editedUser[field] || ''}
-                            onChange={handleInputChange}
-                            className="w-full px-2 py-1 border rounded"
-                        />
-                    ) : (
-                        <span className="block truncate" title={user[field]?.String || user[field] || ""}>
-                            {user[field]?.String || user[field] || ""}
-                        </span>
-                    )}
-                </td>
-            ))}
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                {isEditing ? (
-                    <input
-                        type="checkbox"
-                        name="subscription"
-                        checked={editedUser.subscription || false}
-                        onChange={(e) => setEditedUser({ ...editedUser, subscription: e.target.checked })}
-                        className="w-full px-2 py-1 border rounded"
-                    />
-                ) : (
-                    <span className="block truncate">
-                        {user.subscription ? "Yes" : "No"}
-                    </span>
-                )}
-            </td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                {isEditing ? (
-                    <select
-                        name="role"
-                        value={editedUser.role || ''}
-                        onChange={handleInputChange}
-                        className="w-full px-2 py-1 border rounded"
-                    >
-                        <option value="customer">Customer</option>
-                        <option value="admin">Admin</option>
-                        <option value="manager">Manager</option>
-                    </select>
-                ) : (
-                    <span className="block truncate" title={user.role}>
-                        {user.role}
-                    </span>
-                )}
-            </td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
-                <span className="block truncate">
-                    {user.created_at}
-                </span>
-            </td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('first_name', user.first_name)}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('last_name', user.last_name)}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('username', user.username)}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('email', user.email, 'email')}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('subscription', user.subscription)}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{isEditing ? renderCell('password', '', 'password') : <span className="block truncate">••••••••</span>}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('phone', user.phone)}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('role', user.role, 'select')}</td>
+            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{new Date(user.created_at).toLocaleString()}</td>
             <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
                 {isEditing ? (
                     <>
@@ -111,11 +93,7 @@ const User = () => {
         const fetchData = async () => {
             try {
                 const response = await axios.get('http://localhost:8080/api/v1/admin/users');
-                const adaptedUsers = response.data.map(user => ({
-                    ...user,
-                }));
-                console.log(adaptedUsers);
-                setUsers(adaptedUsers);
+                setUsers(response.data);
             } catch (err) {
                 setError(err.response?.data?.message || 'Ошибка при загрузке пользователей');
             } finally {
@@ -124,6 +102,14 @@ const User = () => {
         };
         fetchData();
     }, []);
+
+    const handleSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
 
     const sortedUsers = [...users].sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -134,7 +120,9 @@ const User = () => {
     const filteredUsers = sortedUsers.filter(user => {
         const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-        const matchesSubscription = subscriptionFilter === 'all' || user.subscription === (subscriptionFilter === 'subscribed');
+        const matchesSubscription = subscriptionFilter === 'all' || 
+            (subscriptionFilter === 'subscribed' && user.subscription) || 
+            (subscriptionFilter === 'notSubscribed' && !user.subscription);
         return matchesSearch && matchesRole && matchesSubscription;
     });
 
@@ -269,11 +257,13 @@ const User = () => {
                             <th className="border border-gray-300 p-2 w-32">Last Name</th>
                             <th className="border border-gray-300 p-2 w-32">Username</th>
                             <th className="border border-gray-300 p-2 w-64">Email</th>
+                            <th className="border border-gray-300 p-2 w-32">Subscription</th>
                             <th className="border border-gray-300 p-2 w-32">Password</th>
                             <th className="border border-gray-300 p-2 w-32">Phone</th>
-                            <th className="border border-gray-300 p-2 w-32">Subscription</th>
                             <th className="border border-gray-300 p-2 w-32">Role</th>
-                            <th className="border border-gray-300 p-2 w-48">Created At</th>
+                            <th className="border border-gray-300 p-2 w-48 cursor-pointer" onClick={() => handleSort('created_at')}>
+                                Created At {sortConfig.key === 'created_at' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                            </th>
                             <th className="border border-gray-300 p-2 w-32">Action</th>
                         </tr>
                     </thead>

@@ -61,6 +61,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		routesAdmin := v1.Group("/admin")
 		{
+			routesAdmin.GET("", admin.AdminGetPanel(db))
+
 			user := routesAdmin.Group("/users")
 			{
 				user.GET("", admin.AdminGetUsers(db))

@@ -4,6 +4,7 @@ import (
 	"aesthetics/models"
 	"database/sql"
 	"github.com/gin-gonic/gin"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -17,6 +18,8 @@ func RegisterPage(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+
+		log.Println(user)
 
 		// Проверка уникальности username
 		var usernameExists bool
