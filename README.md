@@ -17,3 +17,9 @@
 
 - **Primary Database**: PostgreSQL
 - **Caching**: Redis
+
+
+## ETC
+- **Twilio** Phone message
+- **SMTP** Email message
+- **reCAPTCHA** Captcha
