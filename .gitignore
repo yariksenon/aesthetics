@@ -1,1 +1,5 @@
 *.yaml
+
+config/config.yaml
+
+config/*.yaml
