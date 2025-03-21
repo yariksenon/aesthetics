@@ -8,6 +8,38 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { motion } from 'framer-motion';
 
+const API_URL = 'http://localhost:8080/api/v1/register';
+const CAPTCHA_SITE_KEY = '6LccqPoqAAAAAJX7xPKW3ZSxOTpB37BrDxjcCl3R';
+
+const ErrorMessage = ({ error }) => (
+    <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="text-red-500 text-sm mt-1"
+    >
+        {error.message}
+    </motion.p>
+);
+
+const InputField = ({ id, type, placeholder, register, errors, rules, className, maxLength }) => (
+    <div className="mb-4">
+        <input
+            type={type}
+            id={id}
+            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
+                errors[id] ? 'border-red-500 animate-shake' : 'border-black'
+            } ${className}`}
+            placeholder={placeholder}
+            maxLength={maxLength}
+            {...register(id, rules)}
+        />
+        <div className="h-4">
+            {errors[id] && <ErrorMessage error={errors[id]} />}
+        </div>
+    </div>
+);
+
 const RegisterForm = ({ switchToLogin }) => {
     const {
         register,
@@ -17,43 +49,88 @@ const RegisterForm = ({ switchToLogin }) => {
         setValue,
         getValues,
         setError,
+        clearErrors,
     } = useForm();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [captchaValue, setCaptchaValue] = useState(null);
 
+    const validatePhoneNumber = (phoneNumber) => {
+        if (!phoneNumber || typeof phoneNumber !== 'string') {
+            setError('phone', {
+                type: 'manual',
+                message: 'Номер телефона обязателен',
+            });
+            return false;
+        }
+
+        // Удаляем все нецифровые символы (например, пробелы, скобки, дефисы)
+        const cleanedPhone = phoneNumber.replace(/\D/g, '');
+
+        // Ограничение на 12 цифр
+        if (cleanedPhone.length > 12) {
+            setError('phone', {
+                type: 'manual',
+                message: 'Номер телефона не должен превышать 12 цифр',
+            });
+            return false;
+        }
+
+        if (!isValidPhoneNumber(phoneNumber)) {
+            setError('phone', {
+                type: 'manual',
+                message: 'Некорректный номер телефона',
+            });
+            return false;
+        }
+
+        clearErrors('phone');
+        return true;
+    };
+
+    const handleFormError = (error) => {
+        if (error.response && error.response.data.errors) {
+            error.response.data.errors.forEach((err) => {
+                setError(err.field, {
+                    type: 'server',
+                    message: err.message,
+                });
+            });
+        } else if (error.response) {
+            console.error('Ошибка отправки данных формы:', error.response.data);
+            setError('root', {
+                type: 'server',
+                message: error.response.data.message || 'Ошибка при отправке данных формы.',
+            });
+        } else {
+            console.error('Ошибка отправки данных формы:', error);
+            setError('root', {
+                type: 'server',
+                message: 'Ошибка при отправке данных формы.',
+            });
+        }
+    };
+
     const onSubmit = async (data) => {
         if (!captchaValue) {
-            alert('Пожалуйста, подтвердите, что вы не робот');
+            setError('root', {
+                type: 'manual',
+                message: 'Пожалуйста, подтвердите, что вы не робот',
+            });
             return;
         }
 
-        const phoneNumber = getValues('phone');
-        if (!isValidPhoneNumber(phoneNumber)) {
-            alert('Некорректный номер телефона');
+        if (!validatePhoneNumber(data.phone)) {
             return;
         }
 
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/v1/register', data, { withCredentials: true });
-            console.log(response.data);
+            const registerResponse = await axios.post(API_URL, data, { withCredentials: true });
+            console.log(registerResponse.data);
             navigate('/profile');
         } catch (error) {
-            if (error.response && error.response.data.errors) {
-                error.response.data.errors.forEach((err) => {
-                    setError(err.field, {
-                        type: 'server',
-                        message: err.message,
-                    });
-                });
-            } else if (error.response) {
-                console.error('Ошибка отправки данных формы:', error.response.data);
-                alert(`Ошибка: ${error.response.data.message}`);
-            } else {
-                console.error('Ошибка отправки данных формы:', error);
-                alert('Ошибка при отправке данных формы.');
-            }
+            handleFormError(error);
         } finally {
             setIsLoading(false);
         }
@@ -61,7 +138,13 @@ const RegisterForm = ({ switchToLogin }) => {
 
     const onChangeCaptcha = (value) => {
         setCaptchaValue(value);
+        clearErrors('root');
     };
+
+    // const CustomInput = React.forwardRef((props, ref) => (
+    //     <input {...props} ref={ref} maxLength={15} />
+    // ));
+    
 
     return (
         <div>
@@ -73,148 +156,121 @@ const RegisterForm = ({ switchToLogin }) => {
                     </a>
                 </p>
                 <div className='mt-[5%]'>
-                    <div className="mb-5">
-                        <input
-                            type="text"
-                            id="username"
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.username ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Введите имя пользователя"
-                            {...register('username', {
-                                required: 'Имя пользователя обязательно',
-                            })}
-                        />
+                    {errors.root && (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.5 }}
+                            className="text-red-500 text-sm mb-4"
+                        >
+                            {errors.root.message}
+                        </motion.p>
+                    )}
+
+                    <InputField
+                        id="username"
+                        type="text"
+                        placeholder="Введите имя пользователя"
+                        register={register}
+                        errors={errors}
+                        rules={{ 
+                            required: 'Имя пользователя обязательно',
+                            maxLength: {
+                                value: 20,
+                                message: 'Имя пользователя не должно превышать 20 символов',
+                            },
+                        }}
+                        maxLength={20}
+                    />
+
+                    <InputField
+                        id="email"
+                        type="email"
+                        placeholder="Введите свой email"
+                        register={register}
+                        errors={errors}
+                        rules={{
+                            required: 'Почта обязательна',
+                            pattern: {
+                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                message: 'Некорректный формат почты',
+                            },
+                            maxLength: {
+                                value: 50,
+                                message: 'Email не должен превышать 50 символов',
+                            },
+                        }}
+                        maxLength={50}
+                    />
+
+                    <div className="mb-4">
+
+
+
+                    <PhoneInput
+                        international
+                        defaultCountry="BY"
+                        value={getValues('phone')}
+                        onChange={(value) => {
+                            const cleanedPhone = value ? value.replace(/\D/g, '') : '';
+                            if (cleanedPhone.length <= 15) {
+                                setValue('phone', value || '');
+                                validatePhoneNumber(value || '');
+                            }
+                        }}
+                        className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
+                            errors.phone ? 'border-red-500 animate-shake' : 'border-black'
+                        }`}
+                        placeholder="Введите номер телефона"
+                    />
+
+
                         <div className="h-4">
-                            {errors.username && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="text-red-500 text-sm mt-1"
-                                >
-                                    {errors.username.message}
-                                </motion.p>
-                            )}
+                            {errors.phone && <ErrorMessage error={errors.phone} />}
                         </div>
                     </div>
 
-                    <div className="mb-4">
-                        <input
-                            type="email"
-                            id="email"
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.email ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Введите свой email"
-                            {...register('email', {
-                                required: 'Почта обязательна',
-                                pattern: {
-                                    value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                    message: 'Некорректный формат почты',
-                                },
-                            })}
-                        />
-                        <div className="h-4">
-                            {errors.email && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="text-red-500 text-sm mt-1"
-                                >
-                                    {errors.email.message}
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
+                    <InputField
+                        id="password"
+                        type="password"
+                        placeholder="Придумайте пароль"
+                        register={register}
+                        errors={errors}
+                        rules={{
+                            required: 'Пароль обязателен',
+                            minLength: {
+                                value: 6,
+                                message: 'Пароль должен содержать минимум 6 символов',
+                            },
+                            maxLength: {
+                                value: 30,
+                                message: 'Пароль не должен превышать 30 символов',
+                            },
+                            pattern: {
+                                value: /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$/,
+                                message: 'Пароль должен содержать цифры, заглавные и строчные буквы',
+                            },
+                        }}
+                        maxLength={30}
+                    />
 
-                    <div className="mb-4">
-                        <PhoneInput
-                            international
-                            defaultCountry="BY"
-                            value={getValues('phone')}
-                            onChange={(value) => setValue('phone', value)}
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.phone ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Введите номер телефона"
-                        />
-                        <div className="h-4">
-                            {errors.phone && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="text-red-500 text-sm mt-1"
-                                >
-                                    {errors.phone.message}
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="mb-4">
-                        <input
-                            type="password"
-                            id="password"
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.password ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Придумайте пароль"
-                            {...register('password', {
-                                required: 'Пароль обязателен',
-                                minLength: {
-                                    value: 6,
-                                    message: 'Пароль должен содержать минимум 6 символов',
-                                },
-                                pattern: {
-                                    value: /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,}$/,
-                                    message: 'Пароль должен содержать цифры, заглавные и строчные буквы',
-                                },
-                            })}
-                        />
-                        <div className="h-4">
-                            {errors.password && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="text-red-500 text-sm mt-1"
-                                >
-                                    {errors.password.message}
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="mb-4">
-                        <input
-                            type="password"
-                            id="confirmPassword"
-                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                                errors.confirmPassword ? 'border-red-500 animate-shake' : 'border-black'
-                            }`}
-                            placeholder="Повторите пароль"
-                            {...register('confirmPassword', {
-                                required: 'Подтверждение пароля обязательно',
-                                validate: (value) =>
-                                    value === watch('password') || 'Пароли не совпадают',
-                            })}
-                        />
-                        <div className="h-4">
-                            {errors.confirmPassword && (
-                                <motion.p
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="text-red-500 text-sm mt-1"
-                                >
-                                    {errors.confirmPassword.message}
-                                </motion.p>
-                            )}
-                        </div>
-                    </div>
+                    <InputField
+                        id="confirmPassword"
+                        type="password"
+                        placeholder="Повторите пароль"
+                        register={register}
+                        errors={errors}
+                        rules={{
+                            required: 'Подтверждение пароля обязательно',
+                            maxLength: {
+                                value: 30,
+                                message: 'Подтверждение пароля не должно превышать 30 символов',
+                            },
+                            validate: (value) =>
+                                value === watch('password') || 'Пароли не совпадают',
+                        }}
+                        maxLength={30}
+                    />
 
                     <div className="flex items-center mb-4">
                         <input
@@ -229,19 +285,10 @@ const RegisterForm = ({ switchToLogin }) => {
                             Даю согласие на обработку персональных данных
                         </label>
                     </div>
-                    {errors.consent && (
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.5 }}
-                            className="text-red-500 text-sm mt-1"
-                        >
-                            {errors.consent.message}
-                        </motion.p>
-                    )}
+                    {errors.consent && <ErrorMessage error={errors.consent} />}
 
                     <ReCAPTCHA
-                        sitekey="6LccqPoqAAAAAJX7xPKW3ZSxOTpB37BrDxjcCl3R"
+                        sitekey={CAPTCHA_SITE_KEY}
                         onChange={onChangeCaptcha}
                         className="mb-4"
                     />

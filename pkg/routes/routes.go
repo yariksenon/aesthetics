@@ -4,12 +4,13 @@ import (
 	"aesthetics/pkg/handlers"
 	"aesthetics/pkg/handlers/admin"
 	"aesthetics/smtp"
+	"aesthetics/twilio"
 	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
 
-func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client) {
+func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client, twilioClient *twilio.TwilioClient) {
 	v1 := r.Group("/api/v1")
 	{
 		v1.GET("/", handlers.HomePage)
@@ -47,8 +48,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
 
 		// ПОЛЬЗОВАТЕЛЬ
-		v1.POST("/register", handlers.RegisterPage(db)) // Зарегистрироваться
-		v1.POST("/login", handlers.LoginPage(db))       // Залогиниться
+		v1.POST("/register", handlers.RegisterPage(db, twilioClient)) // Зарегистрироваться
+		//v1.POST("/send-verification-code", handlers.SendVerificationCode(twilioClient)) // Отправить SMS с кодом подтверждения
+		//v1.POST("/verify-code", handlers.VerifyCode())                                  // Проверить код подтверждения
+
+		v1.POST("/login", handlers.LoginPage(db)) // Залогиниться
 
 		protected := v1.Group("/profile")
 		protected.Use(handlers.AuthMiddleware(db))

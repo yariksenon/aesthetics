@@ -16,3 +16,8 @@ redis:
   port: "6379"
   password: ""
   db: "0"
+
+twilio:
+  accountSID: "ACa49147561f645b57397f143eddf45f06"
+  authToken: "f6c3d5cb4e9e14261e5e520cbd5d2b07"
+  twilioNumber: "+15707474327"

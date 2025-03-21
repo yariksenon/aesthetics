@@ -5,6 +5,7 @@ import (
 	"aesthetics/database"
 	"aesthetics/pkg/routes"
 	"aesthetics/smtp"
+	"aesthetics/twilio"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -54,11 +55,13 @@ func main() {
 		log.Fatalf("Ошибка загрузки SQL-запросов: %v", err)
 	}
 
-	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
-
 	redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 
-	routes.SetupRoutes(r, db, smtpClient, redisClient)
+	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
+
+	twilioClient := twilio.NewTwilioClient(cfg.Twilio.TwilioNumber, cfg.Twilio.AccountSID, cfg.Twilio.AuthToken)
+
+	routes.SetupRoutes(r, db, smtpClient, redisClient, twilioClient)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)

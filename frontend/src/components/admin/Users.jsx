@@ -6,58 +6,67 @@ import Swal from 'sweetalert2';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { motion } from 'framer-motion';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import * as Flags from 'country-flag-icons/react/3x2';
 
 const UserRow = React.memo(({ user, editingUserId, editedUser, handleInputChange, handleEdit, handleDelete, handleSave, handleCancel, isSelected, handleSelect }) => {
+    const [countryCode, setCountryCode] = useState('');
+
+    useEffect(() => {
+        if (user.phone) {
+            const phoneNumber = parsePhoneNumberFromString(user.phone);
+            if (phoneNumber && phoneNumber.isValid()) {
+                setCountryCode(phoneNumber.country || '');
+            } else {
+                setCountryCode('');
+            }
+        }
+    }, [user.phone]);
+
     const isEditing = editingUserId === user.id;
+
+    const handleRowClick = (e) => {
+        if (!e.target.closest('button')) handleSelect(user.id);
+    };
 
     const renderCell = (name, value, type = 'text') => (
         isEditing ? (
-            type === 'select' ? (
-                <select
-                    name={name}
-                    value={editedUser[name] || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-2 py-1 border rounded"
-                >
-                    <option value="customer">customer</option>
-                    <option value="admin">admin</option>
-                    <option value="manager">manager</option>
+            name === 'subscription' ? (
+                <select name={name} value={editedUser[name] ?? (value ? "yes" : "no")} onChange={handleInputChange} className="w-full px-2 py-1 border rounded">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            ) : type === 'select' ? (
+                <select name={name} value={editedUser[name] || ''} onChange={handleInputChange} className="w-full px-2 py-1 border rounded">
+                    {['customer', 'admin', 'manager'].map(role => <option key={role} value={role}>{role}</option>)}
                 </select>
             ) : (
-                <input
-                    type={type}
-                    name={name}
-                    value={editedUser[name] || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-2 py-1 border rounded"
-                />
+                <input type={type} name={name} value={editedUser[name] || value} onChange={handleInputChange} className="w-full px-2 py-1 border rounded" maxLength={{ username: 20, email: 50, phone: 12, password: 30, first_name: 20, last_name: 20 }[name]} />
             )
         ) : (
-            <span className="block truncate" title={value}>
-                {name === 'subscription' ? (value ? "Yes" : "No") : value}
+            <span className="block truncate" title={value?.toString()}>
+                {name === 'subscription' ? (value ? "yes" : "no") : value}
             </span>
         )
     );
 
+    const FlagComponent = countryCode ? Flags[countryCode.toUpperCase()] : null;
+
     return (
-        <motion.tr
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className={`${isSelected ? 'bg-gray-300' : user.id % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-200 transition-colors cursor-pointer`}
-            onClick={() => handleSelect(user.id)}
-        >
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{user.id}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('first_name', user.first_name)}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('last_name', user.last_name)}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('username', user.username)}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('email', user.email, 'email')}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('subscription', user.subscription)}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{isEditing ? renderCell('password', '', 'password') : <span className="block truncate">••••••••</span>}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('phone', user.phone)}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{renderCell('role', user.role, 'select')}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">{new Date(user.created_at).toLocaleString()}</td>
-            <td className="border border-gray-300 p-2 whitespace-nowrap overflow-hidden text-ellipsis">
+        <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className={`${isSelected ? 'bg-gray-300' : user.id % 2 === 0 ? 'bg-gray-50' : 'bg-white'} hover:bg-gray-200 transition-colors cursor-pointer`} onClick={handleRowClick}>
+            {['id', 'first_name', 'last_name', 'username', 'email', 'subscription', 'password', 'phone', 'role', 'created_at'].map((field, i) => (
+                <td key={field} className="border border-gray-300 p-2">
+                    {field === 'created_at' ? new Date(user[field]).toLocaleString() : field === 'password' && !isEditing ? '••••••••' : field === 'phone' ? (
+                        <div className="flex items-center">
+                            {FlagComponent && (
+                                <FlagComponent title={countryCode} className="w-5 h-4 mr-2" />
+                            )}
+                            {renderCell(field, user[field], field === 'email' ? 'email' : field === 'role' ? 'select' : 'text')}
+                        </div>
+                    ) : renderCell(field, user[field], field === 'email' ? 'email' : field === 'role' ? 'select' : 'text')}
+                </td>
+            ))}
+            <td className="border border-gray-300 p-2">
                 {isEditing ? (
                     <>
                         <button onClick={handleSave} className="bg-black text-white px-2 py-1 rounded hover:bg-gray-600 mr-2"><FaSave /></button>
@@ -65,8 +74,8 @@ const UserRow = React.memo(({ user, editingUserId, editedUser, handleInputChange
                     </>
                 ) : (
                     <>
-                        <button onClick={() => handleEdit(user)} className="bg-black text-white px-2 py-1 rounded hover:bg-gray-600 mr-2"><FaEdit /></button>
-                        <button onClick={() => handleDelete(user.id)} className="bg-black text-white px-2 py-1 rounded hover:bg-gray-600"><FaTrash /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleEdit(user); }} className="bg-black text-white px-2 py-1 rounded hover:bg-gray-600 mr-2"><FaEdit /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(user.id); }} className="bg-black text-white px-2 py-1 rounded hover:bg-gray-600"><FaTrash /></button>
                     </>
                 )}
             </td>
@@ -118,7 +127,9 @@ const User = () => {
     });
 
     const filteredUsers = sortedUsers.filter(user => {
-        const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             user.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             user.last_name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = roleFilter === 'all' || user.role === roleFilter;
         const matchesSubscription = subscriptionFilter === 'all' || 
             (subscriptionFilter === 'subscribed' && user.subscription) || 
@@ -197,7 +208,7 @@ const User = () => {
                 user.username,
                 user.email,
                 user.role,
-                user.subscription ? 'Yes' : 'No',
+                user.subscription ? 'yes' : 'no',
                 new Date(user.created_at).toLocaleString(),
             ]),
         });
@@ -255,12 +266,12 @@ const User = () => {
                             <th className="border border-gray-300 p-2 w-16">ID</th>
                             <th className="border border-gray-300 p-2 w-32">First Name</th>
                             <th className="border border-gray-300 p-2 w-32">Last Name</th>
-                            <th className="border border-gray-300 p-2 w-32">Username</th>
+                            <th className="border border-gray-300 p-2 w-48">Username</th>
                             <th className="border border-gray-300 p-2 w-64">Email</th>
                             <th className="border border-gray-300 p-2 w-32">Subscription</th>
-                            <th className="border border-gray-300 p-2 w-32">Password</th>
+                            <th className="border border-gray-300 p-2 w-48">Password</th>
                             <th className="border border-gray-300 p-2 w-32">Phone</th>
-                            <th className="border border-gray-300 p-2 w-32">Role</th>
+                            <th className="border border-gray-300 p-2 w-48">Role</th>
                             <th className="border border-gray-300 p-2 w-48 cursor-pointer" onClick={() => handleSort('created_at')}>
                                 Created At {sortConfig.key === 'created_at' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
                             </th>

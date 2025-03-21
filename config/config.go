@@ -27,6 +27,12 @@ type Config struct {
 		Port     string `yaml:"port"`
 		DB       int    `yaml:"db"`
 	} `yaml:"redis"`
+
+	Twilio struct {
+		AccountSID   string `yaml:"accountSID"`
+		AuthToken    string `yaml:"authToken"`
+		TwilioNumber string `yaml:"twilioNumber"`
+	}
 }
 
 func LoadConfig() (*Config, error) {
