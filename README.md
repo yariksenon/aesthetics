@@ -17,3 +17,8 @@
 
 - **Primary Database**: PostgreSQL
 - **Caching**: Redis
+
+## ETC.
+- SMTP
+- reCAPTCHA
+- Twilio
