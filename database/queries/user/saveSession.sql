@@ -1,0 +1,1 @@
+INSERT INTO session (user_id, session_token, created_at, updated_at) VALUES ($1, $2, $3, $4)

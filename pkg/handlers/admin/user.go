@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	_ "embed"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"time"
@@ -83,12 +84,14 @@ func AdminDeleteUser(db *sql.DB) gin.HandlerFunc {
 
 func AdminUpdateUser(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Получаем SQL-запрос
 		query, ok := database.Queries["user/updateUsers"]
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Query for getting users not found"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Query for updating user not found"})
 			return
 		}
 
+		// Парсим входные данные
 		var user models.User
 		userId := c.Param("id")
 
@@ -98,13 +101,46 @@ func AdminUpdateUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		_, err := db.Exec(query, user.FirstName, user.LastName, user.Username, user.Email, user.Password, user.Phone, user.Role, userId)
+		// Если пароль был предоставлен - хешируем его
+		if user.Password != "" {
+			hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+			if err != nil {
+				log.Printf("Ошибка при хешировании пароля: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+				return
+			}
+			user.Password = string(hashedPassword)
+		} else {
+			// Если пароль не предоставлен, получаем текущий хеш из БД
+			var currentHash string
+			err := db.QueryRow("SELECT password FROM users WHERE id = $1", userId).Scan(&currentHash)
+			if err != nil {
+				log.Printf("Ошибка при получении текущего пароля: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get current password"})
+				return
+			}
+			user.Password = currentHash
+		}
+
+		// Обновляем данные пользователя
+		_, err := db.Exec(query,
+			user.FirstName,
+			user.LastName,
+			user.Username,
+			user.Email,
+			user.Password, // Теперь это хешированный пароль
+			user.Phone,
+			user.Role,
+			userId)
+
 		if err != nil {
 			log.Printf("Не удалось изменить данные о пользователе: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 			return
 		}
 
+		// Не возвращаем пароль в ответе, даже хешированный
+		user.Password = ""
 		c.JSON(http.StatusOK, user)
 	}
 }

@@ -5,6 +5,8 @@
 - **Language**: Golang
 - **Frameworks**: Gin
 - cors
+- jwt
+- dropbox
 
 ## Frontend
 

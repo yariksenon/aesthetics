@@ -9,9 +9,6 @@ const ProductCatalog = () => {
       </div>
       <div className="w-4/5">
         <ProductFilters />
-        {/* <div>Форма фильтрации</div>
-          
-        <div>форма товаров</div> */}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ import (
 //go:embed queries/general/initSchema.sql
 var initSchema string
 
-//go:embed queries/general/initDate.sql
+//go:embed queries/general/initData.sql
 var initDate string
 
 var Queries = map[string]string{}

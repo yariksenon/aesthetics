@@ -52,7 +52,9 @@ func GetSubCategory(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, sc)
+		c.JSON(http.StatusOK, gin.H{
+			"subCategory": sc,
+		})
 	}
 }
 

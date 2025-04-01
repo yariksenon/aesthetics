@@ -26,7 +26,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 				subCategoryGroup := categoryGroup.Group("/:subcategory")
 				{
-					subCategoryGroup.GET("/", handlers.GetSubCategory(db))
+					subCategoryGroup.GET("/", handlers.GetSubCategories(db))
 
 					productGroup := subCategoryGroup.Group("/:productID")
 					{
@@ -36,30 +36,27 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			}
 		}
 
-		v1.GET("/cart", handlers.AuthMiddleware(db))               // Получить корзину пользователя
-		v1.POST("/cart/add", handlers.AuthMiddleware(db))          // Добавить товар в корзину
-		v1.PUT("/cart/update/:id", handlers.AuthMiddleware(db))    // Обновить количество товаров в корзине
-		v1.DELETE("/cart/remove/:id", handlers.AuthMiddleware(db)) // Удалить товар из корзины
-
-		// ЗАКАЗ
-		v1.GET("/orders", handlers.AuthMiddleware(db))            // Получить все заказы пользователя
-		v1.GET("/orders/:id", handlers.AuthMiddleware(db))        // Получить заказы по ID
-		v1.POST("/orders", handlers.AuthMiddleware(db))           // Создать новый заказ
-		v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
+		//v1.GET("/cart", handlers.JWTMiddleware(db))                // Получить корзину пользователя
+		//v1.POST("/cart/add", handlers.JWTMiddleware(db))          // Добавить товар в корзину
+		//v1.PUT("/cart/update/:id", handlers.JWTMiddleware(db))    // Обновить количество товаров в корзине
+		//v1.DELETE("/cart/remove/:id", handlers.AuthMiddleware(db)) // Удалить товар из корзины
+		//
+		//// ЗАКАЗ
+		//v1.GET("/orders", handlers.AuthMiddleware(db))            // Получить все заказы пользователя
+		//v1.GET("/orders/:id", handlers.AuthMiddleware(db))        // Получить заказы по ID
+		//v1.POST("/orders", handlers.AuthMiddleware(db))           // Создать новый заказ
+		//v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
 
 		// ПОЛЬЗОВАТЕЛЬ
 		v1.POST("/register", handlers.RegisterPage(db, twilioClient)) // Зарегистрироваться
-		//v1.POST("/send-verification-code", handlers.SendVerificationCode(twilioClient)) // Отправить SMS с кодом подтверждения
-		//v1.POST("/verify-code", handlers.VerifyCode())                                  // Проверить код подтверждения
+		v1.POST("/login", handlers.LoginHandler(db))                  // Войти
 
-		v1.POST("/login", handlers.LoginPage(db)) // Залогиниться
-
-		protected := v1.Group("/profile")
-		protected.Use(handlers.AuthMiddleware(db))
-		protected.GET("/", handlers.GetProfile(db)) // Просмотреть профиль
-		protected.PUT("/")                          // Обновить профиль
-		protected.POST("/address")                  // Обновить профиль
-
+		auth := v1.Group("/")
+		auth.Use(handlers.JWTMiddleware())
+		{
+			auth.GET("profile", handlers.GetProfile(db))
+			auth.PUT("profile", handlers.UpdateProfile(db))
+		}
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 

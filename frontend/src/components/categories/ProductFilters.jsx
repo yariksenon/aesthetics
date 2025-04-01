@@ -9,8 +9,6 @@ const ProductFilters = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Обработка выбранных фильтров
-    console.log({ material, insulation, color, size, priceRange });
   };
 
   return (

@@ -6,7 +6,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './custom.css';
 
-// Схема валидации с использованием Yup
 const schema = yup.object().shape({
     email: yup
         .string()
@@ -36,37 +35,40 @@ const LoginForm = ({ switchToRegister }) => {
     const onSubmit = async (data) => {
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/v1/login', data, { withCredentials: true });
+            // 1. Убрали withCredentials, так как используем JWT в заголовке
+            const response = await axios.post('http://localhost:8080/api/v1/login', data);
             setErrorMessage('');
             reset();
     
-            // Сохраняем данные пользователя
+            // 2. Сохраняем JWT токен и данные пользователя
             localStorage.setItem('token', response.data.token); // Сохраняем токен
-            localStorage.setItem('userId', response.data.userId); // Сохраняем ID пользователя
-            localStorage.setItem('role', response.data.role); // Сохраняем роль
+            localStorage.setItem('userId', response.data.user_id); // Изменили на user_id
+            localStorage.setItem('role', response.data.role);
+            localStorage.setItem('userData', JSON.stringify({
+                id: response.data.user_id,
+                email: data.email,
+                role: response.data.role
+            }));
     
-            // Перенаправление в зависимости от роли
-            if (response.data.role === 'admin') {
-                navigate('/admin');
-            } else {
-                navigate('/profile');
-            }
+            // 3. Перенаправление
+            navigate(response.data.role === 'admin' ? '/admin' : '/profile');
         } catch (error) {
+            // 4. Улучшенная обработка ошибок
+            let message = 'Произошла непредвиденная ошибка';
             if (error.response) {
-                const message = error.response.data.message || 'Ошибка при отправке данных формы';
-                setErrorMessage(message);
+                message = error.response.data?.error || 
+                         error.response.data?.message || 
+                         message;
             } else if (error.request) {
-                setErrorMessage('Ошибка сети. Проверьте подключение к интернету.');
-            } else {
-                setErrorMessage('Произошла непредвиденная ошибка.');
+                message = 'Сервер не отвечает. Проверьте подключение.';
             }
-            console.error('Ошибка отправки данных формы:', error);
+            setErrorMessage(message);
+            console.error('Ошибка авторизации:', error);
         } finally {
             setIsLoading(false);
         }
     };
-
-    // Динамический класс для инпутов с анимацией ошибки
+    
     const getInputClassName = (error) =>
         `w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
             error ? 'border-red-500 animate-shake' : 'border-black'
