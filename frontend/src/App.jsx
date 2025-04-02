@@ -20,8 +20,17 @@ const Profile = lazy(() => import('./components/profile/Profile'))
 const AdminUsers = lazy(() => import('./components/admin/Users'));
 const AdminCategory = lazy(() => import('./components/admin/Category'))
 const AdminPanel = lazy(() => import('./components/admin/Panel'));
+
+
 const AdminProduct = lazy(() => import('./components/admin/Products'));
+const AdminProductAdd = lazy(() => import('./components/admin/product/AdminProductAdd'));
+const AdminProductDelete = lazy(() => import('./components/admin/product/AdminProductDelete'));
+const AdminProductEdit = lazy(() => import('./components/admin/product/AdminProductEdit'));
+const AdminProductView = lazy(() => import('./components/admin/product/AdminProductView'));
+
+
 const AdminSubCategories = lazy(() => import('./components/admin/SubCategories'))
+
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -85,6 +94,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+
+
           <Route
             path="/admin/products"
             element={
@@ -93,6 +105,46 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/products/add"
+            element={
+              <ProtectedRoute>
+                <AdminProductAdd />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products/edit"
+            element={
+              <ProtectedRoute>
+                <AdminProductEdit />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products/delete"
+            element={
+              <ProtectedRoute>
+                <AdminProductDelete />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products/view"
+            element={
+              <ProtectedRoute>
+                <AdminProductView />
+              </ProtectedRoute>
+            }
+          />
+          
+          
+          
+          
+          
+          
+          
+          
           <Route
             path="/admin/orders"
             element={

@@ -33,6 +33,9 @@ type Config struct {
 		AuthToken    string `yaml:"authToken"`
 		TwilioNumber string `yaml:"twilioNumber"`
 	}
+	Dropbox struct {
+		Token string `yaml:"token"`
+	}
 }
 
 func LoadConfig() (*Config, error) {

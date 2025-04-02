@@ -1,114 +1,83 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-const ProductFilters = () => {
-  const [material, setMaterial] = useState('');
-  const [insulation, setInsulation] = useState('');
-  const [color, setColor] = useState('');
-  const [size, setSize] = useState('');
-  const [priceRange, setPriceRange] = useState('');
+const ProductFilter = ({ onFilter }) => {
+  const [filters, setFilters] = useState({
+    category: '',
+    priceRange: '',
+    sortBy: 'default',
+  });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  // Пример категорий - можно заменить на свои
+  const categories = ['Электроника', 'Одежда', 'Книги', 'Для дома'];
+  
+  const priceRanges = [
+    { id: '0-50', label: 'До 50 ₽' },
+    { id: '50-100', label: '50-100 ₽' },
+    { id: '100-500', label: '100-500 ₽' },
+    { id: '500+', label: '500+ ₽' },
+  ];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const newFilters = { ...filters, [name]: value };
+    setFilters(newFilters);
+    
+    if (onFilter) {
+      onFilter(newFilters);
+    }
   };
 
   return (
-    <div className="p-4 bg-white shadow-lg rounded-lg">
-      <form onSubmit={handleSubmit}>
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="material">
-            Основной материал
-          </label>
-          <select
-            id="material"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={material}
-            onChange={(e) => setMaterial(e.target.value)}
-          >
-            <option value="">Выберите материал</option>
-            <option value="cotton">Хлопок</option>
-            <option value="polyester">Полиэстер</option>
-            <option value="wool">Шерсть</option>
-          </select>
+    <div className="bg-white text-black py-4 border-b border-gray-200">
+      <div className="">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Категория</label>
+            <select
+              name="category"
+              value={filters.category}
+              onChange={handleChange}
+              className="w-full p-2 border border-black rounded-none bg-white focus:outline-none focus:ring-0 focus:border-black"
+            >
+              <option value="">Все категории</option>
+              {categories.map((category, index) => (
+                <option key={index} value={category}>{category}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Цена</label>
+            <select
+              name="priceRange"
+              value={filters.priceRange}
+              onChange={handleChange}
+              className="w-full p-2 border border-black rounded-none bg-white focus:outline-none focus:ring-0 focus:border-black"
+            >
+              <option value="">Любая цена</option>
+              {priceRanges.map(range => (
+                <option key={range.id} value={range.id}>{range.label}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Сортировка</label>
+            <select
+              name="sortBy"
+              value={filters.sortBy}
+              onChange={handleChange}
+              className="w-full p-2 border border-black rounded-none bg-white focus:outline-none focus:ring-0 focus:border-black"
+            >
+              <option value="default">По умолчанию</option>
+              <option value="price-asc">Цена: по возрастанию</option>
+              <option value="price-desc">Цена: по убыванию</option>
+            </select>
+          </div>
         </div>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="insulation">
-            Утеплитель
-          </label>
-          <select
-            id="insulation"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={insulation}
-            onChange={(e) => setInsulation(e.target.value)}
-          >
-            <option value="">Выберите утеплитель</option>
-            <option value="down">Пух</option>
-            <option value="synthetic">Синтетика</option>
-          </select>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="color">
-            Цвет
-          </label>
-          <select
-            id="color"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          >
-            <option value="">Выберите цвет</option>
-            <option value="black">Черный</option>
-            <option value="white">Белый</option>
-            <option value="blue">Синий</option>
-          </select>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="size">
-            Размер
-          </label>
-          <select
-            id="size"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-          >
-            <option value="">Выберите размер</option>
-            <option value="s">S</option>
-            <option value="m">M</option>
-            <option value="l">L</option>
-          </select>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="priceRange">
-            Цена
-          </label>
-          <select
-            id="priceRange"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={priceRange}
-            onChange={(e) => setPriceRange(e.target.value)}
-          >
-            <option value="">Выберите ценовой диапазон</option>
-            <option value="0-50">0 - 50</option>
-            <option value="50-100">50 - 100</option>
-            <option value="100-200">100 - 200</option>
-          </select>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <button
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            type="submit"
-          >
-            Применить фильтры
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 };
 
-export default ProductFilters;
+export default ProductFilter;

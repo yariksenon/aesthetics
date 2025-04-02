@@ -48,8 +48,9 @@ CREATE TABLE IF NOT EXISTS product (
     color VARCHAR(50),
     size VARCHAR(50),
     sku VARCHAR(100) UNIQUE NOT NULL,
-    price NUMERIC(10, 2) NOT NULL,
+    price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     quantity INTEGER DEFAULT 0 CHECK (quantity >= 0),
+    image_path VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

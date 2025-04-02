@@ -22,6 +22,8 @@ func main() {
 
 	r := gin.Default()
 
+	r.MaxMultipartMemory = 8 << 20 // 8 MB
+	
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},

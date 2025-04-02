@@ -28,10 +28,10 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				{
 					subCategoryGroup.GET("/", handlers.GetSubCategories(db))
 
-					productGroup := subCategoryGroup.Group("/:productID")
-					{
-						productGroup.GET("/", handlers.GetProducts(db))
-					}
+					//productGroup := subCategoryGroup.Group("/:productID")
+					//{
+					//productGroup.GET("/", handlers.GetProducts(db))
+					//}
 				}
 			}
 		}
@@ -94,7 +94,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				product.GET("", admin.AdminGetProducts(db))
 				product.GET("/:id", admin.AdminGetProduct(db))
 				product.POST("", admin.AdminAddProduct(db))
-				product.PUT("/:id", admin.AdminUpdateProduct(db))
+				product.POST("/uploadImage", admin.AdminUploadImage(db))
+				//product.PUT("/:id", admin.AdminUpdateProduct(db))
 				product.DELETE("/:id", admin.AdminDeleteProduct(db))
 			}
 
