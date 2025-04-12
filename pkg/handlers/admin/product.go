@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -209,19 +210,37 @@ func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var product models.Product
 		if err := c.ShouldBindJSON(&product); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+			return
+		}
+
+		// Валидация обязательных полей
+		if product.Name == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Product name is required"})
+			return
+		}
+		if product.SKU == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "SKU is required"})
+			return
+		}
+		if product.Price < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Price cannot be negative"})
+			return
+		}
+		if product.Quantity < 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Quantity cannot be negative"})
 			return
 		}
 
 		product.CreatedAt = time.Now()
 
 		query := `
-			INSERT INTO product (
-				name, description, summary, sub_category_id, color, size, sku, 
-				price, quantity, image_path, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			RETURNING id
-		`
+            INSERT INTO product (
+                name, description, summary, sub_category_id, color, size, sku, 
+                price, quantity, image_path, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            RETURNING id
+        `
 
 		err := db.QueryRow(
 			query,
@@ -239,10 +258,14 @@ func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
 		).Scan(&product.ID)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "SKU must be unique"})
+				return
+			}
+			log.Printf("Database error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
 			return
 		}
-		log.Println(product.ImagePath)
 
 		c.JSON(http.StatusCreated, product)
 	}

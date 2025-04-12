@@ -88,10 +88,6 @@ const AdminProductView = () => {
 
     return (
         <div style={{ padding: '20px' }}>
-            <h2>Просмотр товаров</h2>
-            <div style={{ marginBottom: '20px' }}>
-                <Button type="primary">Добавить товар</Button>
-            </div>
             <Table 
                 columns={columns} 
                 dataSource={products} 
