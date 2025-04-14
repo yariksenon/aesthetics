@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Image, Space, Button, Tag } from "antd"; // Используем Ant Design для красивого интерфейса
+import { Table, Image, Space, Button, Tag } from "antd";
 
 const AdminProductView = () => {
     const [products, setProducts] = useState([]);
@@ -29,14 +29,11 @@ const AdminProductView = () => {
         },
         {
             title: 'Изображение',
-            dataIndex: 'image_path',
             key: 'image',
-            render: (imagePath) => (
+            render: () => (
                 <Image 
                     width={64}
-                    src={imagePath.startsWith('/uploads') ? 
-                        `http://your-backend-url${imagePath}` : 
-                        imagePath}
+                    src="http://localhost:8080/static/весна/wave.jpg"
                     fallback="https://via.placeholder.com/64"
                 />
             ),
@@ -74,17 +71,8 @@ const AdminProductView = () => {
             key: 'created_at',
             render: (date) => new Date(date).toLocaleString(),
         },
-        {
-            title: 'Действия',
-            key: 'actions',
-            render: (_, record) => (
-                <Space size="middle">
-                    <Button type="primary">Редактировать</Button>
-                    <Button danger>Удалить</Button>
-                </Space>
-            ),
-        },
     ];
+    
 
     return (
         <div style={{ padding: '20px' }}>

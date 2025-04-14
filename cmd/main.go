@@ -23,7 +23,7 @@ func main() {
 	r := gin.Default()
 
 	r.MaxMultipartMemory = 8 << 20 // 8 MB
-	
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
@@ -64,6 +64,8 @@ func main() {
 	twilioClient := twilio.NewTwilioClient(cfg.Twilio.TwilioNumber, cfg.Twilio.AccountSID, cfg.Twilio.AuthToken)
 
 	routes.SetupRoutes(r, db, smtpClient, redisClient, twilioClient)
+
+	r.Static("/static", "./images/product")
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)

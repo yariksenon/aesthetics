@@ -19,7 +19,7 @@ func AdminGetProducts(db *sql.DB) gin.HandlerFunc {
             SELECT id, name, description, summary, sub_category_id, color, size, 
                    sku, price, quantity, image_path, created_at
             FROM product
-            ORDER BY created_at DESC
+            ORDER BY id ASC
         `
 
 		rows, err := db.Query(query)
@@ -54,6 +54,30 @@ func AdminGetProducts(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, products)
+	}
+}
+
+func AdminGetImages(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		rows, err := db.Query("SELECT image_path FROM product")
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Не удалось получить данные из базы"})
+			return
+		}
+		defer rows.Close()
+
+		var images []string
+		for rows.Next() {
+			var imagePath string
+			if err := rows.Scan(&imagePath); err != nil {
+				c.JSON(500, gin.H{"error": "Ошибка при обработке данных"})
+				return
+			}
+			// Возвращаем относительный путь, который фронтенд сможет использовать
+			images = append(images, "/static/"+imagePath)
+		}
+
+		c.JSON(200, gin.H{"images": images})
 	}
 }
 
@@ -238,7 +262,7 @@ func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
             INSERT INTO product (
                 name, description, summary, sub_category_id, color, size, sku, 
                 price, quantity, image_path, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id
         `
 

@@ -92,6 +92,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			product := routesAdmin.Group("/products")
 			{
 				product.GET("", admin.AdminGetProducts(db))
+				product.GET("/images", admin.AdminGetImages(db))
 				product.GET("/:id", admin.AdminGetProduct(db))
 				product.POST("", admin.AdminAddProduct(db))
 				//product.PUT("/:id", admin.AdminUpdateProduct(db))

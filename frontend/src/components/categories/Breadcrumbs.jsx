@@ -16,7 +16,7 @@ const translations = {
   running: "бег",
   brand: "бренд",
   skiing: "лыжи",
-  volleyball: "волейбол",
+  volleyball: "весна",
   gym: "зал",
   diving: "дайвинг",
   football: "футбол",
