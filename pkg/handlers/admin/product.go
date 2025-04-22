@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -54,30 +57,6 @@ func AdminGetProducts(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, products)
-	}
-}
-
-func AdminGetImages(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		rows, err := db.Query("SELECT image_path FROM product")
-		if err != nil {
-			c.JSON(500, gin.H{"error": "Не удалось получить данные из базы"})
-			return
-		}
-		defer rows.Close()
-
-		var images []string
-		for rows.Next() {
-			var imagePath string
-			if err := rows.Scan(&imagePath); err != nil {
-				c.JSON(500, gin.H{"error": "Ошибка при обработке данных"})
-				return
-			}
-			// Возвращаем относительный путь, который фронтенд сможет использовать
-			images = append(images, "/static/"+imagePath)
-		}
-
-		c.JSON(200, gin.H{"images": images})
 	}
 }
 
@@ -232,41 +211,69 @@ func AdminUploadImage(db *sql.DB) gin.HandlerFunc {
 
 func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var product models.Product
-		if err := c.ShouldBindJSON(&product); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		// Получаем файл изображения
+		file, err := c.FormFile("image")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Image file is required"})
 			return
 		}
 
-		// Валидация обязательных полей
-		if product.Name == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Product name is required"})
-			return
-		}
-		if product.SKU == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "SKU is required"})
-			return
-		}
-		if product.Price < 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Price cannot be negative"})
-			return
-		}
-		if product.Quantity < 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Quantity cannot be negative"})
+		// Получаем остальные данные из формы
+		imagePath := c.PostForm("image_path")
+		if imagePath == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Image path is required"})
 			return
 		}
 
-		product.CreatedAt = time.Now()
+		// Сохраняем изображение
+		if err := saveImage(imagePath, file); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Создаем продукт из данных формы
+		product := models.Product{
+			Name:        c.PostForm("name"),
+			Description: c.PostForm("description"),
+			Summary:     c.PostForm("summary"),
+			Color:       c.PostForm("color"),
+			Size:        c.PostForm("size"),
+			SKU:         c.PostForm("sku"),
+			ImagePath:   imagePath,
+			CreatedAt:   time.Now(),
+		}
+
+		// Парсим числовые значения
+		if subCategoryID, err := strconv.Atoi(c.PostForm("sub_category_id")); err == nil {
+			product.SubCategoryID = subCategoryID
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sub_category_id"})
+			return
+		}
+
+		if price, err := strconv.ParseFloat(c.PostForm("price"), 64); err == nil {
+			product.Price = price
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
+			return
+		}
+
+		if quantity, err := strconv.Atoi(c.PostForm("quantity")); err == nil {
+			product.Quantity = quantity
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid quantity"})
+			return
+		}
 
 		query := `
-            INSERT INTO product (
-                name, description, summary, sub_category_id, color, size, sku, 
-                price, quantity, image_path, created_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id
-        `
+			INSERT INTO product (
+				name, description, summary, sub_category_id, color, size, sku, 
+				price, quantity, image_path, created_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			RETURNING id
+		`
 
-		err := db.QueryRow(
+		err = db.QueryRow(
 			query,
 			product.Name,
 			product.Description,
@@ -292,5 +299,151 @@ func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusCreated, product)
+	}
+}
+
+func saveImage(imagePath string, file *multipart.FileHeader) error {
+	// Разделяем путь, чтобы получить категорию и имя файла
+	parts := strings.Split(imagePath, "/")
+	if len(parts) < 2 {
+		return fmt.Errorf("неверный путь к изображению: %s", imagePath)
+	}
+
+	category := parts[0]
+	fileName := parts[1]
+
+	// Создаём папку для категории
+	dirPath := filepath.Join("image/product", category)
+	err := os.MkdirAll(dirPath, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("ошибка создания папки: %v", err)
+	}
+
+	// Полный путь к файлу
+	filePath := filepath.Join(dirPath, fileName)
+
+	// Открываем загруженный файл
+	src, err := file.Open()
+	if err != nil {
+		return fmt.Errorf("ошибка открытия файла: %v", err)
+	}
+	defer src.Close()
+
+	// Создаём файл для записи
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("ошибка создания файла: %v", err)
+	}
+	defer dst.Close()
+
+	// Копируем данные изображения
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("ошибка записи файла: %v", err)
+	}
+
+	fmt.Printf("Файл сохранён: %s\n", filePath)
+	return nil
+}
+
+func AdminUpdateProduct(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get product ID from URL
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+			return
+		}
+
+		// Parse JSON body
+		var updateData struct {
+			Name          string  `json:"name"`
+			Description   string  `json:"description"`
+			Summary       string  `json:"summary"`
+			SubCategoryID int     `json:"sub_category_id"`
+			Color         string  `json:"color"`
+			Size          string  `json:"size"`
+			SKU           string  `json:"sku"`
+			Price         float64 `json:"price"`
+			Quantity      int     `json:"quantity"`
+			ImagePath     string  `json:"image_path"`
+		}
+
+		if err := c.ShouldBindJSON(&updateData); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+			return
+		}
+
+		// Check if product exists
+		var existingProduct models.Product
+		err = db.QueryRow(`
+            SELECT id FROM product WHERE id = $1`, id).Scan(&existingProduct.ID)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+				return
+			}
+			log.Printf("Database error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch product"})
+			return
+		}
+
+		// Update product in database
+		query := `
+            UPDATE product SET
+                name = $1,
+                description = $2,
+                summary = $3,
+                sub_category_id = $4,
+                color = $5,
+                size = $6,
+                sku = $7,
+                price = $8,
+                quantity = $9,
+                image_path = $10
+            WHERE id = $11
+            RETURNING id, name, description, summary, sub_category_id, 
+                      color, size, sku, price, quantity, image_path
+        `
+
+		err = db.QueryRow(
+			query,
+			updateData.Name,
+			updateData.Description,
+			updateData.Summary,
+			updateData.SubCategoryID,
+			updateData.Color,
+			updateData.Size,
+			updateData.SKU,
+			updateData.Price,
+			updateData.Quantity,
+			updateData.ImagePath,
+			id,
+		).Scan(
+			&existingProduct.ID,
+			&existingProduct.Name,
+			&existingProduct.Description,
+			&existingProduct.Summary,
+			&existingProduct.SubCategoryID,
+			&existingProduct.Color,
+			&existingProduct.Size,
+			&existingProduct.SKU,
+			&existingProduct.Price,
+			&existingProduct.Quantity,
+			&existingProduct.ImagePath,
+		)
+
+		if err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "SKU must be unique"})
+				return
+			}
+			log.Printf("Database error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
+			return
+		}
+
+		c.JSON(http.StatusOK, existingProduct)
 	}
 }

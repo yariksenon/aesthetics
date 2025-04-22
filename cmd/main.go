@@ -1,11 +1,11 @@
 package main
 
 import (
+	"aesthetics/cmd/smtp"
+	"aesthetics/cmd/twilio"
 	"aesthetics/config"
 	"aesthetics/database"
 	"aesthetics/pkg/routes"
-	"aesthetics/smtp"
-	"aesthetics/twilio"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -22,7 +22,7 @@ func main() {
 
 	r := gin.Default()
 
-	r.MaxMultipartMemory = 8 << 20 // 8 MB
+	r.MaxMultipartMemory = 8 << 20
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
@@ -65,7 +65,7 @@ func main() {
 
 	routes.SetupRoutes(r, db, smtpClient, redisClient, twilioClient)
 
-	r.Static("/static", "./images/product")
+	r.Static("/static", "./image/product")
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)

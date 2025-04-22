@@ -14,7 +14,7 @@ const AdminProductAdd = () => {
     price: '0',
     quantity: '1',
     image_path: '',
-    currency: 'USD' // Добавили выбор валюты
+    currency: '' // Добавили выбор валюты
   });
 
   const [subCategories, setSubCategories] = useState([]);
@@ -86,7 +86,7 @@ const AdminProductAdd = () => {
     setLoading(true);
     setError('');
     setSuccess('');
-
+  
     try {
       // Валидация полей
       if (!formData.name || formData.name.length > 255) {
@@ -108,16 +108,16 @@ const AdminProductAdd = () => {
       if (parseInt(formData.quantity) < 1) {
         throw new Error('Количество не может быть меньше 1');
       }
-
+  
       // Находим выбранную подкатегорию
       const selectedCategory = subCategories.find(
         cat => cat.id === Number(formData.sub_category_id)
       );
-
+  
       if (!selectedCategory) {
         throw new Error('Подкатегория не найдена');
       }
-
+  
       // Формируем путь к изображению
       let imagePath = '';
       if (imageFile) {
@@ -126,26 +126,35 @@ const AdminProductAdd = () => {
           .replace(/\s+/g, '_');
         imagePath = `${normalizedCategory}/${imageFile.name}`;
       }
-
-      // Подготовка данных для отправки
-      const productData = {
-        ...formData,
-        sub_category_id: Number(formData.sub_category_id),
-        price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity),
-        image_path: imagePath
-      };
-
+  
+      // Создаем FormData для отправки
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('summary', formData.summary);
+      formDataToSend.append('sub_category_id', formData.sub_category_id);
+      formDataToSend.append('color', formData.color);
+      formDataToSend.append('size', formData.size);
+      formDataToSend.append('sku', formData.sku);
+      formDataToSend.append('price', formData.price);
+      formDataToSend.append('quantity', formData.quantity);
+      formDataToSend.append('image_path', imagePath);
+      formDataToSend.append('currency', formData.currency);
+      
+      if (imageFile) {
+        formDataToSend.append('image', imageFile);
+      }
+  
       const response = await axios.post(
         'http://localhost:8080/api/v1/admin/products', 
-        productData,
+        formDataToSend,
         {
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'multipart/form-data'
           }
         }
       );
-
+  
       setSuccess('Товар успешно добавлен!');
       resetForm();
       
@@ -172,7 +181,7 @@ const AdminProductAdd = () => {
       price: '0',
       quantity: '1',
       image_path: '',
-      currency: 'USD'
+      currency: 'BYN'
     });
     setImageFile(null);
     setImagePreview('');
@@ -340,36 +349,29 @@ const AdminProductAdd = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
-                Цена*
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
-                  onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-16"
-                  required
-                  min="0.01"
-                  step="0.01"
-                />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <select
-                    name="currency"
-                    value={formData.currency}
-                    onChange={handleChange}
-                    className="bg-gray-100 border-none text-sm rounded-l focus:ring-blue-500 focus:ring-2"
-                  >
-                    <option value="USD">$</option>
-                    <option value="EUR">€</option>
-                    <option value="RUB">₽</option>
-                    <option value="KZT">₸</option>
-                  </select>
-                </div>
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700">
+              Цена*
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent pl-16"
+                required
+                min="0.01"
+                step="0.01"
+              />
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <span className="bg-gray-100 text-sm rounded-l px-3">
+                  Br
+                </span>
               </div>
             </div>
+          </div>
+
             
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-700">

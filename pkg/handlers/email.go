@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"aesthetics/smtp"
+	"aesthetics/cmd/smtp"
 	"github.com/gin-gonic/gin"
 
 	"net/http"

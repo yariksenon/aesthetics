@@ -30,11 +30,12 @@ const AdminProductView = () => {
         {
             title: 'Изображение',
             key: 'image',
-            render: () => (
+            render: (_, record) => (
                 <Image 
                     width={64}
-                    src="http://localhost:8080/static/весна/wave.jpg"
+                    src={`http://localhost:8080/static/${record.image_path}`}
                     fallback="https://via.placeholder.com/64"
+                    alt={record.name}
                 />
             ),
         },
@@ -47,7 +48,7 @@ const AdminProductView = () => {
             title: 'Цена',
             dataIndex: 'price',
             key: 'price',
-            render: (price) => `$${price.toFixed(2)}`,
+            render: (price) => `Br ${price.toFixed(2)}`,
         },
         {
             title: 'Количество',
@@ -58,12 +59,13 @@ const AdminProductView = () => {
             title: 'Цвет',
             dataIndex: 'color',
             key: 'color',
-            render: (color) => <Tag color={color.toLowerCase()}>{color}</Tag>,
+            render: (color) => color ? <Tag color={color.toLowerCase()}>{color}</Tag> : '-',
         },
         {
             title: 'Размер',
             dataIndex: 'size',
             key: 'size',
+            render: (size) => size || '-',
         },
         {
             title: 'Дата создания',
@@ -82,6 +84,7 @@ const AdminProductView = () => {
                 rowKey="id"
                 loading={loading}
                 bordered
+                pagination={{ pageSize: 10 }}
             />
         </div>
     );

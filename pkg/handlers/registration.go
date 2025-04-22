@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"aesthetics/cmd/twilio"
 	"aesthetics/config"
 	"aesthetics/database"
 	"aesthetics/models"
-	"aesthetics/twilio"
 	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"

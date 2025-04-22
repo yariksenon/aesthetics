@@ -55,13 +55,41 @@ function Header() {
   const [isLogin, setIsLogin] = useState(true);
   const [showSocials, setShowSocials] = useState(false);
   const [activeMenuItem, setActiveMenuItem] = useState(() => {
-    // Восстановление выбранного значения из localStorage только для гендерных пунктов
     const savedMenuItem = localStorage.getItem('activeMenuItem');
     return savedMenuItem && ['woman', 'man', 'children'].includes(savedMenuItem) ? savedMenuItem : 'woman';
   });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userData, setUserData] = useState(null);
   const navigate = useNavigate();
   const { gender } = useParams();
 
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    const user = JSON.parse(localStorage.getItem('userData'));
+    
+    if (token && user) {
+      setIsAuthenticated(true);
+      setUserData(user);
+    }
+  }, []);
+
+  const handleLoginSuccess = useCallback((token, user) => {
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('userData', JSON.stringify(user));
+    setIsAuthenticated(true);
+    setUserData(user);
+    setIsModalOpen(false);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    setIsAuthenticated(false);
+    setUserData(null);
+    navigate('/');
+  }, [navigate]);
+
+  
   useEffect(() => {
     // Сохранение выбранного значения в localStorage только для гендерных пунктов
     if (['woman', 'man', 'children'].includes(activeMenuItem)) {
@@ -110,6 +138,7 @@ function Header() {
 
   return (
     <header className="mx-[15%] mt-[1%] flex justify-between items-center">
+      {/* Мобильное меню (бургер) */}
       <div className="lg:hidden">
         <button onClick={toggleMenu} aria-label="Открыть меню">
           <svg
@@ -128,7 +157,8 @@ function Header() {
           </svg>
         </button>
       </div>
-
+  
+      {/* Основное меню и логотип */}
       <div className="flex items-center flex-grow">
         <div className="hidden lg:flex md:space-x-5 lg:space-x-6">
           {menuItems.slice(0, 3).map((item, index) => (
@@ -143,7 +173,7 @@ function Header() {
             </button>
           ))}
         </div>
-
+  
         <div className="flex justify-center flex-grow">
           <Link to="/" target="_top">
             <img
@@ -154,15 +184,71 @@ function Header() {
           </Link>
         </div>
       </div>
-
+  
+      {/* Блок авторизации и корзины */}
       <div className="flex space-x-2 sm:space-x-3 md:space-x-5 lg:space-x-10 items-center">
-        <button
-          className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black bg-white py-0.5 sm:py-1.5 md:py-2 px-2 sm:px-4 md:px-6 border-[1px] md:border-2 border-black rounded-lg transition duration-300 ease-in-out transform hover:bg-black hover:text-white hover:border-white hover:shadow-lg"
-          onClick={openModal}
-          aria-label="Войти"
-        >
-          Войти
-        </button>
+        {isAuthenticated ? (
+          <div className="relative group">
+            <button className="flex items-center space-x-1">
+              <span className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black">
+                {userData?.firstName || 'Профиль'}
+              </span>
+              <svg 
+                className="w-4 h-4" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+            
+            {/* Выпадающее меню профиля */}
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block border border-gray-200">
+              <Link 
+                to="/profile" 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Мой профиль
+              </Link>
+              <Link 
+                to="/orders" 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Мои заказы
+              </Link>
+              <Link 
+                to="/wishlist" 
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Избранное
+              </Link>
+              <div className="border-t border-gray-200 my-1"></div>
+              <button 
+                onClick={handleLogout}
+                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Выйти
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black bg-white py-0.5 sm:py-1.5 md:py-2 px-2 sm:px-4 md:px-6 border-[1px] md:border-2 border-black rounded-lg transition duration-300 ease-in-out transform hover:bg-black hover:text-white hover:border-white hover:shadow-lg"
+            onClick={openModal}
+            aria-label="Войти"
+          >
+            Войти
+          </button>
+        )}
+        
+        {/* Иконка корзины */}
         <div className="flex items-center transition-transform duration-300 ease-in-out hover:scale-110">
           <img
             src={headerBasket}
@@ -174,7 +260,7 @@ function Header() {
           </Link>
         </div>
       </div>
-
+  
       {isModalOpen && (
         <AuthModal
           isLogin={isLogin}
@@ -183,9 +269,11 @@ function Header() {
           switchToLogin={switchToLogin}
           showSocials={showSocials}
           toggleSocials={toggleSocials}
+          onLoginSuccess={handleLoginSuccess}
         />
       )}
-
+  
+      {/* Мобильное меню (полноэкранное) */}
       <MobileMenu
         isMenuOpen={isMenuOpen}
         toggleMenu={toggleMenu}

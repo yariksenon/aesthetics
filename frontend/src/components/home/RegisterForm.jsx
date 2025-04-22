@@ -7,6 +7,7 @@ import 'react-phone-number-input/style.css';
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { motion } from 'framer-motion';
+import './custom.css';
 
 const API_URL = 'http://localhost:8080/api/v1/register';
 const CAPTCHA_SITE_KEY = '6LccqPoqAAAAAJX7xPKW3ZSxOTpB37BrDxjcCl3R';
@@ -22,7 +23,7 @@ const ErrorMessage = ({ error }) => (
     </motion.p>
 );
 
-const InputField = ({ id, type, placeholder, register, errors, rules, className, maxLength }) => (
+const InputField = ({ id, type, placeholder, register, errors, className, maxLength }) => (
     <div className="mb-4">
         <input
             type={type}
@@ -32,7 +33,7 @@ const InputField = ({ id, type, placeholder, register, errors, rules, className,
             } ${className}`}
             placeholder={placeholder}
             maxLength={maxLength}
-            {...register(id, rules)}
+            {...register(id)}
         />
         <div className="h-4">
             {errors[id] && <ErrorMessage error={errors[id]} />}
@@ -40,7 +41,7 @@ const InputField = ({ id, type, placeholder, register, errors, rules, className,
     </div>
 );
 
-const RegisterForm = ({ switchToLogin }) => {
+const RegisterForm = ({ switchToLogin, onRegisterSuccess, closeModal }) => {
     const {
         register,
         handleSubmit,
@@ -64,10 +65,7 @@ const RegisterForm = ({ switchToLogin }) => {
             return false;
         }
 
-        // Удаляем все нецифровые символы (например, пробелы, скобки, дефисы)
         const cleanedPhone = phoneNumber.replace(/\D/g, '');
-
-        // Ограничение на 12 цифр
         if (cleanedPhone.length > 12) {
             setError('phone', {
                 type: 'manual',
@@ -88,29 +86,6 @@ const RegisterForm = ({ switchToLogin }) => {
         return true;
     };
 
-    const handleFormError = (error) => {
-        if (error.response && error.response.data.errors) {
-            error.response.data.errors.forEach((err) => {
-                setError(err.field, {
-                    type: 'server',
-                    message: err.message,
-                });
-            });
-        } else if (error.response) {
-            console.error('Ошибка отправки данных формы:', error.response.data);
-            setError('root', {
-                type: 'server',
-                message: error.response.data.message || 'Ошибка при отправке данных формы.',
-            });
-        } else {
-            console.error('Ошибка отправки данных формы:', error);
-            setError('root', {
-                type: 'server',
-                message: 'Ошибка при отправке данных формы.',
-            });
-        }
-    };
-
     const onSubmit = async (data) => {
         if (!captchaValue) {
             setError('root', {
@@ -126,11 +101,51 @@ const RegisterForm = ({ switchToLogin }) => {
 
         setIsLoading(true);
         try {
-            const registerResponse = await axios.post(API_URL, data, { withCredentials: true });
-            console.log(registerResponse.data);
+            const response = await axios.post(API_URL, {
+                username: data.username,
+                email: data.email,
+                phone: data.phone,
+                password: data.password,
+                captcha: captchaValue
+            });
+
+            // Сохраняем данные пользователя
+            const userData = {
+                token: response.data.token,
+                user: {
+                    id: response.data.user_id,
+                    email: data.email,
+                    username: data.username,
+                    role: response.data.role || 'user'
+                }
+            };
+
+            localStorage.setItem('authToken', userData.token);
+            localStorage.setItem('userData', JSON.stringify(userData.user));
+
+            // Вызываем колбэк успешной регистрации
+            if (onRegisterSuccess) {
+                onRegisterSuccess(userData.token, userData.user);
+            }
+
+            // Перенаправляем и закрываем модальное окно
             navigate('/profile');
+            if (closeModal) closeModal();
+
         } catch (error) {
-            handleFormError(error);
+            if (error.response?.data?.errors) {
+                error.response.data.errors.forEach((err) => {
+                    setError(err.field, {
+                        type: 'server',
+                        message: err.message,
+                    });
+                });
+            } else {
+                setError('root', {
+                    type: 'server',
+                    message: error.response?.data?.message || 'Ошибка при регистрации',
+                });
+            }
         } finally {
             setIsLoading(false);
         }
@@ -141,19 +156,18 @@ const RegisterForm = ({ switchToLogin }) => {
         clearErrors('root');
     };
 
-    // const CustomInput = React.forwardRef((props, ref) => (
-    //     <input {...props} ref={ref} maxLength={15} />
-    // ));
-    
-
     return (
         <div>
             <form onSubmit={handleSubmit(onSubmit)} className='mt-[5%]'>
                 <p>
                     Есть аккаунт?{' '}
-                    <a onClick={switchToLogin} className='underline underline-offset-4 cursor-pointer'>
+                    <button 
+                        type="button"
+                        onClick={switchToLogin} 
+                        className='underline underline-offset-4 cursor-pointer focus:outline-none'
+                    >
                         Войти
-                    </a>
+                    </button>
                 </p>
                 <div className='mt-[5%]'>
                     {errors.root && (
@@ -204,27 +218,22 @@ const RegisterForm = ({ switchToLogin }) => {
                     />
 
                     <div className="mb-4">
-
-
-
-                    <PhoneInput
-                        international
-                        defaultCountry="BY"
-                        value={getValues('phone')}
-                        onChange={(value) => {
-                            const cleanedPhone = value ? value.replace(/\D/g, '') : '';
-                            if (cleanedPhone.length <= 15) {
-                                setValue('phone', value || '');
-                                validatePhoneNumber(value || '');
-                            }
-                        }}
-                        className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-                            errors.phone ? 'border-red-500 animate-shake' : 'border-black'
-                        }`}
-                        placeholder="Введите номер телефона"
-                    />
-
-
+                        <PhoneInput
+                            international
+                            defaultCountry="BY"
+                            value={getValues('phone')}
+                            onChange={(value) => {
+                                const cleanedPhone = value ? value.replace(/\D/g, '') : '';
+                                if (cleanedPhone.length <= 15) {
+                                    setValue('phone', value || '');
+                                    validatePhoneNumber(value || '');
+                                }
+                            }}
+                            className={`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
+                                errors.phone ? 'border-red-500 animate-shake' : 'border-black'
+                            }`}
+                            placeholder="Введите номер телефона"
+                        />
                         <div className="h-4">
                             {errors.phone && <ErrorMessage error={errors.phone} />}
                         </div>
@@ -296,10 +305,19 @@ const RegisterForm = ({ switchToLogin }) => {
 
                 <button
                     type="submit"
-                    className="w-full bg-black text-white hover:bg-gray-800 py-4"
+                    className={`w-full bg-black text-white py-4 hover:bg-gray-800 transition duration-300 ${
+                        isLoading ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
                     disabled={isLoading}
                 >
-                    {isLoading ? 'Загрузка...' : 'Зарегистрироваться'}
+                    {isLoading ? (
+                        <div className="flex justify-center items-center">
+                            <div className="loading-spinner"></div>
+                            <span className="ml-2">Регистрация...</span>
+                        </div>
+                    ) : (
+                        'Зарегистрироваться'
+                    )}
                 </button>
             </form>
         </div>

@@ -9,9 +9,9 @@ type Product struct {
 	Name          string    `json:"name"`
 	Description   string    `json:"description"`
 	Summary       string    `json:"summary"`
-	SubCategoryID *int      `json:"sub_category_id"`
-	Color         *string   `json:"color"`
-	Size          *string   `json:"size"`
+	SubCategoryID int       `json:"sub_category_id"`
+	Color         string    `json:"color"`
+	Size          string    `json:"size"`
 	SKU           string    `json:"sku"`
 	Price         float64   `json:"price"`
 	Quantity      int       `json:"quantity"`

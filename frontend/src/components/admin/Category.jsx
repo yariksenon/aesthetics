@@ -4,7 +4,7 @@ import { FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSortUp, FaSortDown, FaArrow
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
 
-const API_URL = 'http://localhost:8080/api/v1/admin/category';
+const API_URL = 'http://localhost:8080/api/v1/admin/category/';
 
 const Category = () => {
     const [categories, setCategories] = useState([]);
@@ -23,17 +23,19 @@ const Category = () => {
 
     const fetchCategories = useCallback(async () => {
         try {
-            const response = await axios.get(API_URL);
-            if (response.data?.categories) {
-                setCategories(response.data.categories);
-            }
+          const response = await axios.get(API_URL);
+          if (response.data?.category) {
+            setCategories(response.data.category); // Исправлено на category
+          } else {
+            setCategories([]); // На случай если структура ответа не соответствует
+          }
         } catch (err) {
-            setError(err.response?.data?.message || 'Ошибка при загрузке категорий');
-            console.error('Ошибка:', err);
+          setError(err.response?.data?.message || 'Ошибка при загрузке категорий');
+          console.error('Ошибка:', err);
         } finally {
-            setLoading(false);
+          setLoading(false);
         }        
-    }, []);
+      }, []);
 
     useEffect(() => {
         fetchCategories();

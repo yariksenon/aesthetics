@@ -1,10 +1,10 @@
 package routes
 
 import (
+	"aesthetics/cmd/smtp"
+	"aesthetics/cmd/twilio"
 	"aesthetics/pkg/handlers"
 	"aesthetics/pkg/handlers/admin"
-	"aesthetics/smtp"
-	"aesthetics/twilio"
 	"database/sql"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -92,10 +92,9 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			product := routesAdmin.Group("/products")
 			{
 				product.GET("", admin.AdminGetProducts(db))
-				product.GET("/images", admin.AdminGetImages(db))
 				product.GET("/:id", admin.AdminGetProduct(db))
 				product.POST("", admin.AdminAddProduct(db))
-				//product.PUT("/:id", admin.AdminUpdateProduct(db))
+				product.PUT("/:id", admin.AdminUpdateProduct(db))
 				product.DELETE("/:id", admin.AdminDeleteProduct(db))
 			}
 
