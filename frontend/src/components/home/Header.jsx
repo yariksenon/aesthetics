@@ -91,7 +91,6 @@ function Header() {
 
   
   useEffect(() => {
-    // Сохранение выбранного значения в localStorage только для гендерных пунктов
     if (['woman', 'man', 'children'].includes(activeMenuItem)) {
       localStorage.setItem('activeMenuItem', activeMenuItem);
     }
@@ -138,7 +137,6 @@ function Header() {
 
   return (
     <header className="mx-[15%] mt-[1%] flex justify-between items-center">
-      {/* Мобильное меню (бургер) */}
       <div className="lg:hidden">
         <button onClick={toggleMenu} aria-label="Открыть меню">
           <svg
@@ -158,7 +156,6 @@ function Header() {
         </button>
       </div>
   
-      {/* Основное меню и логотип */}
       <div className="flex items-center flex-grow">
         <div className="hidden lg:flex md:space-x-5 lg:space-x-6">
           {menuItems.slice(0, 3).map((item, index) => (
