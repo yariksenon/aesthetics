@@ -1,5 +1,8 @@
-import Accordion from './Accordion'
-import ProductFilters from './ProductFilters'
+// ProductCatalog.jsx
+import React from 'react';
+import Accordion from './Accordion';
+import ProductFilters from './ProductFilters';
+import ProductCard from './ProductCard';
 
 const ProductCatalog = () => {
   return (
@@ -9,6 +12,7 @@ const ProductCatalog = () => {
       </div>
       <div className="w-4/5">
         <ProductFilters />
+        <ProductCard />
       </div>
     </div>
   );

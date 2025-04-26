@@ -1,18 +1,18 @@
 import React from 'react';
-import Aside from './AsideBanner';
+import AsideBanner from './AsideBanner';
 import Header from './Header';
 import Section from './Section';
-import ProductsForm from './ProductsForm';
+import ShoppingCart from './ShoppingCart';
 import Footer from './Footer';
 
 function Cart() {
   return (
     <>
-    <Aside />
+    <AsideBanner />
     <Header />
     <Section />
       <main className="mx-[15%] mt-[2%]">
-        <ProductsForm />
+        <ShoppingCart />
       </main>
     <Footer />
     </>

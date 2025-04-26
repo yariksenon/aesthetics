@@ -51,6 +51,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/register", handlers.RegisterPage(db, twilioClient)) // Зарегистрироваться
 		v1.POST("/login", handlers.LoginHandler(db))                  // Войти
 
+		v1.GET("/products", handlers.GetProducts(db))
+
 		auth := v1.Group("/")
 		auth.Use(handlers.JWTMiddleware())
 		{

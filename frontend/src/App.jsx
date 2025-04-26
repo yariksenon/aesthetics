@@ -3,34 +3,26 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'rea
 import Loading from './components/loading/Loading';
 import { VALID_CATEGORIES } from './components/categories/Сategories';
 import { VALID_GENDERS } from './components/gender/Gender';
-import ProtectedRoute from './components/admin/ProtectedRoute'; 
+import ProtectedRoute from './components/admin/ProtectedRoute';
+import { CartProvider } from './context/CartContext'; // Import CartProvider
 
 const Home = lazy(() => import('./components/home/Home'));
 const Cart = lazy(() => import('./components/cart/Cart'));
-
 const Categories = lazy(() => import('./components/categories/Сategories'));
 const WhyUs = lazy(() => import('./components/home/WhyUs'));
 const NotFound = lazy(() => import('./components/notFound/NotFound'));
 const SubCategory = lazy(() => import('./components/subCategory/SubCategory'));
 const Product = lazy(() => import('./components/product/Product'));
-//Profile
-const Profile = lazy(() => import('./components/profile/Profile'))
-
-//Admin
+const Profile = lazy(() => import('./components/profile/Profile'));
 const AdminUsers = lazy(() => import('./components/admin/Users'));
-const AdminCategory = lazy(() => import('./components/admin/Category'))
+const AdminCategory = lazy(() => import('./components/admin/Category'));
 const AdminPanel = lazy(() => import('./components/admin/Panel'));
-
-
 const AdminProduct = lazy(() => import('./components/admin/Products'));
 const AdminProductAdd = lazy(() => import('./components/admin/product/AdminProductAdd'));
 const AdminProductDelete = lazy(() => import('./components/admin/product/AdminProductDelete'));
 const AdminProductEdit = lazy(() => import('./components/admin/product/AdminProductEdit'));
 const AdminProductView = lazy(() => import('./components/admin/product/AdminProductView'));
-
-
-const AdminSubCategories = lazy(() => import('./components/admin/SubCategories'))
-
+const AdminSubCategories = lazy(() => import('./components/admin/SubCategories'));
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -47,148 +39,135 @@ export default function App() {
   const initialGender = VALID_GENDERS.includes(savedGender) ? savedGender : 'woman';
 
   return (
-    <Router>
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<Navigate to={`/${initialGender}`} />} />
-          <Route path="/about" element={<WhyUs />} />
-          <Route path="/cart" element={<Cart />} />
-
-          <Route path="/404" element={<NotFound />} />
-          <Route path="*" element={<Navigate to="/404" />} />
-
-          <Route path="/:gender" element={<GenderRoute />} />
-          <Route path="/:gender/:category" element={<CategoryRoute />} />
-          <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
-          <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
-
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminPanel />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/users"
-            element={
-              <ProtectedRoute>
-                <AdminUsers />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/categories"
-            element={
-              <ProtectedRoute>
-                <AdminCategory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/subcategories"
-            element={
-              <ProtectedRoute>
-                <AdminSubCategories />
-              </ProtectedRoute>
-            }
-          />
-
-
-
-          <Route
-            path="/admin/products"
-            element={
-              <ProtectedRoute>
-                <AdminProduct />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/products/add"
-            element={
-              <ProtectedRoute>
-                <AdminProductAdd />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/products/edit"
-            element={
-              <ProtectedRoute>
-                <AdminProductEdit />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/products/delete"
-            element={
-              <ProtectedRoute>
-                <AdminProductDelete />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/products/view"
-            element={
-              <ProtectedRoute>
-                <AdminProductView />
-              </ProtectedRoute>
-            }
-          />
-          
-          
-          
-          
-          
-          
-          
-          
-          <Route
-            path="/admin/orders"
-            element={
-              <ProtectedRoute>
-                <SubCategory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/payments"
-            element={
-              <ProtectedRoute>
-                <SubCategory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/wishlists"
-            element={
-              <ProtectedRoute>
-                <SubCategory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/carts"
-            element={
-              <ProtectedRoute>
-                <SubCategory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/statistics"
-            element={
-              <ProtectedRoute>
-                <SubCategory />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </Suspense>
-    </Router>
+    <CartProvider> {/* Wrap Router with CartProvider */}
+      <Router>
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            <Route path="/" element={<Navigate to={`/${initialGender}`} />} />
+            <Route path="/about" element={<WhyUs />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/404" element={<NotFound />} />
+            <Route path="*" element={<Navigate to="/404" />} />
+            <Route path="/:gender" element={<GenderRoute />} />
+            <Route path="/:gender/:category" element={<CategoryRoute />} />
+            <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
+            <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <AdminPanel />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <AdminUsers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/categories"
+              element={
+                <ProtectedRoute>
+                  <AdminCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/subcategories"
+              element={
+                <ProtectedRoute>
+                  <AdminSubCategories />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products"
+              element={
+                <ProtectedRoute>
+                  <AdminProduct />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products/add"
+              element={
+                <ProtectedRoute>
+                  <AdminProductAdd />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products/edit"
+              element={
+                <ProtectedRoute>
+                  <AdminProductEdit />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products/delete"
+              element={
+                <ProtectedRoute>
+                  <AdminProductDelete />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products/view"
+              element={
+                <ProtectedRoute>
+                  <AdminProductView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/orders"
+              element={
+                <ProtectedRoute>
+                  <SubCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/payments"
+              element={
+                <ProtectedRoute>
+                  <SubCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/wishlists"
+              element={
+                <ProtectedRoute>
+                  <SubCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/carts"
+              element={
+                <ProtectedRoute>
+                  <SubCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/statistics"
+              element={
+                <ProtectedRoute>
+                  <SubCategory />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </Suspense>
+      </Router>
+    </CartProvider>
   );
 }
