@@ -361,7 +361,7 @@ const ProductFilter = ({ onFilter }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl px-6">
+    <div className="bg-white rounded-xl">
       <div className="flex flex-wrap gap-3 pb-4">
         <FilterDropdown type="colors" label="Цвет" options={filterOptions.colors} />
         <FilterDropdown type="clothingSizes" label="Размер одежды" options={filterOptions.clothingSizes} />

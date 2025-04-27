@@ -39,7 +39,7 @@ export default function App() {
   const initialGender = VALID_GENDERS.includes(savedGender) ? savedGender : 'woman';
 
   return (
-    <CartProvider> {/* Wrap Router with CartProvider */}
+    <CartProvider>
       <Router>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -52,6 +52,8 @@ export default function App() {
             <Route path="/:gender/:category" element={<CategoryRoute />} />
             <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
             <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
+            <Route path="/product/:productid" element={<Product />} />
+            
             <Route
               path="/admin"
               element={

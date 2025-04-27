@@ -160,7 +160,7 @@ function productCarts() {
               {/* Кнопка "Купить" (появляется при наведении) */}
               <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden 2xl:block">
                 <button className="bg-black text-white px-3 py-1 text-xs sm:text-sm rounded-full hover:bg-gray-800 transition-colors duration-300">
-                  Купить
+                  В корзину
                 </button>
               </div>
             </div>

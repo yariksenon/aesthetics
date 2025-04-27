@@ -1,9 +1,9 @@
 import React from 'react';
 import AsideBanner from './AsideBanner';
-import Header from './Header';
+import Header from '../home/Header'
 import Section from './Section';
 import ShoppingCart from './ShoppingCart';
-import Footer from './Footer';
+import Footer from '../home/Footer';
 
 function Cart() {
   return (

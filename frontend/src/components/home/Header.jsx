@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import headerLogo from "../../assets/home/Header/Logo.svg";
 import headerBasket from "../../assets/home/Header/Basket.svg";
@@ -49,6 +49,30 @@ const MobileMenu = ({ isMenuOpen, toggleMenu, menuItems, handleGenderChange, han
   )
 );
 
+const UserAvatar = ({ email, firstName }) => {
+  const getInitials = (email) => {
+    if (!email) return '??';
+    const parts = email.split('@')[0];
+    if (parts.length >= 2) {
+      return parts.substring(0, 2).toUpperCase();
+    }
+    return parts.length === 1 ? `${parts[0]}${parts[0]}`.toUpperCase() : '??';
+  };
+
+  return (
+    <div className="flex items-center">
+      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-300 flex items-center justify-center text-sm md:text-base font-medium text-gray-700 cursor-pointer">
+        {getInitials(email)}
+      </div>
+      {firstName && (
+        <span className="ml-2 text-[10px] sm:text-xs md:text-sm lg:text-base hidden md:inline">
+          {firstName}
+        </span>
+      )}
+    </div>
+  );
+};
+
 function Header() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -60,6 +84,8 @@ function Header() {
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { gender } = useParams();
 
@@ -71,6 +97,19 @@ function Header() {
       setIsAuthenticated(true);
       setUserData(user);
     }
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLoginSuccess = useCallback((token, user) => {
@@ -86,10 +125,10 @@ function Header() {
     localStorage.removeItem('userData');
     setIsAuthenticated(false);
     setUserData(null);
+    setIsDropdownOpen(false);
     navigate('/');
   }, [navigate]);
 
-  
   useEffect(() => {
     if (['woman', 'man', 'children'].includes(activeMenuItem)) {
       localStorage.setItem('activeMenuItem', activeMenuItem);
@@ -102,6 +141,10 @@ function Header() {
     setIsModalOpen(false);
   }, []);
   const toggleMenu = useCallback(() => setIsMenuOpen(!isMenuOpen), [isMenuOpen]);
+  const toggleDropdown = useCallback((e) => {
+    e.stopPropagation();
+    setIsDropdownOpen(prev => !prev);
+  }, []);
 
   const switchToRegister = useCallback(() => setIsLogin(false), []);
   const switchToLogin = useCallback(() => setIsLogin(true), []);
@@ -182,58 +225,53 @@ function Header() {
         </div>
       </div>
   
-      {/* Блок авторизации и корзины */}
       <div className="flex space-x-2 sm:space-x-3 md:space-x-5 lg:space-x-10 items-center">
         {isAuthenticated ? (
-          <div className="relative group">
-            <button className="flex items-center space-x-1">
-              <span className="text-[10px] sm:text-xs md:text-sm lg:text-base text-black">
-                {userData?.firstName || 'Профиль'}
-              </span>
-              <svg 
-                className="w-4 h-4" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth="2" 
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+          <div className="relative" ref={dropdownRef}>
+            <button 
+              onClick={toggleDropdown}
+              className="flex items-center focus:outline-none"
+              aria-label="Меню пользователя"
+              aria-expanded={isDropdownOpen}
+            >
+              <UserAvatar email={userData?.email} firstName={userData?.firstName} />
             </button>
             
-            {/* Выпадающее меню профиля */}
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden group-hover:block border border-gray-200">
-              <Link 
-                to="/profile" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Мой профиль
-              </Link>
-              <Link 
-                to="/orders" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Мои заказы
-              </Link>
-              <Link 
-                to="/wishlist" 
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Избранное
-              </Link>
-              <div className="border-t border-gray-200 my-1"></div>
-              <button 
-                onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
-              >
-                Выйти
-              </button>
-            </div>
+            {isDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200">
+                <Link 
+                  to="/profile" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Мой профиль
+                </Link>
+                <Link 
+                  to="/orders" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Мои заказы
+                </Link>
+                <Link 
+                  to="/wishlist" 
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Избранное
+                </Link>
+                <div className="border-t border-gray-200 my-1"></div>
+                <button 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleLogout();
+                  }}
+                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Выйти
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button
@@ -245,7 +283,6 @@ function Header() {
           </button>
         )}
         
-        {/* Иконка корзины */}
         <div className="flex items-center transition-transform duration-300 ease-in-out hover:scale-110">
           <img
             src={headerBasket}
@@ -270,7 +307,6 @@ function Header() {
         />
       )}
   
-      {/* Мобильное меню (полноэкранное) */}
       <MobileMenu
         isMenuOpen={isMenuOpen}
         toggleMenu={toggleMenu}

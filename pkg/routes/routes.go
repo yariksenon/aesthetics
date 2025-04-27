@@ -36,22 +36,16 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			}
 		}
 
-		//v1.GET("/cart", handlers.JWTMiddleware(db))                // Получить корзину пользователя
-		//v1.POST("/cart/add", handlers.JWTMiddleware(db))          // Добавить товар в корзину
-		//v1.PUT("/cart/update/:id", handlers.JWTMiddleware(db))    // Обновить количество товаров в корзине
-		//v1.DELETE("/cart/remove/:id", handlers.AuthMiddleware(db)) // Удалить товар из корзины
-		//
-		//// ЗАКАЗ
-		//v1.GET("/orders", handlers.AuthMiddleware(db))            // Получить все заказы пользователя
-		//v1.GET("/orders/:id", handlers.AuthMiddleware(db))        // Получить заказы по ID
-		//v1.POST("/orders", handlers.AuthMiddleware(db))           // Создать новый заказ
-		//v1.PUT("/orders/:id/cancel", handlers.AuthMiddleware(db)) // Отменить заказ
-
 		// ПОЛЬЗОВАТЕЛЬ
 		v1.POST("/register", handlers.RegisterPage(db, twilioClient)) // Зарегистрироваться
 		v1.POST("/login", handlers.LoginHandler(db))                  // Войти
 
 		v1.GET("/products", handlers.GetProducts(db))
+
+		v1.GET("/orders", handlers.GetProducts(db))
+		v1.GET("/wishlist", handlers.GetProducts(db))
+
+		v1.GET("/product/:id", handlers.GetProduct(db))
 
 		auth := v1.Group("/")
 		auth.Use(handlers.JWTMiddleware())
