@@ -25,6 +25,8 @@ const AdminProductDelete = lazy(() => import('./components/admin/product/AdminPr
 const AdminProductEdit = lazy(() => import('./components/admin/product/AdminProductEdit'));
 const AdminProductView = lazy(() => import('./components/admin/product/AdminProductView'));
 const AdminSubCategories = lazy(() => import('./components/admin/SubCategories'));
+const Order = lazy(() => import('./components/order/Order'));
+const SearchResults = lazy(() => import('./components/search/SearchResults'));
 
 function GenderRoute() {
   const { gender } = useParams();
@@ -57,6 +59,9 @@ export default function App() {
               <Route path="/:gender/:category/:subcategory" element={<SubCategory />} />
               <Route path="/:gender/:category/:subcategory/:productid" element={<Product />} />
               <Route path="/product/:productid" element={<Product />} />
+              <Route path="/order" element={<Order />} />
+              <Route path="/:gender/search" element={<SearchResults />} />
+
               
               <Route
                 path="/admin"

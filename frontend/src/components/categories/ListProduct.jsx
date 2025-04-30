@@ -1,4 +1,3 @@
-// ListProduct.jsx
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import { useFavorites } from '../../context/FavoritesContext';
@@ -6,8 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import heart from '../../assets/home/ProductCards/ProductCard-Heart.svg';
 import feelHeart from '../../assets/home/ProductCards/ProductCard-FeelHeart.svg';
 
-const ListProduct = () => {
+const ListProduct = ({ filters = {} }) => {
   const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoverStates, setHoverStates] = useState({
     product: null,
@@ -17,21 +17,82 @@ const ListProduct = () => {
   const { favorites, toggleFavorite } = useFavorites();
   const navigate = useNavigate();
 
+  // Загрузка продуктов
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         const response = await fetch('http://localhost:8080/api/v1/admin/products');
         const data = await response.json();
-        setProducts(Array.isArray(data) ? data.slice(0, 6) : []);
+        const productsArray = Array.isArray(data) ? data : [];
+        setProducts(productsArray);
+        setFilteredProducts(productsArray);
+        setLoading(false);
       } catch (error) {
         console.error('Error loading products:', error);
-      } finally {
         setLoading(false);
       }
     };
 
     fetchProducts();
   }, []);
+
+  // Применение фильтров
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    let result = [...products];
+
+    // Фильтрация по цвету
+    if (filters.colors && filters.colors.length > 0) {
+      result = result.filter(product => 
+        product.color && filters.colors.includes(product.color.toLowerCase())
+      );
+    }
+
+    // Фильтрация по размеру
+    if (filters.sizes && filters.sizes.length > 0) {
+      result = result.filter(product => 
+        product.sizes && product.sizes.some(size => filters.sizes.includes(size))
+      );
+    }
+
+    // Фильтрация по цене
+    if (filters.priceRange) {
+      result = result.filter(product => 
+        product.price >= filters.priceRange.min && 
+        product.price <= filters.priceRange.max
+      );
+    }
+
+    // Фильтрация по наличию
+    if (filters.availability) {
+      if (filters.availability === 'in-stock') {
+        result = result.filter(product => product.inStock > 0);
+      } else if (filters.availability === 'out-of-stock') {
+        result = result.filter(product => product.inStock <= 0);
+      }
+    }
+
+    // Сортировка
+    if (filters.sortBy) {
+      switch (filters.sortBy) {
+        case 'price-asc':
+          result.sort((a, b) => a.price - b.price);
+          break;
+        case 'price-desc':
+          result.sort((a, b) => b.price - a.price);
+          break;
+        case 'newest':
+          result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          break;
+        default:
+          // Сортировка по умолчанию (можно добавить свою логику)
+          break;
+      }
+    }
+
+    setFilteredProducts(result);
+  }, [filters, products]);
 
   const handleHoverState = (type, id) => {
     setHoverStates(prev => ({ ...prev, [type]: id }));
@@ -53,22 +114,30 @@ const ListProduct = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center py-12">Loading...</div>;
+    return <div className="flex justify-center items-center py-12">Загрузка...</div>;
   }
 
-  if (!products.length) {
-    return <div className="text-center py-12 text-gray-500">Товары не найдены</div>;
+  if (filteredProducts.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-500 text-lg">Товары не найдены</p>
+        <p className="text-gray-400 mt-2">Попробуйте изменить параметры фильтрации</p>
+      </div>
+    );
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-6">
-      {products.map((product) => {
+      {filteredProducts.map((product) => {
         const isFavorite = favorites.some(fav => fav.id === product.id);
-        
+        const discountedPrice = product.discountPercentage 
+          ? product.price * (1 - product.discountPercentage / 100)
+          : null;
+
         return (
           <div
             key={product.id}
-            className="relative group bg-white overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer"
+            className="relative group bg-white rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer border border-gray-100"
             onMouseEnter={() => handleHoverState('product', product.id)}
             onMouseLeave={() => handleHoverState('product', null)}
             onClick={() => handleProductClick(product.id)}
@@ -108,23 +177,24 @@ const ListProduct = () => {
             </div>
 
             <div className="p-4">
-              <h3 className="text-lg font-medium text-gray-900 line-clamp-2">
+              <h3 className="text-lg font-medium text-gray-900 line-clamp-2 h-14">
                 {product.name}
               </h3>
               <div className="flex items-center justify-between mt-3">
                 <div>
                   <p className="text-lg font-bold text-gray-900">
-                    {product.price.toFixed(2)} Br
+                    {discountedPrice ? discountedPrice.toFixed(2) : product.price.toFixed(2)} руб.
                   </p>
-                  {product.discountPercentage && (
+                  {discountedPrice && (
                     <p className="text-sm text-gray-500 line-through">
-                      {(product.price / (1 - product.discountPercentage / 100)).toFixed(2)} Br
+                      {product.price.toFixed(2)} руб.
                     </p>
                   )}
                 </div>
                 <button
                   onClick={(e) => handleAddToCart(product, e)}
-                  className="px-4 py-2 bg-black text-white text-sm font-medium rounded-md hover:bg-gray-800"
+                  disabled={product.inStock <= 0}
+                  className={`px-4 py-2 text-sm font-medium rounded-md bg-black text-white hover:bg-gray-800`}
                 >
                   В корзину
                 </button>

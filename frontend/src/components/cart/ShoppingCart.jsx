@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // Добавьте этот импорт
 import { useCart } from '../../context/CartContext';
 
 const ShoppingCart = () => {
   const { cart, removeFromCart, updateQuantity, cartTotal, notification, clearCart } = useCart();
+  const navigate = useNavigate(); // Добавьте эту строку
 
   return (
     <div className="container mx-auto px-4 py-8 bg-white text-black min-h-screen relative">
@@ -86,7 +88,10 @@ const ShoppingCart = () => {
                 <span>Всего:</span>
                 <span>Br {cartTotal.toFixed(2)}</span>
               </div>
-              <button className="w-full mt-6 bg-gray-200 hover:bg-gray-100 text-black py-3 px-4 rounded">
+              <button 
+                onClick={() => navigate('/order')}
+                className="w-full mt-6 bg-black text-white py-3 px-4 rounded hover:bg-gray-800"
+              >
                 Оформить заказ
               </button>
             </div>

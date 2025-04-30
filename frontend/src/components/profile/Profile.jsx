@@ -9,8 +9,8 @@ const Profile = () => {
         <Header />
         <Section />
             <div className="mx-[15%]">
-            <UserProfile />
-        </div>
+                <UserProfile />
+            </div>
         <Footer />
     </div>
 );

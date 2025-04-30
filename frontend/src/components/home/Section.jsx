@@ -20,16 +20,18 @@ const inputStyles = `
 `;
 const buttonStyles = 'bg-black rounded-tr-lg rounded-br-lg flex items-center justify-center w-[60px]';
 
-const SearchInput = () => (
+const SearchInput = ({ value, onChange }) => (
     <input
         type="text"
         className={`${inputStyles} ${textStyles.small}`}
         placeholder="Поиск"
+        value={value}
+        onChange={onChange}
     />
 );
 
-const SearchButton = () => (
-    <button className={buttonStyles}>
+const SearchButton = ({ onClick }) => (
+    <button className={buttonStyles} onClick={onClick}>
         <img src={sectionGlass} alt="glass" className="h-7 w-7" />
     </button>
 );
@@ -50,6 +52,7 @@ const MenuItem = ({ label, isActive, onClick }) => (
 
 function Section() {
     const [activeItemId, setActiveItemId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
     const navigate = useNavigate();
     const { gender } = useParams();
 
@@ -66,6 +69,23 @@ function Section() {
         setActiveItemId(id);
         navigate(`/${gender}/${category.toLowerCase()}`);
     }, [navigate, gender]);
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const handleSearchSubmit = () => {
+        if (searchQuery.trim()) {
+          navigate(`/${gender}/search?q=${encodeURIComponent(searchQuery)}`);
+          setSearchQuery(''); // Очищаем поле поиска после отправки
+        }
+      };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearchSubmit();
+        }
+    };
 
     return (
         <nav className="mx-[15%] mt-[1%] flex flex-col lg:flex-row justify-between items-start lg:items-center">
@@ -90,8 +110,12 @@ function Section() {
                 ))}
             </div>
             <div className="flex w-full lg:w-[35%]">
-                <SearchInput />
-                <SearchButton />
+                <SearchInput 
+                    value={searchQuery} 
+                    onChange={handleSearchChange}
+                    onKeyPress={handleKeyPress}
+                />
+                <SearchButton onClick={handleSearchSubmit} />
             </div>
         </nav>
     );
