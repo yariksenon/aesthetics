@@ -1,7 +1,7 @@
 import React from 'react';
-import AsideBanner from './AsideBanner';
+import AsideBanner from '../home/AsideBanner';
 import Header from '../home/Header'
-import Section from './Section';
+import Section from '../home/Section';
 import ShoppingCart from './ShoppingCart';
 import Footer from '../home/Footer';
 

@@ -1,34 +1,56 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
-  const [cart, setCart] = useState([]);
+  // Загружаем корзину из localStorage при инициализации
+  const [cart, setCart] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedCart = localStorage.getItem('cart');
+      return savedCart ? JSON.parse(savedCart) : [];
+    }
+    return [];
+  });
+
+  // Сохраняем корзину в localStorage при каждом изменении
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
+  }, [cart]);
 
   const addToCart = (product) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
-        return prevCart.map((item) =>
+        const updatedCart = prevCart.map((item) =>
           item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
+        toast.success(`Количество "${product.name}" увеличено!`);
+        return updatedCart;
       } else {
+        toast.success(`"${product.name}" добавлен в корзину!`);
         return [...prevCart, { ...product, quantity: 1 }];
       }
     });
   };
 
-  const removeFromCart = (productId) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== productId));
+  const removeFromCart = (productId, productName) => {
+    setCart((prevCart) => {
+      const updatedCart = prevCart.filter((item) => item.id !== productId);
+      toast.success(`"${productName}" удален из корзины!`);
+      return updatedCart;
+    });
   };
 
-  const updateQuantity = (productId, newQuantity) => {
+  const updateQuantity = (productId, newQuantity, productName) => {
     if (newQuantity < 1) {
-      removeFromCart(productId);
+      const product = cart.find(item => item.id === productId);
+      removeFromCart(productId, product?.name || 'Товар');
       return;
     }
 
@@ -37,6 +59,13 @@ export const CartProvider = ({ children }) => {
         item.id === productId ? { ...item, quantity: newQuantity } : item
       )
     );
+    
+    toast.success(`Количество "${productName}" изменено на ${newQuantity}!`);
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    toast.success('Корзина очищена!');
   };
 
   const cartTotal = cart.reduce(
@@ -51,11 +80,23 @@ export const CartProvider = ({ children }) => {
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart,
         cartTotal,
       }}
     >
       {children}
-      <ToastContainer />
+      <ToastContainer 
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </CartContext.Provider>
   );
 };

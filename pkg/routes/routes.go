@@ -42,10 +42,13 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		v1.GET("/products", handlers.GetProducts(db))
 
+		v1.GET("/product/:id", handlers.GetProduct(db))
+
 		v1.GET("/orders", handlers.GetProducts(db))
 		v1.GET("/wishlist", handlers.GetProducts(db))
 
-		v1.GET("/product/:id", handlers.GetProduct(db))
+		v1.GET("/profile/address", handlers.GetAddress(db))
+		v1.POST("/profile/address", handlers.SaveAddress(db))
 
 		auth := v1.Group("/")
 		auth.Use(handlers.JWTMiddleware())
@@ -55,6 +58,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		}
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
+
+		v1.GET("/addresses", handlers.GetProduct(db))
 
 		routesAdmin := v1.Group("/admin")
 		{

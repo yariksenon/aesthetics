@@ -84,8 +84,10 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 		// Возвращаем ответ без токена в теле
 		c.JSON(http.StatusOK, gin.H{
 			"message":    "Login successful",
+			"token":     tokenString, // Добавляем токен в ответ
 			"user_id":    userID,
 			"role":       role,
+			// "first_name": firstName, // Добавьте это поле, если оно есть в вашей БД
 			"expires_in": 86400,
 		})
 	}

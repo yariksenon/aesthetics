@@ -34,7 +34,9 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
     const onSubmit = async (data) => {
         setIsLoading(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/v1/login', data);
+            const response = await axios.post('http://localhost:8080/api/v1/login', data, {
+                withCredentials: true // Для приёма куки
+            });
             
             // Очищаем ошибки и форму
             setErrorMessage('');
@@ -42,12 +44,12 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 
             // Сохраняем данные аутентификации
             const authData = {
-                token: response.data.token,
+                token: response.data.token || getCookie('auth_token'), // Функция getCookie должна быть реализована
                 user: {
                     id: response.data.user_id,
                     email: data.email,
                     role: response.data.role,
-                    firstName: response.data.first_name // Добавляем имя пользователя
+                    firstName: response.data.first_name || '' // Делаем необязательным
                 }
             };
 

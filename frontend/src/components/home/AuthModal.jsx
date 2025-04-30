@@ -11,7 +11,7 @@ const AuthModal = ({
   switchToLogin, 
   showSocials, 
   toggleSocials,
-  onLoginSuccess // Добавляем новый пропс
+  onLoginSuccess 
 }) => {
     const handleInnerClick = useCallback((e) => {
         e.stopPropagation();

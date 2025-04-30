@@ -2,7 +2,7 @@ import React from 'react';
 import { useCart } from '../../context/CartContext';
 
 const ShoppingCart = () => {
-  const { cart, removeFromCart, updateQuantity, cartTotal, notification } = useCart();
+  const { cart, removeFromCart, updateQuantity, cartTotal, notification, clearCart } = useCart();
 
   return (
     <div className="container mx-auto px-4 py-8 bg-white text-black min-h-screen relative">
@@ -61,6 +61,12 @@ const ShoppingCart = () => {
                   </div>
                 </div>
               ))}
+              <button
+                onClick={clearCart}
+                className="mt-4 text-red-500 hover:text-red-700 text-sm"
+              >
+                Очистить корзину
+              </button>
             </div>
           </div>
 

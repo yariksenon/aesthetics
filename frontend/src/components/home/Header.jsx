@@ -254,7 +254,7 @@ function Header() {
                   Мои заказы
                 </Link>
                 <Link 
-                  to="/wishlist" 
+                  to="/favorites" 
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                   onClick={() => setIsDropdownOpen(false)}
                 >
