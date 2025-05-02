@@ -1,20 +1,13 @@
 package models
 
-import "time"
-
 type Cart struct {
-	Id        int       `json:"id"`
-	UserId    int       `json:"user_id"`
-	Total     float64   `json:"total"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID     int `json:"id"`
+	UserID int `json:"user_id"`
 }
 
 type CartItem struct {
-	Id        int       `json:"id"`
-	CartId    int       `json:"cart_id"`
-	ProductId int       `json:"product_id"`
-	Quantity  int       `json:"quantity"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        int `json:"id"`
+	CartID    int `json:"cart_id"`
+	ProductID int `json:"product_id"`
+	Quantity  int `json:"quantity"`
 }

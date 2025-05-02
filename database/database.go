@@ -4,18 +4,19 @@ import (
 	"database/sql"
 	_ "embed"
 	"fmt"
-	_ "github.com/lib/pq"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
+
+	_ "github.com/lib/pq"
 )
 
-//go:embed queries/general/initSchema.sql
-var initSchema string
+//go:embed queries/general/initTable.sql
+var initTable string
 
 //go:embed queries/general/initData.sql
-var initDate string
+var initData string
 
 var Queries = map[string]string{}
 
@@ -36,18 +37,18 @@ func InitDB(user, password, host, port, dbname string) (*sql.DB, error) {
 	return db, nil
 }
 
-func InitSchema(db *sql.DB) error {
-	if _, err := db.Exec(initSchema); err != nil {
-		log.Println("не выполнился sql код")
+func InitTable(db *sql.DB) error {
+	if _, err := db.Exec(initTable); err != nil {
+		log.Println("Init schema not execute")
 		return err
 	}
 
 	return nil
 }
 
-func InitDate(db *sql.DB) error {
-	if _, err := db.Exec(initDate); err != nil {
-		log.Println("не выполнился sql код")
+func InitData(db *sql.DB) error {
+	if _, err := db.Exec(initData); err != nil {
+		log.Println("Cannot execute initData")
 		return err
 	}
 

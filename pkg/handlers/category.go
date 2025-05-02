@@ -3,16 +3,17 @@ package handlers
 import (
 	"aesthetics/models"
 	"database/sql"
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 func GetCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var categories []models.Category
 
-		rows, err := db.Query("SELECT id, name, created_at FROM category ORDER BY id")
+		rows, err := db.Query("SELECT id, name FROM category ORDER BY id")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении категорий"})
 			log.Println(err)
@@ -23,7 +24,7 @@ func GetCategory(db *sql.DB) gin.HandlerFunc {
 		for rows.Next() {
 			var category models.Category
 
-			err := rows.Scan(&category.ID, &category.Name, &category.CreatedAt)
+			err := rows.Scan(&category.ID, &category.Name)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сканировании категорий"})
 				log.Fatal(err)

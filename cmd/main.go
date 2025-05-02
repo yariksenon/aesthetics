@@ -6,12 +6,13 @@ import (
 	"aesthetics/config"
 	"aesthetics/database"
 	"aesthetics/pkg/routes"
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -45,11 +46,11 @@ func main() {
 	}
 	defer db.Close()
 
-	if err = database.InitSchema(db); err != nil {
-		log.Fatalf("Failed to initialize schema: %v", err)
+	if err = database.InitTable(db); err != nil {
+		log.Fatalf("Failed to initTable: %v", err)
 	}
 
-	if err = database.InitDate(db); err != nil {
+	if err = database.InitData(db); err != nil {
 		log.Fatalf("Failed to initialize date: %v", err)
 	}
 

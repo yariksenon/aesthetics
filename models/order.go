@@ -3,19 +3,17 @@ package models
 import "time"
 
 type Order struct {
-	Id        int       `json:"id"`
-	UserId    int       `json:"user_id"`
-	PaymentId int       `json:"payment_id"`
-	Total     float64   `json:"total"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID              int       `json:"id"`
+	UserID          int       `json:"user_id" binding:"required"`
+	PaymentProvider string    `json:"payment_provider" binding:"required"`
+	Total           float64   `json:"total" binding:"required,gt=0"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type OrderItem struct {
-	Id        int       `json:"id"`
-	OrderId   int       `json:"order_id"`
-	ProductId int       `json:"product_id"`
-	Quantity  int       `json:"quantity"`
+	ID        int       `json:"id"`
+	OrderID   int       `json:"order_id"`
+	ProductID int       `json:"product_id"`
+	Quantity  int       `json:"quantity" binding:"gte=1"`
 	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
 }

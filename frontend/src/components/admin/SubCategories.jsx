@@ -1,388 +1,223 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import { FaArrowLeft, FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSearch, FaSortUp, FaSortDown } from "react-icons/fa";
-import Swal from "sweetalert2";
+import React, { useState, useEffect } from 'react'
+import {
+	Table,
+	Button,
+	Modal,
+	Form,
+	Input,
+	Select,
+	message,
+	Popconfirm,
+	Space,
+} from 'antd'
+import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
+import { FaArrowLeft } from 'react-icons/fa'
+
+const { Option } = Select
 
 const SubCategories = () => {
-    const [subCategories, setSubCategories] = useState([]);
-    const [categories, setCategories] = useState([]);
-    const [filteredSubCategories, setFilteredSubCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [showAddForm, setShowAddForm] = useState(false);
-    const [showEditForm, setShowEditForm] = useState(false);
-    const [editingSubCategory, setEditingSubCategory] = useState(null);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-    const navigate = useNavigate();
+	const [subCategories, setSubCategories] = useState([])
+	const [categories, setCategories] = useState([])
+	const [loading, setLoading] = useState(false)
+	const [isModalOpen, setIsModalOpen] = useState(false)
+	const [editingSubCategory, setEditingSubCategory] = useState(null)
+	const [form] = Form.useForm()
+	const navigate = useNavigate()
 
-    const [newSubCategory, setNewSubCategory] = useState({
-        name: "",
-        parent_id: "",
-    });
+	const API_URL = 'http://localhost:8080/api/v1/admin/sub_categories'
+	const CATEGORIES_API_URL = 'http://localhost:8080/api/v1/admin/categories'
 
-    const [formErrors, setFormErrors] = useState({});
+	const columns = [
+		{
+			title: 'ID',
+			dataIndex: 'id',
+			key: 'id',
+		},
+		{
+			title: 'Категория',
+			dataIndex: 'category_name',
+			key: 'category_name',
+		},
+		{
+			title: 'Подкатегория',
+			dataIndex: 'name',
+			key: 'name',
+		},
+		{
+			title: 'Действия',
+			key: 'action',
+			render: (_, record) => (
+				<Space size='middle'>
+					<Button type='link' onClick={() => handleEdit(record)}>
+						Редактировать
+					</Button>
+					<Popconfirm
+						title='Вы уверены, что хотите удалить эту подкатегорию?'
+						onConfirm={() => handleDelete(record.id)}
+						okText='Да'
+						cancelText='Нет'
+					>
+						<Button type='link' danger>
+							Удалить
+						</Button>
+					</Popconfirm>
+				</Space>
+			),
+		},
+	]
 
-    const fetchSubCategories = async () => {
-        try {
-            const response = await axios.get("http://localhost:8080/api/v1/admin/subcategory");
-            const subCategoriesData = Array.isArray(response.data) ? response.data : [];
-            setSubCategories(subCategoriesData);
-            setFilteredSubCategories(subCategoriesData);
-            setLoading(false);
-        } catch (err) {
-            setError(err.message);
-            setSubCategories([]);
-            setFilteredSubCategories([]);
-            setLoading(false);
-        }
-    };
+	useEffect(() => {
+		fetchSubCategories()
+		fetchCategories()
+	}, [])
 
-    const fetchCategories = async () => {
-        try {
-            const response = await axios.get("http://localhost:8080/api/v1/admin/category");
-            setCategories(response.data.categories || []);
-        } catch (err) {
-            setCategories([]);
-        }
-    };
+	const fetchSubCategories = async () => {
+		setLoading(true)
+		try {
+			const response = await axios.get(API_URL)
+			setSubCategories(response.data)
+		} catch (error) {
+			message.error('Ошибка при загрузке подкатегорий')
+			console.error('Error fetching subcategories:', error)
+		} finally {
+			setLoading(false)
+		}
+	}
 
-    useEffect(() => {
-        fetchSubCategories();
-        fetchCategories();
-    }, []);
+	const fetchCategories = async () => {
+		try {
+			const response = await axios.get(CATEGORIES_API_URL)
+			setCategories(response.data)
+		} catch (error) {
+			message.error('Ошибка при загрузке категорий')
+			console.error('Error fetching categories:', error)
+		}
+	}
 
-    const validateForm = (subCategory) => {
-        const errors = {};
-        if (!subCategory.name || subCategory.name.length < 2) errors.name = "Название должно быть минимум 2 символа";
-        if (!subCategory.parent_id) errors.parent_id = "Выберите родительскую категорию";
-        return errors;
-    };
+	const handleCreate = () => {
+		form.resetFields()
+		setEditingSubCategory(null)
+		setIsModalOpen(true)
+	}
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewSubCategory({ ...newSubCategory, [name]: value });
-        setFormErrors({ ...formErrors, [name]: "" });
-    };
+	const handleEdit = record => {
+		form.setFieldsValue({
+			...record,
+			category_id: record.category_id.toString(),
+		})
+		setEditingSubCategory(record)
+		setIsModalOpen(true)
+	}
 
-    const handleEditInputChange = (e) => {
-        const { name, value } = e.target;
-        setEditingSubCategory({ ...editingSubCategory, [name]: value });
-        setFormErrors({ ...formErrors, [name]: "" });
-    };
+	const handleDelete = async id => {
+		try {
+			await axios.delete(`${API_URL}/${id}`)
+			message.success('Подкатегория успешно удалена')
+			fetchSubCategories()
+		} catch (error) {
+			if (error.response?.data?.error?.includes('products')) {
+				Modal.error({
+					title: 'Нельзя удалить подкатегорию',
+					content:
+						'Эта подкатегория содержит товары. Сначала удалите или переместите их.',
+				})
+			} else {
+				message.error('Ошибка при удалении подкатегории')
+			}
+			console.error('Error deleting subcategory:', error)
+		}
+	}
 
-    const formatDateTime = (dateString) => {
-        if (!dateString) return "";
-        const date = new Date(dateString);
-        return isNaN(date.getTime()) ? "Invalid Date" : date.toLocaleString();
-    };
+	const handleSubmit = async () => {
+		try {
+			const values = await form.validateFields()
+			const payload = {
+				...values,
+				category_id: parseInt(values.category_id),
+			}
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        const errors = validateForm(newSubCategory);
-        if (Object.keys(errors).length > 0) {
-            setFormErrors(errors);
-            return;
-        }
-    
-        try {
-            const dataToSend = {
-                ...newSubCategory,
-                parent_id: Number(newSubCategory.parent_id),
-            };
-            const response = await axios.post("http://localhost:8080/api/v1/admin/subcategory", dataToSend);
-            if (response.status === 201) {
-                setSubCategories([...subCategories, response.data]); // Добавляем новую подкатегорию в состояние
-                setShowAddForm(false);
-                setNewSubCategory({ name: "", parent_id: "" });
-                Swal.fire("Успех!", "Подкатегория успешно добавлена.", "success");
-            }
-        } catch (err) {
-            Swal.fire("Ошибка!", err.response?.data?.error || "Ошибка при добавлении подкатегории.", "error");
-        }
-    };
+			if (editingSubCategory) {
+				await axios.put(`${API_URL}/${editingSubCategory.id}`, payload)
+				message.success('Подкатегория успешно обновлена')
+			} else {
+				await axios.post(API_URL, payload)
+				message.success('Подкатегория успешно создана')
+			}
 
-    const handleEditSubmit = async (e) => {
-        e.preventDefault();
-        const errors = validateForm(editingSubCategory);
-        if (Object.keys(errors).length > 0) {
-            setFormErrors(errors);
-            return;
-        }
+			setIsModalOpen(false)
+			fetchSubCategories()
+		} catch (error) {
+			message.error('Ошибка при сохранении')
+			console.error('Error submitting form:', error)
+		}
+	}
 
-        Swal.fire({
-            title: "Вы уверены?",
-            text: "Вы хотите сохранить изменения?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Да, сохранить",
-            cancelButtonText: "Нет",
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const dataToSend = {
-                        name: editingSubCategory.name,
-                        parent_id: Number(editingSubCategory.parent_id),
-                    };
-                    const response = await axios.put(`http://localhost:8080/api/v1/admin/subcategory/${editingSubCategory.id}`, dataToSend);
-                    if (response.status === 200) {
-                        setShowEditForm(false);
-                        fetchSubCategories();
-                        Swal.fire("Сохранено!", "Подкатегория успешно обновлена.", "success");
-                    }
-                } catch (err) {
-                    Swal.fire("Ошибка!", "Ошибка при редактировании подкатегории.", "error");
-                }
-            }
-        });
-    };
+	return (
+		<div className='p-4'>
+			<div className='flex justify-between items-center mb-4'>
+				<button
+					onClick={() => navigate(-1)}
+					className='bg-black text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center'
+				>
+					<FaArrowLeft className='mr-2' /> Назад
+				</button>
 
-    const handleEditClick = (subCategory) => {
-        setEditingSubCategory(subCategory);
-        setShowEditForm(true);
-    };
+				<Button type='primary' onClick={handleCreate}>
+					Создать подкатегорию
+				</Button>
+			</div>
 
-    const handleDeleteClick = (subCategoryId) => {
-        Swal.fire({
-            title: "Вы уверены?",
-            text: "Вы действительно хотите удалить эту подкатегорию?",
-            icon: "warning",
-            showCancelButton: true,
-            confirmButtonText: "Да, удалить",
-            cancelButtonText: "Нет",
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                try {
-                    const response = await axios.delete(`http://localhost:8080/api/v1/admin/subcategory/${subCategoryId}`);
-                    if (response.status === 200) {
-                        fetchSubCategories();
-                        Swal.fire("Удалено!", "Подкатегория успешно удалена.", "success");
-                    }
-                } catch (err) {
-                    Swal.fire("Ошибка!", "Ошибка при удалении подкатегории.", "error");
-                }
-            }
-        });
-    };
+			<Table
+				columns={columns}
+				dataSource={subCategories}
+				rowKey='id'
+				loading={loading}
+				bordered
+			/>
 
-    useEffect(() => {
-        let result = [...subCategories];
-        if (searchQuery) {
-            result = result.filter((sc) => sc.name.toLowerCase().includes(searchQuery.toLowerCase()));
-        }
-        if (sortConfig.key) {
-            result.sort((a, b) => {
-                if (sortConfig.key === "created_at") {
-                    const dateA = new Date(a[sortConfig.key]);
-                    const dateB = new Date(b[sortConfig.key]);
-                    return sortConfig.direction === "asc" ? dateA - dateB : dateB - dateA;
-                }
-                if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === "asc" ? -1 : 1;
-                if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === "asc" ? 1 : -1;
-                return 0;
-            });
-        }
-        setFilteredSubCategories(result);
-    }, [searchQuery, subCategories, sortConfig]);
+			<Modal
+				title={
+					editingSubCategory
+						? 'Редактировать подкатегорию'
+						: 'Создать подкатегорию'
+				}
+				open={isModalOpen}
+				onOk={handleSubmit}
+				onCancel={() => setIsModalOpen(false)}
+				okText='Сохранить'
+				cancelText='Отмена'
+			>
+				<Form form={form} layout='vertical'>
+					<Form.Item
+						name='category_id'
+						label='Категория'
+						rules={[
+							{ required: true, message: 'Пожалуйста, выберите категорию!' },
+						]}
+					>
+						<Select placeholder='Выберите категорию'>
+							{categories.map(category => (
+								<Option key={category.id} value={category.id.toString()}>
+									{category.name}
+								</Option>
+							))}
+						</Select>
+					</Form.Item>
 
-    const handleSort = (key) => {
-        setSortConfig({
-            key,
-            direction: sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc",
-        });
-    };
+					<Form.Item
+						name='name'
+						label='Название подкатегории'
+						rules={[
+							{ required: true, message: 'Пожалуйста, введите название!' },
+						]}
+					>
+						<Input />
+					</Form.Item>
+				</Form>
+			</Modal>
+		</div>
+	)
+}
 
-    const getCategoryName = (id) => {
-        const category = categories.find(cat => cat.id === id);
-        return category ? category.name : "Неизвестно";
-    };
-
-    if (loading) return <div className="text-center text-gray-500">Загрузка данных...</div>;
-    if (error) return <div className="text-center text-red-500">Ошибка: {error}</div>;
-
-    return (
-        <div className="p-6 bg-gray-100 min-h-screen text-gray-800">
-            <button
-                onClick={() => navigate(-1)}
-                className="mb-4 flex items-center px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-600 transition duration-200"
-            >
-                <FaArrowLeft className="mr-2" />
-                Назад
-            </button>
-
-            <div className="flex justify-between mb-4">
-                <button
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-600 flex items-center transition duration-200"
-                >
-                    <FaPlus className="mr-2" />
-                    {showAddForm ? "Скрыть форму" : "Добавить подкатегорию"}
-                </button>
-            </div>
-
-            <div className="mb-6 flex items-center">
-                <FaSearch className="mr-2 text-gray-500" />
-                <input
-                    type="text"
-                    placeholder="Поиск по названию..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full md:w-1/2 p-2 border border-gray-400 rounded focus:outline-none focus:ring-2 focus:ring-gray-600 bg-white text-gray-800"
-                />
-            </div>
-
-            {showAddForm && (
-                <form onSubmit={handleSubmit} className="mb-6 p-4 bg-white shadow rounded-lg border border-gray-300">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800">Добавить новую подкатегорию</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <input
-                                type="text"
-                                name="name"
-                                placeholder="Название"
-                                value={newSubCategory.name}
-                                onChange={handleInputChange}
-                                className={`p-2 border ${formErrors.name ? "border-red-500" : "border-gray-400"} rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-600`}
-                            />
-                            {formErrors.name && <p className="text-red-500 text-sm">{formErrors.name}</p>}
-                        </div>
-                        <div>
-                            <select
-                                name="parent_id"
-                                value={newSubCategory.parent_id}
-                                onChange={handleInputChange}
-                                className={`p-2 border ${formErrors.parent_id ? "border-red-500" : "border-gray-400"} rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-600`}
-                            >
-                                <option value="">Выберите родительскую категорию</option>
-                                {categories.map((category) => (
-                                    <option key={category.id} value={category.id}>
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
-                            {formErrors.parent_id && <p className="text-red-500 text-sm">{formErrors.parent_id}</p>}
-                        </div>
-                    </div>
-                    <button
-                        type="submit"
-                        className="mt-4 px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-600 flex items-center transition duration-200"
-                    >
-                        <FaPlus className="mr-2" />
-                        Добавить
-                    </button>
-                </form>
-            )}
-
-            {showEditForm && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-6 rounded-lg w-full max-w-xl border border-gray-300">
-                        <h2 className="text-xl font-bold mb-4 text-gray-800">Редактировать подкатегорию</h2>
-                        <form onSubmit={handleEditSubmit}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        placeholder="Название"
-                                        value={editingSubCategory.name}
-                                        onChange={handleEditInputChange}
-                                        className={`p-2 border ${formErrors.name ? "border-red-500" : "border-gray-400"} rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-600`}
-                                    />
-                                    {formErrors.name && <p className="text-red-500 text-sm">{formErrors.name}</p>}
-                                </div>
-                                <div>
-                                    <select
-                                        name="parent_id"
-                                        value={editingSubCategory.parent_id}
-                                        onChange={handleEditInputChange}
-                                        className={`p-2 border ${formErrors.parent_id ? "border-red-500" : "border-gray-400"} rounded w-full focus:outline-none focus:ring-2 focus:ring-gray-600`}
-                                    >
-                                        <option value="">Выберите родительскую категорию</option>
-                                        {categories.map((category) => (
-                                            <option key={category.id} value={category.id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {formErrors.parent_id && <p className="text-red-500 text-sm">{formErrors.parent_id}</p>}
-                                </div>
-                            </div>
-                            <div className="mt-4 flex justify-end space-x-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowEditForm(false)}
-                                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-400 flex items-center transition duration-200"
-                                >
-                                    <FaTimes className="mr-2" />
-                                    Отмена
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-600 flex items-center transition duration-200"
-                                >
-                                    <FaSave className="mr-2" />
-                                    Сохранить
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            <div className="overflow-x-auto bg-white shadow rounded-lg border border-gray-300">
-                <table className="min-w-full divide-y divide-gray-400">
-                    <thead className="bg-gray-800 text-white">
-                        <tr>
-                            <th className="py-3 px-4 text-left cursor-pointer" onClick={() => handleSort("id")}>
-                                ID {sortConfig.key === "id" && (sortConfig.direction === "asc" ? <FaSortUp /> : <FaSortDown />)}
-                            </th>
-                            <th className="py-3 px-4 text-left cursor-pointer" onClick={() => handleSort("name")}>
-                                Название {sortConfig.key === "name" && (sortConfig.direction === "asc" ? <FaSortUp /> : <FaSortDown />)}
-                            </th>
-                            <th className="py-3 px-4 text-left">Родительская категория</th>
-                            <th className="py-3 px-4 text-left cursor-pointer" onClick={() => handleSort("created_at")}>
-                                Дата создания {sortConfig.key === "created_at" && (sortConfig.direction === "asc" ? <FaSortUp /> : <FaSortDown />)}
-                            </th>
-                            <th className="py-3 px-4 text-left">Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-400">
-                        {filteredSubCategories.length > 0 ? (
-                            filteredSubCategories.map((subCategory) => (
-                                <tr key={subCategory.id} className="hover:bg-gray-200 transition duration-150">
-                                    <td className="py-3 px-4">{subCategory.id}</td>
-                                    <td className="py-3 px-4">{subCategory.name}</td>
-                                    <td className="py-3 px-4">{getCategoryName(subCategory.parent_id)}</td>
-                                    <td className="py-3 px-4">{formatDateTime(subCategory.created_at)}</td>
-                                    <td className="py-3 px-4 flex space-x-2">
-                                        <button
-                                            onClick={() => handleEditClick(subCategory)}
-                                            className="text-gray-600 hover:text-gray-800 transition duration-200"
-                                        >
-                                            <FaEdit />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteClick(subCategory.id)}
-                                            className="text-gray-600 hover:text-red-600 transition duration-200"
-                                        >
-                                            <FaTrash />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="5" className="py-4 text-center text-gray-500 italic">
-                                    Подкатегории отсутствуют
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
-export default SubCategories;
+export default SubCategories

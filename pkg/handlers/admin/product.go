@@ -4,26 +4,32 @@ import (
 	"aesthetics/models"
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
+// AdminGetProducts возвращает список всех товаров
 func AdminGetProducts(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		query := `
-            SELECT id, name, description, summary, sub_category_id, color, size, 
-                   sku, price, quantity, image_path, created_at
-            FROM product
-            ORDER BY id ASC
-        `
+			SELECT p.id, p.name, p.description, p.summary, 
+				   p.category_id, p.sub_category_id, 
+				   p.color, p.size, p.sku, p.price, 
+				   p.quantity, p.image_path, p.currency, p.created_at,
+				   c.name as category_name,
+				   sc.name as sub_category_name
+			FROM product p
+			LEFT JOIN category c ON p.category_id = c.id
+			LEFT JOIN sub_category sc ON p.sub_category_id = sc.id
+			ORDER BY p.created_at DESC
+		`
 
 		rows, err := db.Query(query)
 		if err != nil {
@@ -32,418 +38,348 @@ func AdminGetProducts(db *sql.DB) gin.HandlerFunc {
 		}
 		defer rows.Close()
 
-		var products []models.Product
+		var products []map[string]interface{}
 		for rows.Next() {
 			var p models.Product
+			var categoryName, subCategoryName sql.NullString
 			err := rows.Scan(
-				&p.ID,
-				&p.Name,
-				&p.Description,
-				&p.Summary,
-				&p.SubCategoryID,
-				&p.Color,
-				&p.Size,
-				&p.SKU,
-				&p.Price,
-				&p.Quantity,
-				&p.ImagePath,
-				&p.CreatedAt,
+				&p.ID, &p.Name, &p.Description, &p.Summary,
+				&p.CategoryID, &p.SubCategoryID,
+				&p.Color, &p.Size, &p.SKU, &p.Price,
+				&p.Quantity, &p.ImagePath, &p.Currency, &p.CreatedAt,
+				&categoryName, &subCategoryName,
 			)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
-			products = append(products, p)
+
+			product := map[string]interface{}{
+				"id":                p.ID,
+				"name":              p.Name,
+				"description":       p.Description,
+				"summary":           p.Summary,
+				"category_id":       p.CategoryID,
+				"sub_category_id":   p.SubCategoryID,
+				"color":             p.Color,
+				"size":              p.Size,
+				"sku":               p.SKU,
+				"price":             p.Price,
+				"quantity":          p.Quantity,
+				"image_path":        p.ImagePath,
+				"currency":          p.Currency,
+				"created_at":        p.CreatedAt,
+				"category_name":     categoryName.String,
+				"sub_category_name": subCategoryName.String,
+			}
+			products = append(products, product)
 		}
 
 		c.JSON(http.StatusOK, products)
 	}
 }
 
+// AdminGetProduct возвращает товар по ID
 func AdminGetProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productId := c.Param("productID")
-		var product models.Product
+		id := c.Param("id")
+
+		var p models.Product
+		var categoryName, subCategoryName sql.NullString
 		err := db.QueryRow(`
-            SELECT id, name, description, summary, sub_category_id, color, size, sku, price, quantity, created_at
-            FROM product WHERE id=$1
-        `, productId).Scan(
-			&product.ID, &product.Name, &product.Description, &product.Summary, &product.SubCategoryID,
-			&product.Color, &product.Size, &product.SKU, &product.Price, &product.Quantity, &product.CreatedAt,
+			SELECT p.id, p.name, p.description, p.summary, 
+				   p.category_id, p.sub_category_id, 
+				   p.color, p.size, p.sku, p.price, 
+				   p.quantity, p.image_path, p.currency, p.created_at,
+				   c.name as category_name,
+				   sc.name as sub_category_name
+			FROM product p
+			LEFT JOIN category c ON p.category_id = c.id
+			LEFT JOIN sub_category sc ON p.sub_category_id = sc.id
+			WHERE p.id = $1
+		`, id).Scan(
+			&p.ID, &p.Name, &p.Description, &p.Summary,
+			&p.CategoryID, &p.SubCategoryID,
+			&p.Color, &p.Size, &p.SKU, &p.Price,
+			&p.Quantity, &p.ImagePath, &p.Currency, &p.CreatedAt,
+			&categoryName, &subCategoryName,
 		)
+
 		if err != nil {
 			if err == sql.ErrNoRows {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found with ID " + productId})
+				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 			} else {
-				log.Println("Error retrieving product:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Error retrieving product: " + err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			}
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"product": product})
+
+		c.JSON(http.StatusOK, gin.H{
+			"id":                p.ID,
+			"name":              p.Name,
+			"description":       p.Description,
+			"summary":           p.Summary,
+			"category_id":       p.CategoryID,
+			"sub_category_id":   p.SubCategoryID,
+			"color":             p.Color,
+			"size":              p.Size,
+			"sku":               p.SKU,
+			"price":             p.Price,
+			"quantity":          p.Quantity,
+			"image_path":        p.ImagePath,
+			"currency":          p.Currency,
+			"created_at":        p.CreatedAt,
+			"category_name":     categoryName.String,
+			"sub_category_name": subCategoryName.String,
+		})
 	}
 }
 
-//func AdminUpdateProduct(db *sql.DB) gin.HandlerFunc {
-//	return func(c *gin.Context) {
-//		productID := c.Param("id")
-//		var updatedProduct models.Product
-//		if err := c.ShouldBindJSON(&updatedProduct); err != nil {
-//			log.Println("Ошибка при парсинге JSON:", err)
-//			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных"})
-//			return
-//		}
-//
-//		if updatedProduct.Name == "" || updatedProduct.SubCategoryID == 0 || updatedProduct.Price == 0 || updatedProduct.Quantity == 0 {
-//			log.Println("Не все обязательные поля заполнены")
-//			c.JSON(http.StatusBadRequest, gin.H{"error": "Не все обязательные поля заполнены"})
-//			return
-//		}
-//
-//		query := `
-//            UPDATE product
-//            SET name = $1, description = $2, summary = $3, sub_category_id = $4, color = $5, size = $6, price = $7, quantity = $8
-//            WHERE id = $9
-//        `
-//		result, err := db.Exec(
-//			query,
-//			updatedProduct.Name,
-//			updatedProduct.Description,
-//			updatedProduct.Summary,
-//			updatedProduct.SubCategoryID,
-//			updatedProduct.Color,
-//			updatedProduct.Size,
-//			updatedProduct.Price,
-//			updatedProduct.Quantity,
-//			productID,
-//		)
-//		if err != nil {
-//			log.Println("Ошибка при обновлении товара:", err)
-//			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось обновить товар"})
-//			return
-//		}
-//
-//		rowsAffected, _ := result.RowsAffected()
-//		if rowsAffected == 0 {
-//			c.JSON(http.StatusNotFound, gin.H{"error": "Товар не найден"})
-//			return
-//		}
-//
-//		c.JSON(http.StatusOK, gin.H{"message": "Товар успешно обновлен"})
-//	}
-//}
+// AdminCreateProduct создает новый товар
+func AdminCreateProduct(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var p models.Product
+		if err := c.ShouldBind(&p); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 
+		// Проверка SKU на уникальность
+		var skuExists bool
+		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1)", p.SKU).Scan(&skuExists)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if skuExists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Product with this SKU already exists"})
+			return
+		}
+
+		// Обработка загрузки изображения
+		file, header, err := c.Request.FormFile("image")
+		var imagePath string
+		if err == nil && header != nil {
+			defer file.Close()
+			imagePath, err = saveProductImage(file, header, p.SKU)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			p.ImagePath = imagePath
+		}
+
+		// Установка валюты по умолчанию
+		if p.Currency == "" {
+			p.Currency = "USD"
+		}
+
+		// Создание товара в БД
+		err = db.QueryRow(`
+			INSERT INTO product (
+				name, description, summary, category_id, sub_category_id,
+				color, size, sku, price, quantity, image_path, currency, created_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			RETURNING id
+		`,
+			p.Name, p.Description, p.Summary, p.CategoryID, p.SubCategoryID,
+			p.Color, p.Size, p.SKU, p.Price, p.Quantity, p.ImagePath, p.Currency, time.Now(),
+		).Scan(&p.ID)
+
+		if err != nil {
+			// Удаляем сохраненное изображение при ошибке
+			if imagePath != "" {
+				os.Remove(filepath.Join("uploads", imagePath))
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusCreated, p)
+	}
+}
+
+// AdminUpdateProduct обновляет товар
+func AdminUpdateProduct(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Param("id")
+
+		var p models.Product
+		if err := c.ShouldBind(&p); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Получаем текущий товар
+		var currentProduct models.Product
+		err := db.QueryRow(`
+			SELECT id, sku, image_path FROM product WHERE id = $1
+		`, id).Scan(&currentProduct.ID, &currentProduct.SKU, &currentProduct.ImagePath)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+			return
+		}
+
+		// Проверка SKU на уникальность (если изменился)
+		if p.SKU != currentProduct.SKU {
+			var skuExists bool
+			err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1 AND id != $2)", p.SKU, id).Scan(&skuExists)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			if skuExists {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Another product with this SKU already exists"})
+				return
+			}
+		}
+
+		// Обработка загрузки нового изображения
+		file, header, err := c.Request.FormFile("image")
+		var newImagePath string
+		if err == nil && header != nil {
+			defer file.Close()
+			newImagePath, err = saveProductImage(file, header, p.SKU)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			p.ImagePath = newImagePath
+		}
+
+		// Обновление товара в БД
+		_, err = db.Exec(`
+			UPDATE product SET
+				name = $1,
+				description = $2,
+				summary = $3,
+				category_id = $4,
+				sub_category_id = $5,
+				color = $6,
+				size = $7,
+				sku = $8,
+				price = $9,
+				quantity = $10,
+				image_path = COALESCE($11, image_path),
+				currency = $12
+			WHERE id = $13
+		`,
+			p.Name, p.Description, p.Summary, p.CategoryID, p.SubCategoryID,
+			p.Color, p.Size, p.SKU, p.Price, p.Quantity, p.ImagePath, p.Currency, id,
+		)
+
+		if err != nil {
+			// Удаляем новое изображение при ошибке
+			if newImagePath != "" {
+				os.Remove(filepath.Join("uploads", newImagePath))
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Удаляем старое изображение, если было загружено новое
+		if newImagePath != "" && currentProduct.ImagePath != "" {
+			os.Remove(filepath.Join("uploads", currentProduct.ImagePath))
+		}
+
+		c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
+	}
+}
+
+// AdminDeleteProduct удаляет товар
 func AdminDeleteProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		productID := c.Param("id")
-		result, err := db.Exec("DELETE FROM product WHERE id = $1", productID)
+		id := c.Param("id")
+
+		// Проверяем наличие связанных заказов
+		var orderItemsCount int
+		err := db.QueryRow(`
+			SELECT COUNT(*) FROM order_item WHERE product_id = $1
+		`, id).Scan(&orderItemsCount)
+
 		if err != nil {
-			log.Println("Ошибка при удалении товара:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось удалить товар"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		if orderItemsCount > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "Cannot delete product with existing order items",
+			})
+			return
+		}
+
+		// Получаем путь к изображению для удаления
+		var imagePath string
+		err = db.QueryRow(`
+			SELECT image_path FROM product WHERE id = $1
+		`, id).Scan(&imagePath)
+
+		if err != nil && err != sql.ErrNoRows {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Удаляем товар из БД
+		result, err := db.Exec(`
+			DELETE FROM product WHERE id = $1
+		`, id)
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 
 		rowsAffected, _ := result.RowsAffected()
 		if rowsAffected == 0 {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Товар не найден"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Товар успешно удален"})
-	}
-}
-
-func AdminUploadImage(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// 1. Get the image file
-		file, err := c.FormFile("image")
-		if err != nil {
-			log.Printf("Error getting image file: %v", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get image file"})
-			return
-		}
-
-		// 2. Get product ID
-		productID := c.PostForm("product_id")
-		if productID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Product ID is required"})
-			return
-		}
-
-		// 3. Create uploads directory with proper permissions
-		uploadDir := "./uploads"
-		if err := os.MkdirAll(uploadDir, 0755); err != nil {
-			log.Printf("Error creating upload directory: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-			return
-		}
-
-		// 4. Generate unique filename
-		ext := filepath.Ext(file.Filename)
-		newFilename := fmt.Sprintf("product_%s_%d%s", productID, time.Now().Unix(), ext)
-		filePath := filepath.Join(uploadDir, newFilename)
-
-		// 5. Save the file
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			log.Printf("Error saving file: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
-			return
-		}
-
-		// 6. Update database
-		_, err = db.Exec("UPDATE products SET image_path = $1 WHERE id = $2", newFilename, productID)
-		if err != nil {
-			log.Printf("Database error: %v", err)
-			os.Remove(filePath)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to update product image path",
-				"details": err.Error(),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"message":    "Image uploaded successfully",
-			"image_path": newFilename,
-		})
-	}
-}
-
-func AdminAddProduct(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Получаем файл изображения
-		file, err := c.FormFile("image")
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Image file is required"})
-			return
-		}
-
-		// Получаем остальные данные из формы
-		imagePath := c.PostForm("image_path")
-		if imagePath == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Image path is required"})
-			return
-		}
-
-		// Сохраняем изображение
-		if err := saveImage(imagePath, file); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Создаем продукт из данных формы
-		product := models.Product{
-			Name:        c.PostForm("name"),
-			Description: c.PostForm("description"),
-			Summary:     c.PostForm("summary"),
-			Color:       c.PostForm("color"),
-			Size:        c.PostForm("size"),
-			SKU:         c.PostForm("sku"),
-			ImagePath:   imagePath,
-			CreatedAt:   time.Now(),
-		}
-
-		// Парсим числовые значения
-		if subCategoryID, err := strconv.Atoi(c.PostForm("sub_category_id")); err == nil {
-			product.SubCategoryID = subCategoryID
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid sub_category_id"})
-			return
-		}
-
-		if price, err := strconv.ParseFloat(c.PostForm("price"), 64); err == nil {
-			product.Price = price
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
-			return
-		}
-
-		if quantity, err := strconv.Atoi(c.PostForm("quantity")); err == nil {
-			product.Quantity = quantity
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid quantity"})
-			return
-		}
-
-		query := `
-			INSERT INTO product (
-				name, description, summary, sub_category_id, color, size, sku, 
-				price, quantity, image_path, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			RETURNING id
-		`
-
-		err = db.QueryRow(
-			query,
-			product.Name,
-			product.Description,
-			product.Summary,
-			product.SubCategoryID,
-			product.Color,
-			product.Size,
-			product.SKU,
-			product.Price,
-			product.Quantity,
-			product.ImagePath,
-			product.CreatedAt,
-		).Scan(&product.ID)
-
-		if err != nil {
-			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "SKU must be unique"})
-				return
+		// Удаляем изображение товара, если оно существует
+		if imagePath != "" {
+			fullPath := filepath.Join("uploads", imagePath)
+			if _, err := os.Stat(fullPath); err == nil {
+				if err := os.Remove(fullPath); err != nil {
+					log.Printf("Failed to delete product image: %v", err)
+				}
 			}
-			log.Printf("Database error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
-			return
 		}
 
-		c.JSON(http.StatusCreated, product)
+		c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
 	}
 }
 
-func saveImage(imagePath string, file *multipart.FileHeader) error {
-	// Разделяем путь, чтобы получить категорию и имя файла
-	parts := strings.Split(imagePath, "/")
-	if len(parts) < 2 {
-		return fmt.Errorf("неверный путь к изображению: %s", imagePath)
+// saveProductImage сохраняет изображение товара
+func saveProductImage(file multipart.File, header *multipart.FileHeader, sku string) (string, error) {
+	// Создаем директорию для загрузки
+	uploadDir := "./uploads/products"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create upload directory: %v", err)
 	}
 
-	category := parts[0]
-	fileName := parts[1]
+	// Генерируем уникальное имя файла
+	ext := filepath.Ext(header.Filename)
+	newFilename := fmt.Sprintf("%s_%d%s", sku, time.Now().Unix(), ext)
+	imagePath := filepath.Join("products", newFilename)
+	fullPath := filepath.Join(uploadDir, newFilename)
 
-	// Создаём папку для категории
-	dirPath := filepath.Join("image/product", category)
-	err := os.MkdirAll(dirPath, os.ModePerm)
+	// Создаем файл
+	dst, err := os.Create(fullPath)
 	if err != nil {
-		return fmt.Errorf("ошибка создания папки: %v", err)
-	}
-
-	// Полный путь к файлу
-	filePath := filepath.Join(dirPath, fileName)
-
-	// Открываем загруженный файл
-	src, err := file.Open()
-	if err != nil {
-		return fmt.Errorf("ошибка открытия файла: %v", err)
-	}
-	defer src.Close()
-
-	// Создаём файл для записи
-	dst, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("ошибка создания файла: %v", err)
+		return "", fmt.Errorf("failed to create file: %v", err)
 	}
 	defer dst.Close()
 
-	// Копируем данные изображения
-	if _, err := io.Copy(dst, src); err != nil {
-		return fmt.Errorf("ошибка записи файла: %v", err)
+	// Копируем содержимое файла
+	if _, err := io.Copy(dst, file); err != nil {
+		return "", fmt.Errorf("failed to save file: %v", err)
 	}
 
-	fmt.Printf("Файл сохранён: %s\n", filePath)
-	return nil
-}
-
-func AdminUpdateProduct(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Get product ID from URL
-		idStr := c.Param("id")
-		id, err := strconv.Atoi(idStr)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
-			return
-		}
-
-		// Parse JSON body
-		var updateData struct {
-			Name          string  `json:"name"`
-			Description   string  `json:"description"`
-			Summary       string  `json:"summary"`
-			SubCategoryID int     `json:"sub_category_id"`
-			Color         string  `json:"color"`
-			Size          string  `json:"size"`
-			SKU           string  `json:"sku"`
-			Price         float64 `json:"price"`
-			Quantity      int     `json:"quantity"`
-			ImagePath     string  `json:"image_path"`
-		}
-
-		if err := c.ShouldBindJSON(&updateData); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
-			return
-		}
-
-		// Check if product exists
-		var existingProduct models.Product
-		err = db.QueryRow(`
-            SELECT id FROM product WHERE id = $1`, id).Scan(&existingProduct.ID)
-
-		if err != nil {
-			if err == sql.ErrNoRows {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-				return
-			}
-			log.Printf("Database error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch product"})
-			return
-		}
-
-		// Update product in database
-		query := `
-            UPDATE product SET
-                name = $1,
-                description = $2,
-                summary = $3,
-                sub_category_id = $4,
-                color = $5,
-                size = $6,
-                sku = $7,
-                price = $8,
-                quantity = $9,
-                image_path = $10
-            WHERE id = $11
-            RETURNING id, name, description, summary, sub_category_id, 
-                      color, size, sku, price, quantity, image_path
-        `
-
-		err = db.QueryRow(
-			query,
-			updateData.Name,
-			updateData.Description,
-			updateData.Summary,
-			updateData.SubCategoryID,
-			updateData.Color,
-			updateData.Size,
-			updateData.SKU,
-			updateData.Price,
-			updateData.Quantity,
-			updateData.ImagePath,
-			id,
-		).Scan(
-			&existingProduct.ID,
-			&existingProduct.Name,
-			&existingProduct.Description,
-			&existingProduct.Summary,
-			&existingProduct.SubCategoryID,
-			&existingProduct.Color,
-			&existingProduct.Size,
-			&existingProduct.SKU,
-			&existingProduct.Price,
-			&existingProduct.Quantity,
-			&existingProduct.ImagePath,
-		)
-
-		if err != nil {
-			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "SKU must be unique"})
-				return
-			}
-			log.Printf("Database error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
-			return
-		}
-
-		c.JSON(http.StatusOK, existingProduct)
-	}
+	return imagePath, nil
 }

@@ -5,11 +5,12 @@ import (
 	"aesthetics/models"
 	"database/sql"
 	_ "embed"
-	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
@@ -49,7 +50,6 @@ func AdminGetUsers(db *sql.DB) gin.HandlerFunc {
 				return
 			}
 
-			user.CreatedAt = createdAt.UTC().Format("2006-01-02 15:04:05")
 			users = append(users, user)
 		}
 

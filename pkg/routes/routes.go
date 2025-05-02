@@ -6,6 +6,7 @@ import (
 	"aesthetics/pkg/handlers"
 	"aesthetics/pkg/handlers/admin"
 	"database/sql"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 )
@@ -15,38 +16,37 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 	{
 		v1.GET("/", handlers.HomePage)
 
-		sexGroup := v1.Group("/:gender")
-		{
-			sexGroup.GET("/", handlers.GetGender)
+		// sexGroup := v1.Group("/:gender")
+		// {
+		// 	sexGroup.GET("/", handlers.GetGender)
 
-			categoryGroup := sexGroup.Group("/:category")
-			{
+		// 	categoryGroup := sexGroup.Group("/:category")
+		// 	{
 
-				categoryGroup.GET("/", handlers.GetCategory(db))
+		// 		categoryGroup.GET("/", handlers.GetCategory(db))
 
-				subCategoryGroup := categoryGroup.Group("/:subcategory")
-				{
-					subCategoryGroup.GET("/", handlers.GetSubCategories(db))
+		// 		subCategoryGroup := categoryGroup.Group("/:subcategory")
+		// 		{
+		// 			subCategoryGroup.GET("/", handlers.GetSubCategories(db))
+		// 		}
+		// 	}
+		// }
 
-					//productGroup := subCategoryGroup.Group("/:productID")
-					//{
-					//productGroup.GET("/", handlers.GetProducts(db))
-					//}
-				}
-			}
-		}
+		// Authorization
+		v1.POST("/register", handlers.RegisterPage(db, twilioClient))
+		v1.POST("/login", handlers.LoginHandler(db))
 
-		// ПОЛЬЗОВАТЕЛЬ
-		v1.POST("/register", handlers.RegisterPage(db, twilioClient)) // Зарегистрироваться
-		v1.POST("/login", handlers.LoginHandler(db))                  // Войти
-
+		// Products
 		v1.GET("/products", handlers.GetProducts(db))
-
 		v1.GET("/product/:id", handlers.GetProduct(db))
 
+		// Orders
 		v1.GET("/orders", handlers.GetProducts(db))
+
+		// Wishlist
 		v1.GET("/wishlist", handlers.GetProducts(db))
 
+		// Profile
 		v1.GET("/profile/address", handlers.GetAddress(db))
 		v1.POST("/profile/address", handlers.SaveAddress(db))
 
@@ -57,13 +57,25 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			auth.PUT("profile", handlers.UpdateProfile(db))
 		}
 		// Email
-		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
+		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 		v1.GET("/addresses", handlers.GetProduct(db))
 
-		v1.GET("/search", handlers.SearchProducts(db))
-		v1.GET("/suggest", handlers.GetSuggestions(db))
-		
+		customer := v1.Group("/customer")
+		{
+			customer.GET("")
+		}
+
+		manager := v1.Group("/manager")
+		{
+			manager.GET("")
+		}
+
+		seller := v1.Group("/seller")
+		{
+			seller.GET("")
+		}
+
 		routesAdmin := v1.Group("/admin")
 		{
 			routesAdmin.GET("", admin.AdminGetPanel(db))
@@ -78,28 +90,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			userAddress := routesAdmin.Group("/user_addresses")
 			{
 				userAddress.GET("", admin.AdminGetUserAddresses(db))         // Получение всех адресов пользователя
-				userAddress.GET("/:id", admin.AdminGetUserAddress(db))       // Получение адреса по ID
-				userAddress.POST("", admin.AdminCreateUserAddress(db))       // Создание нового адреса
 				userAddress.PUT("/:id", admin.AdminUpdateUserAddress(db))    // Обновление адреса по ID
 				userAddress.DELETE("/:id", admin.AdminDeleteUserAddress(db)) // Удаление адреса по ID
-			}
-
-			session := routesAdmin.Group("/sessions")
-			{
-				session.GET("", admin.AdminGetSessions(db))          // Получение всех сессий
-				session.GET("/:id", admin.AdminGetSession(db))       // Получение сессии по ID
-				session.POST("", admin.AdminCreateSession(db))       // Создание новой сессии
-				session.PUT("/:id", admin.AdminUpdateSession(db))    // Обновление сессии по ID
-				session.DELETE("/:id", admin.AdminDeleteSession(db)) // Удаление сессии по ID
-			}
-
-			product := routesAdmin.Group("/products")
-			{
-				product.GET("", admin.AdminGetProducts(db))
-				product.GET("/:id", admin.AdminGetProduct(db))
-				product.POST("", admin.AdminAddProduct(db))
-				product.PUT("/:id", admin.AdminUpdateProduct(db))
-				product.DELETE("/:id", admin.AdminDeleteProduct(db))
 			}
 
 			category := routesAdmin.Group("/categories")
@@ -110,13 +102,22 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				category.POST("", admin.AdminCreateCategory(db))       // Создание новой категории
 			}
 
-			subCategory := routesAdmin.Group("/subcategories")
+			subCategory := routesAdmin.Group("/sub_categories")
 			{
-				subCategory.GET("", admin.AdminGetSubCategories(db))
-				subCategory.POST("", admin.AdminCreateSubCategory(db))
-				subCategory.GET("/:id", admin.AdminGetSubCategory(db))
-				subCategory.PUT("/:id", admin.AdminUpdateSubCategory(db))
-				subCategory.DELETE("/:id", admin.AdminDeleteSubCategory(db))
+				subCategory.GET("", admin.AdminGetSubCategories(db))                                    // Получение всех подкатегорий
+				subCategory.GET("/by_category/:category_id", admin.AdminGetSubCategoriesByCategory(db)) // Получение подкатегорий по категории
+				subCategory.POST("", admin.AdminCreateSubCategory(db))                                  // Создание подкатегории
+				subCategory.PUT("/:id", admin.AdminUpdateSubCategory(db))                               // Обновление подкатегории
+				subCategory.DELETE("/:id", admin.AdminDeleteSubCategory(db))                            // Удаление подкатегории
+			}
+
+			product := routesAdmin.Group("/products")
+			{
+				product.GET("", admin.AdminGetProducts(db))          // Получение всех товаров
+				product.GET("/:id", admin.AdminGetProduct(db))       // Получение товара по ID
+				product.POST("", admin.AdminCreateProduct(db))       // Создание товара
+				product.PUT("/:id", admin.AdminUpdateProduct(db))    // Обновление товара
+				product.DELETE("/:id", admin.AdminDeleteProduct(db)) // Удаление товара
 			}
 
 			cart := routesAdmin.Group("/carts")
