@@ -73,21 +73,23 @@ const AdminProductAdd = () => {
 		setLoading(true)
 
 		const formData = new FormData()
-		// Упаковываем данные в структуру, которую ожидает бэкенд
-		formData.append('name', values.name)
-		formData.append('description', values.description || '')
-		formData.append('summary', values.summary || '')
-		formData.append('category_id', values.category_id)
-		formData.append('sub_category_id', values.sub_category_id)
-		formData.append('color', values.color || '')
-		formData.append('size', values.size || '')
-		formData.append('sku', values.sku)
-		formData.append('price', values.price)
-		formData.append('quantity', values.quantity || 0)
-		formData.append('currency', values.currency || 'USD')
 
+		// Добавляем данные продукта
+		formData.append('Name', values.name)
+		formData.append('Description', values.description || '')
+		formData.append('Summary', values.summary || '')
+		formData.append('CategoryID', values.category_id)
+		formData.append('SubCategoryID', values.sub_category_id)
+		formData.append('Color', values.color || '')
+		formData.append('Size', values.size || '')
+		formData.append('SKU', values.sku)
+		formData.append('Price', values.price)
+		formData.append('Quantity', values.quantity || 0)
+		formData.append('Currency', values.currency || 'USD')
+
+		// Добавляем изображение, если оно есть
 		if (imageFile) {
-			formData.append('image', imageFile)
+			formData.append('Image', imageFile)
 		}
 
 		try {
@@ -105,7 +107,7 @@ const AdminProductAdd = () => {
 			form.resetFields()
 			setImageFile(null)
 		} catch (error) {
-			console.error('Ошибка при добавлении товара:', error.response?.data)
+			console.error('Ошибка при добавлении товара:', error)
 			message.error(
 				error.response?.data?.error || 'Ошибка при добавлении товара'
 			)
@@ -115,7 +117,7 @@ const AdminProductAdd = () => {
 	}
 
 	return (
-		<div className='max-w-4xl mx-auto'>
+		<div className='max-w-4xl mx-auto p-4 bg-white rounded-lg shadow'>
 			<h1 className='text-2xl font-bold mb-6'>Добавить новый товар</h1>
 
 			<Form
@@ -200,15 +202,7 @@ const AdminProductAdd = () => {
 								},
 							]}
 						>
-							<InputNumber
-								min={0.01}
-								step={0.01}
-								style={{ width: '100%' }}
-								formatter={value =>
-									`$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-								}
-								parser={value => value.replace(/\$\s?|(,*)/g, '')}
-							/>
+							<InputNumber min={0.01} step={0.01} style={{ width: '100%' }} />
 						</Form.Item>
 
 						<Form.Item label='Валюта' name='currency'>
@@ -267,6 +261,11 @@ const AdminProductAdd = () => {
 							>
 								<Button icon={<UploadOutlined />}>Выбрать изображение</Button>
 							</Upload>
+							{imageFile && (
+								<div className='mt-2 text-sm text-gray-500'>
+									Выбрано: {imageFile.name}
+								</div>
+							)}
 						</Form.Item>
 					</div>
 				</div>

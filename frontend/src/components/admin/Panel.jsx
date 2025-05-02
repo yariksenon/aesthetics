@@ -13,6 +13,7 @@ import {
 	FaMapMarkerAlt,
 	FaClipboardList,
 	FaMoneyBillAlt,
+	FaCheckCircle,
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import headerLogo from '../../assets/home/Header/Logo.svg'
@@ -72,6 +73,12 @@ const buttons = [
 		path: '/admin/payment_details',
 		label: 'Способ оплаты',
 		icon: <FaMoneyBillAlt className='mr-2' />,
+	},
+	{
+		path: '/admin/seller_applications',
+		label: 'Заявки продавцов',
+		icon: <FaCheckCircle className='mr-2' />,
+		fullWidth: true,
 	},
 	{
 		path: '/admin/statistics',

@@ -66,7 +66,7 @@ func main() {
 
 	routes.SetupRoutes(r, db, smtpClient, redisClient, twilioClient)
 
-	r.Static("/static", "./image/product")
+	r.Static("/static", "./uploads")
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)

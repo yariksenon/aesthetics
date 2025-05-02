@@ -196,8 +196,7 @@ const ListProduct = ({ filters = {} }) => {
 								alt={product.name}
 								className='w-full h-full object-cover transition-transform duration-500 group-hover:scale-105'
 								onError={e => {
-									e.target.src =
-										'https://via.placeholder.com/300x300?text=No+Image'
+									e.target.src = 'https://placehold.co/600x400'
 									e.target.className =
 										'w-full h-full object-contain bg-gray-100 p-4'
 								}}

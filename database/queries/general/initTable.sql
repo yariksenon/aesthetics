@@ -12,6 +12,20 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS seller_applications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    store_name VARCHAR(255) NOT NULL,
+    description TEXT,
+    email VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    category VARCHAR(100),
+    logo_path VARCHAR(255),
+    status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+
 -- Таблица категорий
 CREATE TABLE IF NOT EXISTS category (
     id SERIAL PRIMARY KEY,

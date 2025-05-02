@@ -135,56 +135,81 @@ func AdminGetProduct(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// AdminCreateProduct создает новый товар
+// AdminCreateProduct создает новый товар с загрузкой изображения
 func AdminCreateProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 1. Сначала обрабатываем загрузку файла
+		file, header, err := c.Request.FormFile("Image")
+		var imagePath string
+
+		if err == nil && header != nil {
+			defer file.Close()
+
+			// Получаем SKU из формы
+			sku := c.PostForm("SKU")
+			if sku == "" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "SKU is required when uploading image"})
+				return
+			}
+
+			// Сохраняем изображение
+			imagePath, err = saveProductImage(file, header, sku)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to save image: %v", err)})
+				return
+			}
+			log.Printf("Image saved at: %s", imagePath)
+		} else {
+			log.Printf("No image uploaded: %v", err)
+		}
+
+		// 2. Парсим остальные данные формы
 		var p models.Product
 		if err := c.ShouldBind(&p); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		// Проверка SKU на уникальность
+		// 3. Устанавливаем путь к изображению, если файл был загружен
+		if imagePath != "" {
+			p.ImagePath = imagePath
+		}
+
+		// 4. Проверка SKU на уникальность
 		var skuExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1)", p.SKU).Scan(&skuExists)
+		err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM product WHERE sku = $1)", p.SKU).Scan(&skuExists)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		if skuExists {
+			// Удаляем сохраненное изображение, если SKU не уникален
+			if imagePath != "" {
+				os.Remove(filepath.Join("uploads", imagePath))
+			}
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Product with this SKU already exists"})
 			return
 		}
 
-		// Обработка загрузки изображения
-		file, header, err := c.Request.FormFile("image")
-		var imagePath string
-		if err == nil && header != nil {
-			defer file.Close()
-			imagePath, err = saveProductImage(file, header, p.SKU)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-				return
-			}
-			p.ImagePath = imagePath
-		}
-
-		// Установка валюты по умолчанию
+		// 5. Установка значений по умолчанию
 		if p.Currency == "" {
 			p.Currency = "USD"
 		}
+		if p.Quantity < 0 {
+			p.Quantity = 0
+		}
 
-		// Создание товара в БД
+		// 6. Создание товара в БД
 		err = db.QueryRow(`
-			INSERT INTO product (
-				name, description, summary, category_id, sub_category_id,
-				color, size, sku, price, quantity, image_path, currency, created_at
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-			RETURNING id
-		`,
+            INSERT INTO product (
+                name, description, summary, category_id, sub_category_id,
+                color, size, sku, price, quantity, image_path, currency, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING id, created_at
+        `,
 			p.Name, p.Description, p.Summary, p.CategoryID, p.SubCategoryID,
 			p.Color, p.Size, p.SKU, p.Price, p.Quantity, p.ImagePath, p.Currency, time.Now(),
-		).Scan(&p.ID)
+		).Scan(&p.ID, &p.CreatedAt)
 
 		if err != nil {
 			// Удаляем сохраненное изображение при ошибке
@@ -194,6 +219,9 @@ func AdminCreateProduct(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+
+		// 7. Логирование успешного создания
+		log.Printf("Created product: ID=%d, Name=%s, ImagePath=%s", p.ID, p.Name, p.ImagePath)
 
 		c.JSON(http.StatusCreated, p)
 	}
@@ -357,11 +385,17 @@ func AdminDeleteProduct(db *sql.DB) gin.HandlerFunc {
 
 // saveProductImage сохраняет изображение товара
 func saveProductImage(file multipart.File, header *multipart.FileHeader, sku string) (string, error) {
+	// Логирование начала загрузки
+	log.Printf("Начало загрузки изображения для товара SKU: %s", sku)
+	log.Printf("Исходное имя файла: %s, Размер: %d байт", header.Filename, header.Size)
+
 	// Создаем директорию для загрузки
 	uploadDir := "./uploads/products"
 	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		log.Printf("Ошибка создания директории %s: %v", uploadDir, err)
 		return "", fmt.Errorf("failed to create upload directory: %v", err)
 	}
+	log.Printf("Директория для загрузки создана или уже существует: %s", uploadDir)
 
 	// Генерируем уникальное имя файла
 	ext := filepath.Ext(header.Filename)
@@ -369,17 +403,25 @@ func saveProductImage(file multipart.File, header *multipart.FileHeader, sku str
 	imagePath := filepath.Join("products", newFilename)
 	fullPath := filepath.Join(uploadDir, newFilename)
 
+	log.Printf("Готово к сохранению файла как: %s", fullPath)
+
 	// Создаем файл
 	dst, err := os.Create(fullPath)
 	if err != nil {
+		log.Printf("Ошибка создания файла %s: %v", fullPath, err)
 		return "", fmt.Errorf("failed to create file: %v", err)
 	}
 	defer dst.Close()
 
 	// Копируем содержимое файла
-	if _, err := io.Copy(dst, file); err != nil {
+	bytesCopied, err := io.Copy(dst, file)
+	if err != nil {
+		log.Printf("Ошибка копирования файла: %v", err)
 		return "", fmt.Errorf("failed to save file: %v", err)
 	}
+
+	log.Printf("Файл успешно сохранен. Скопировано байт: %d", bytesCopied)
+	log.Printf("Изображение сохранено по пути: %s", imagePath)
 
 	return imagePath, nil
 }

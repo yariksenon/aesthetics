@@ -22,9 +22,11 @@ const SubCategory = lazy(() => import('./components/subCategory/SubCategory'))
 const Product = lazy(() => import('./components/product/Product'))
 const Profile = lazy(() => import('./components/profile/Profile'))
 const Favorites = lazy(() => import('./components/favorites/Favorites')) // Новый компонент избранного
+
+const ForSeller = lazy(() => import('./components/seller/ForSeller')) // Новый компонент избранного
+
 const AdminUsers = lazy(() => import('./components/admin/Users'))
 const AdminUserAddress = lazy(() => import('./components/admin/UserAddress'))
-
 const AdminCategory = lazy(() => import('./components/admin/Category'))
 const AdminPanel = lazy(() => import('./components/admin/Panel'))
 const AdminProduct = lazy(() => import('./components/admin/Products'))
@@ -44,7 +46,8 @@ const AdminSubCategories = lazy(() =>
 	import('./components/admin/SubCategories')
 )
 const Order = lazy(() => import('./components/order/Order'))
-const SearchResults = lazy(() => import('./components/search/SearchResults'))
+
+const AdminSeller = lazy(() => import('./components/admin/AdminSeller'))
 
 function GenderRoute() {
 	const { gender } = useParams()
@@ -93,7 +96,7 @@ export default function App() {
 							/>
 							<Route path='/product/:productid' element={<Product />} />
 							<Route path='/order' element={<Order />} />
-							<Route path='/:gender/search' element={<SearchResults />} />
+							<Route path='/for_seller' element={<ForSeller />} />
 							<Route
 								path='/admin'
 								element={
@@ -123,6 +126,14 @@ export default function App() {
 								element={
 									<ProtectedRoute>
 										<AdminCategory />
+									</ProtectedRoute>
+								}
+							/>
+							<Route
+								path='/admin/seller_applications'
+								element={
+									<ProtectedRoute>
+										<AdminSeller />
 									</ProtectedRoute>
 								}
 							/>

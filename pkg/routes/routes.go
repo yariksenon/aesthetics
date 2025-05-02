@@ -73,7 +73,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		seller := v1.Group("/seller")
 		{
-			seller.GET("")
+			seller.POST("/application", handlers.PostSeller(db))
 		}
 
 		routesAdmin := v1.Group("/admin")
@@ -119,6 +119,14 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				product.PUT("/:id", admin.AdminUpdateProduct(db))    // Обновление товара
 				product.DELETE("/:id", admin.AdminDeleteProduct(db)) // Удаление товара
 			}
+
+			seller := routesAdmin.Group("/seller")
+			{
+				seller.GET("", admin.AdminGetSellers(db))
+				seller.PUT("/:id/approve", admin.AdminApproveSeller(db))
+			}
+
+			/////////////////////////////////////////////////////////////////////////////////////////
 
 			cart := routesAdmin.Group("/carts")
 			{
