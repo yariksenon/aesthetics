@@ -43,9 +43,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		// Orders
 		v1.GET("/orders", handlers.GetProducts(db))
 
-		// Wishlist
-		v1.GET("/wishlist", handlers.GetProducts(db))
-
 		// Profile
 		v1.GET("/profile/address", handlers.GetAddress(db))
 		v1.POST("/profile/address", handlers.SaveAddress(db))
@@ -59,6 +56,12 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.PUT("/cart/:userId/:productId", handlers.UpdateCartProduct(db))    // Обновить количество товара в корзине
 		v1.DELETE("/cart/:userId/:productId", handlers.RemoveCartProduct(db)) // Удалить товар из корзины
 		v1.DELETE("/cart/:userId", handlers.ClearCart(db))                    // Очистить корзину пользователя
+
+			// Wishlist
+		v1.GET("/wishlist/:userId", handlers.GetWishlist(db))
+    v1.POST("/wishlist/:userId/:productId", handlers.AddToWishlist(db))
+    v1.DELETE("/wishlist/:userId/:productId", handlers.RemoveFromWishlist(db))
+		
 
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))

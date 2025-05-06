@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { useCart } from '../../context/CartContext'
-import { useFavorites } from '../../context/FavoritesContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Spin, Empty, message, notification } from 'antd'
 import {
@@ -17,61 +16,141 @@ const ListProduct = ({ filters = {} }) => {
 	const [loading, setLoading] = useState(true)
 	const [api, contextHolder] = notification.useNotification()
 	const { addToCart } = useCart()
-	const { favorites, toggleFavorite } = useFavorites()
+	const [wishlist, setWishlist] = useState([])
+	const [processingWishlist, setProcessingWishlist] = useState([])
 	const navigate = useNavigate()
 	const location = useLocation()
+
+	// Получаем userId из localStorage
+	const userId = localStorage.getItem('userId')
 
 	const getSubCategoryIdFromPath = () => {
 		const path = location.pathname.split('/').pop().toLowerCase()
 		return PATH_TO_CATEGORY_MAP[path] || null
 	}
 
+	// Функция для работы с вишлистом
+	const handleWishlistClick = async (product, e) => {
+		e.stopPropagation()
+
+		if (!userId) {
+			message.error('Войдите в систему, чтобы добавлять товары в вишлист')
+			navigate('/login')
+			return
+		}
+
+		const productId = product.id
+		setProcessingWishlist(prev => [...prev, productId])
+
+		try {
+			const isInWishlist = wishlist.some(item => item.id === productId)
+			const url = `http://localhost:8080/api/v1/wishlist/${userId}/${productId}`
+
+			const response = await fetch(url, {
+				method: isInWishlist ? 'DELETE' : 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			})
+
+			if (!response.ok) {
+				throw new Error('Ошибка при обновлении вишлиста')
+			}
+
+			if (isInWishlist) {
+				setWishlist(prev => prev.filter(item => item.id !== productId))
+				message.success('Товар удален из вишлиста')
+			} else {
+				setWishlist(prev => [
+					...prev,
+					{
+						id: product.id,
+						name: product.name,
+						price: product.price,
+						image_path: product.image_path,
+					},
+				])
+				message.success('Товар добавлен в вишлист')
+			}
+		} catch (error) {
+			console.error('Ошибка:', error)
+			message.error(error.message)
+		} finally {
+			setProcessingWishlist(prev => prev.filter(id => id !== productId))
+		}
+	}
+
+	// Загрузка продуктов и вишлиста
 	useEffect(() => {
-		const fetchProducts = async () => {
+		const fetchData = async () => {
 			try {
-				const res = await fetch('http://localhost:8080/api/v1/admin/products')
-				setProducts((await res.json()) || [])
-			} catch {
+				// Загружаем продукты
+				const productsResponse = await fetch(
+					'http://localhost:8080/api/v1/admin/products'
+				)
+				const productsData = await productsResponse.json()
+				setProducts(productsData || [])
+
+				// Загружаем вишлист если пользователь авторизован
+				if (userId) {
+					const wishlistResponse = await fetch(
+						`http://localhost:8080/api/v1/wishlist/${userId}`
+					)
+					if (wishlistResponse.ok) {
+						const wishlistData = await wishlistResponse.json()
+						setWishlist(wishlistData.items || [])
+					}
+				}
+			} catch (error) {
 				api.error({
 					message: 'Ошибка загрузки',
-					description: 'Не удалось загрузить товары',
+					description: 'Не удалось загрузить данные',
 				})
 			} finally {
 				setLoading(false)
 			}
 		}
-		fetchProducts()
-	}, [])
 
+		fetchData()
+	}, [userId])
+
+	// Фильтрация и сортировка
 	useEffect(() => {
 		if (!products.length) return
 
 		let result = [...products]
 		const subCategoryId = getSubCategoryIdFromPath()
 
-		if (subCategoryId)
+		if (subCategoryId) {
 			result = result.filter(p => p.sub_category_id === subCategoryId)
-		if (filters.colors?.length)
+		}
+		if (filters.colors?.length) {
 			result = result.filter(p =>
 				filters.colors.includes(p.color?.toLowerCase())
 			)
-		if (filters.sizes?.length)
+		}
+		if (filters.sizes?.length) {
 			result = result.filter(p => filters.sizes.includes(p.size))
-		if (filters.priceRange)
+		}
+		if (filters.priceRange) {
 			result = result.filter(
 				p =>
 					p.price >= filters.priceRange.min && p.price <= filters.priceRange.max
 			)
-		if (filters.availability === 'in-stock')
+		}
+		if (filters.availability === 'in-stock') {
 			result = result.filter(p => p.quantity > 0)
-		if (filters.availability === 'out-of-stock')
+		}
+		if (filters.availability === 'out-of-stock') {
 			result = result.filter(p => p.quantity <= 0)
+		}
 
 		if (filters.sortBy === 'price-asc') result.sort((a, b) => a.price - b.price)
 		if (filters.sortBy === 'price-desc')
 			result.sort((a, b) => b.price - a.price)
-		if (filters.sortBy === 'newest')
+		if (filters.sortBy === 'newest') {
 			result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+		}
 
 		setFilteredProducts(result)
 	}, [filters, products, location.pathname])
@@ -88,23 +167,14 @@ const ListProduct = ({ filters = {} }) => {
 		}
 	}
 
-	const handleFavoriteClick = (product, e) => {
-		e.stopPropagation()
-		toggleFavorite(product)
-		message.success(
-			favorites.some(fav => fav.id === product.id)
-				? 'Товар удален из избранного'
-				: 'Товар добавлен в избранное'
-		)
-	}
-
-	if (loading)
+	if (loading) {
 		return (
 			<Spin
 				size='large'
 				style={{ display: 'flex', justifyContent: 'center', margin: '60px 0' }}
 			/>
 		)
+	}
 
 	const subCategoryId = getSubCategoryIdFromPath()
 	const categoryProducts = subCategoryId
@@ -159,7 +229,8 @@ const ListProduct = ({ filters = {} }) => {
 				}}
 			>
 				{filteredProducts.map(product => {
-					const isFavorite = favorites.some(fav => fav.id === product.id)
+					const isInWishlist = wishlist.some(item => item.id === product.id)
+					const isProcessing = processingWishlist.includes(product.id)
 					const discountedPrice = product.discountPercentage
 						? product.price * (1 - product.discountPercentage / 100)
 						: null
@@ -199,19 +270,20 @@ const ListProduct = ({ filters = {} }) => {
 									/>
 									<Button
 										icon={
-											isFavorite ? (
+											isInWishlist ? (
 												<HeartFilled style={{ color: '#ff4d4f' }} />
 											) : (
 												<HeartOutlined />
 											)
 										}
+										loading={isProcessing}
 										style={{
 											position: 'absolute',
 											top: 8,
 											right: 8,
 											backgroundColor: 'rgba(255, 255, 255, 0.8)',
 										}}
-										onClick={e => handleFavoriteClick(product, e)}
+										onClick={e => handleWishlistClick(product, e)}
 									/>
 									{product.discountPercentage && (
 										<div
