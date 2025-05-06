@@ -1,295 +1,400 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import AddressInput from './AddressInput'
+import { useNavigate } from 'react-router-dom'
+import {
+	Form,
+	Input,
+	Button,
+	Switch,
+	Spin,
+	Alert,
+	Typography,
+	Space,
+	Modal,
+} from 'antd'
+import {
+	UserOutlined,
+	MailOutlined,
+	PhoneOutlined,
+	EditOutlined,
+	LogoutOutlined,
+	CheckOutlined,
+	CloseOutlined,
+	BellOutlined,
+} from '@ant-design/icons'
+import dayjs from 'dayjs'
+import 'antd/dist/reset.css'
+
+const { Text } = Typography
 
 const UserProfile = () => {
 	const [profile, setProfile] = useState(null)
+	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState('')
-	const [showAddressForm, setShowAddressForm] = useState(false)
-	const [userAddress, setUserAddress] = useState(null)
-	const [avatar, setAvatar] = useState(null)
 	const [isEditing, setIsEditing] = useState(false)
+	const [form] = Form.useForm()
+	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [logoutModalOpen, setLogoutModalOpen] = useState(false)
+	const navigate = useNavigate()
 
 	useEffect(() => {
 		const fetchProfile = async () => {
 			try {
-				const token =
-					localStorage.getItem('authToken') || getCookie('auth_token')
-				if (!token) {
-					throw new Error('Not authenticated')
-				}
-
-				const response = await axios.get(
-					'http://localhost:8080/api/v1/profile',
+				const userId = localStorage.getItem('userId')
+				if (!userId) throw new Error('Пользователь не авторизован')
+				const { data } = await axios.get(
+					`http://localhost:8080/api/v1/profile/${userId}`,
 					{
-						headers: {
-							Authorization: `Bearer ${token}`,
-						},
+						headers: { 'Content-Type': 'application/json' },
 						withCredentials: true,
 					}
 				)
-
-				setProfile(response.data)
-				await fetchUserAddress(response.data.id, token)
-
-				// Загрузка аватара (если есть)
-				if (response.data.avatar_url) {
-					setAvatar(response.data.avatar_url)
-				} else {
-					// Дефолтный аватар
-					setAvatar(
-						'https://ui-avatars.com/api/?name=' +
-							encodeURIComponent(
-								response.data.first_name + ' ' + response.data.last_name
-							) +
-							'&background=random'
-					)
-				}
+				setProfile(data)
+				form.setFieldsValue({
+					username: data.username || '',
+					first_name: data.first_name || '',
+					last_name: data.last_name || '',
+					email: data.email || '',
+					phone: data.phone || '',
+					subscription: data.subscription || false,
+				})
 			} catch (err) {
-				setError(err.response?.data?.error || err.message)
-				localStorage.removeItem('authToken')
+				setError(
+					err.response?.data?.message ||
+						err.message ||
+						'Ошибка загрузки профиля'
+				)
+			} finally {
+				setLoading(false)
 			}
 		}
-
 		fetchProfile()
-	}, [])
+	}, [form])
 
-	const fetchUserAddress = async (userId, token) => {
+	const handleSubmit = async values => {
 		try {
-			const response = await axios.get(
-				`http://localhost:8080/api/v1/profile/address?user_id=${userId}`,
+			setIsSubmitting(true)
+			const userId = localStorage.getItem('userId')
+			if (!userId) throw new Error('Пользователь не авторизован')
+			await axios.put(
+				`http://localhost:8080/api/v1/profile/${userId}`,
+				values,
 				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
+					headers: { 'Content-Type': 'application/json' },
 				}
 			)
-			setUserAddress(response.data)
+			setProfile(prev => ({ ...prev, ...values }))
+			setIsEditing(false)
 		} catch (err) {
-			if (err.response?.status !== 404) {
-				console.error('Error fetching address:', err)
-			}
-		}
-	}
-
-	const handleAvatarChange = e => {
-		const file = e.target.files[0]
-		if (file) {
-			const reader = new FileReader()
-			reader.onloadend = () => {
-				setAvatar(reader.result)
-				// Здесь можно добавить запрос на сервер для сохранения аватара
-			}
-			reader.readAsDataURL(file)
-		}
-	}
-
-	const handleUnsubscribe = async () => {
-		try {
-			const token = localStorage.getItem('authToken') || getCookie('auth_token')
-			await axios.post(
-				'http://localhost:8080/api/v1/profile/unsubscribe',
-				{},
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-					},
-				}
+			setError(
+				err.response?.data?.message ||
+					err.message ||
+					'Ошибка обновления профиля'
 			)
-			setProfile(prev => ({ ...prev, subscription: false }))
-		} catch (err) {
-			console.error('Error unsubscribing:', err)
+		} finally {
+			setIsSubmitting(false)
 		}
 	}
 
-	const getCookie = name => {
-		const value = `; ${document.cookie}`
-		const parts = value.split(`; ${name}=`)
-		if (parts.length === 2) return parts.pop().split(';').shift()
+	const handleLogout = () => {
+		localStorage.removeItem('userId')
+		localStorage.removeItem('authToken')
+		navigate('/login')
 	}
 
-	if (error) {
+	if (loading)
 		return (
-			<div className='max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md text-center'>
-				<div className='text-red-500 mb-4'>{error}</div>
-				<button
-					onClick={() => (window.location.href = '/login')}
-					className='mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-lg transition'
-				>
-					Go to Login
-				</button>
+			<div
+				style={{
+					display: 'flex',
+					justifyContent: 'center',
+					alignItems: 'center',
+					height: '100vh',
+					backgroundColor: '#fff',
+				}}
+			>
+				<Spin size='large' style={{ color: '#000' }} />
 			</div>
 		)
-	}
 
-	if (!profile) {
+	if (error)
 		return (
-			<div className='max-w-md mx-auto mt-10 p-6 text-center'>
-				<div className='animate-pulse'>
-					<div className='h-8 bg-gray-200 rounded w-3/4 mx-auto mb-4'></div>
-					<div className='h-8 bg-gray-200 rounded w-1/2 mx-auto'></div>
-				</div>
+			<div
+				style={{
+					padding: '24px',
+					height: '100vh',
+					backgroundColor: '#fff',
+					color: '#000',
+				}}
+			>
+				<Alert
+					message='Ошибка'
+					description={error}
+					type='error'
+					showIcon
+					style={{ backgroundColor: '#f5f5f5', color: '#000', border: 'none' }}
+					action={
+						<Button
+							type='primary'
+							style={{ backgroundColor: '#000', color: '#fff', border: 'none' }}
+							onClick={() => navigate('/login')}
+						>
+							Войти
+						</Button>
+					}
+				/>
 			</div>
 		)
-	}
 
 	return (
-		<div className='mt-[2%] bg-white overflow-hidden'>
-			<div className='flex-1'>
-				<div className='mt-4 space-y-3'>
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>Имя</span>
-						{isEditing ? (
-							<input
-								type='text'
-								defaultValue={profile.first_name}
-								className='flex-1 border-b border-gray-300 focus:border-blue-500 outline-none py-1'
-							/>
-						) : (
-							<span className='flex-1 font-medium'>{profile.first_name}</span>
-						)}
-					</div>
-
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>Фамилия</span>
-						{isEditing ? (
-							<input
-								type='text'
-								defaultValue={profile.last_name}
-								className='flex-1 border-b border-gray-300 focus:border-blue-500 outline-none py-1'
-							/>
-						) : (
-							<span className='flex-1 font-medium'>{profile.last_name}</span>
-						)}
-					</div>
-
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>Email</span>
-						<span className='flex-1 font-medium'>{profile.email}</span>
-					</div>
-
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>Телефон</span>
-						{isEditing ? (
-							<input
-								type='text'
-								defaultValue={profile.phone}
-								className='flex-1 border-b border-gray-300 focus:border-blue-500 outline-none py-1'
-							/>
-						) : (
-							<span className='flex-1 font-medium'>{profile.phone}</span>
-						)}
-					</div>
-
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>Подписка</span>
-						<div className='flex-1 flex items-center'>
-							<span
-								className={`font-medium ${
-									profile.subscription ? 'text-green-600' : 'text-gray-600'
-								}`}
-							>
-								{profile.subscription ? 'Active' : 'Inactive'}
-							</span>
-						</div>
-					</div>
-
-					<div className='flex items-center'>
-						<span className='w-24 text-gray-600'>С нами с</span>
-						<span className='flex-1 font-medium'>
-							{new Date(profile.created_at).toLocaleDateString()}
-						</span>
-					</div>
-				</div>
-
-				<div className='mt-8 pt-6 border-t border-gray-200'>
-					<h3 className='text-lg font-medium text-gray-900 mb-4'>
-						Address Information
-					</h3>
-
-					{!showAddressForm ? (
-						<div className='space-y-2'>
-							{userAddress ? (
-								<div className='bg-gray-50 p-4 rounded-lg'>
-									<p>
-										<span className='text-gray-600'>Street:</span>{' '}
-										{userAddress.street}
-									</p>
-									<p>
-										<span className='text-gray-600'>City:</span>{' '}
-										{userAddress.city}
-									</p>
-									<p>
-										<span className='text-gray-600'>Postal Code:</span>{' '}
-										{userAddress.postal_code}
-									</p>
-									<p>
-										<span className='text-gray-600'>Country:</span>{' '}
-										{userAddress.country}
-									</p>
-								</div>
-							) : (
-								<p className='text-gray-500 italic'>
-									No address information provided
-								</p>
-							)}
-							<button
-								onClick={() => setShowAddressForm(true)}
-								className='mt-2 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition'
-							>
-								{userAddress ? 'Edit Address' : 'Add Address'}
-							</button>
-						</div>
-					) : (
-						<AddressInput
-							userId={profile.id}
-							onCancel={() => setShowAddressForm(false)}
-							onSave={() => {
-								setShowAddressForm(false)
-								fetchUserAddress(
-									profile.id,
-									localStorage.getItem('authToken') || getCookie('auth_token')
-								)
-							}}
-							initialAddress={userAddress}
-						/>
-					)}
-				</div>
-
-				{isEditing && (
-					<div className='mt-6 flex justify-end space-x-3'>
-						<button
-							className='px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition'
-							onClick={() => setIsEditing(false)}
-						>
-							Cancel
-						</button>
-						<button
-							className='px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition'
-							onClick={() => {
-								// Здесь должна быть логика сохранения изменений
-								setIsEditing(false)
-							}}
-						>
-							Save Changes
-						</button>
-					</div>
-				)}
-
-				<div className='mt-8 pt-6 border-t border-gray-200'>
-					<button
-						onClick={() => {
-							localStorage.removeItem('authToken')
-							document.cookie =
-								'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-							window.location.href = '/login'
-						}}
-						className='w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition'
+		<div
+			style={{
+				height: '100vh',
+				width: '100%',
+				backgroundColor: '#fff',
+				color: '#000',
+				fontFamily: 'Inter, sans-serif',
+				padding: '40px',
+				boxSizing: 'border-box',
+				overflowY: 'auto',
+			}}
+		>
+			{isEditing ? (
+				<Form
+					form={form}
+					layout='vertical'
+					onFinish={handleSubmit}
+					style={{ fontSize: '18px' }}
+				>
+					<Form.Item
+						label={<span style={{ color: '#000' }}>Имя пользователя</span>}
+						name='username'
 					>
-						Logout
-					</button>
+						<Input
+							prefix={<UserOutlined style={{ color: '#000' }} />}
+							placeholder='Имя пользователя'
+							style={{
+								backgroundColor: '#f5f5f5',
+								color: '#000',
+								border: '1px solid #ccc',
+							}}
+						/>
+					</Form.Item>
+					<Form.Item
+						label={<span style={{ color: '#000' }}>Имя</span>}
+						name='first_name'
+						rules={[{ required: true, message: 'Введите ваше имя!' }]}
+					>
+						<Input
+							prefix={<UserOutlined style={{ color: '#000' }} />}
+							placeholder='Имя'
+							style={{
+								backgroundColor: '#f5f5f5',
+								color: '#000',
+								border: '1px solid #ccc',
+							}}
+						/>
+					</Form.Item>
+					<Form.Item
+						label={<span style={{ color: '#000' }}>Фамилия</span>}
+						name='last_name'
+						rules={[{ required: true, message: 'Введите вашу фамилию!' }]}
+					>
+						<Input
+							prefix={<UserOutlined style={{ color: '#000' }} />}
+							placeholder='Фамилия'
+							style={{
+								backgroundColor: '#f5f5f5',
+								color: '#000',
+								border: '1px solid #ccc',
+							}}
+						/>
+					</Form.Item>
+					<Form.Item
+						label={<span style={{ color: '#000' }}>Email</span>}
+						name='email'
+						rules={[
+							{ required: true, message: 'Введите ваш email!' },
+							{ type: 'email', message: 'Введите корректный email!' },
+						]}
+					>
+						<Input
+							prefix={<MailOutlined style={{ color: '#000' }} />}
+							placeholder='Email'
+							disabled
+							style={{
+								backgroundColor: '#f5f5f5',
+								color: '#000',
+								border: '1px solid #ccc',
+							}}
+						/>
+					</Form.Item>
+					<Form.Item
+						label={<span style={{ color: '#000' }}>Телефон</span>}
+						name='phone'
+						rules={[
+							{
+								pattern:
+									/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/,
+								message: 'Введите корректный номер телефона!',
+							},
+						]}
+					>
+						<Input
+							prefix={<PhoneOutlined style={{ color: '#000' }} />}
+							placeholder='Телефон'
+							style={{
+								backgroundColor: '#f5f5f5',
+								color: '#000',
+								border: '1px solid #ccc',
+							}}
+						/>
+					</Form.Item>
+					<Form.Item
+						name='subscription'
+						valuePropName='checked'
+						label={<span style={{ color: '#000' }}>Подписка на рассылку</span>}
+					>
+						<Switch
+							checkedChildren={<BellOutlined />}
+							unCheckedChildren={<CloseOutlined />}
+							style={{
+								backgroundColor: profile.subscription ? '#000' : '#ccc',
+							}}
+						/>
+					</Form.Item>
+					<div style={{ textAlign: 'right' }}>
+						<Space>
+							<Button
+								onClick={() => setIsEditing(false)}
+								icon={<CloseOutlined />}
+								style={{
+									backgroundColor: '#f5f5f5',
+									color: '#000',
+									border: '1px solid #ccc',
+								}}
+							>
+								Отмена
+							</Button>
+							<Button
+								type='primary'
+								htmlType='submit'
+								loading={isSubmitting}
+								icon={<CheckOutlined />}
+								style={{
+									backgroundColor: '#000',
+									color: '#fff',
+									border: 'none',
+								}}
+							>
+								Сохранить
+							</Button>
+						</Space>
+					</div>
+				</Form>
+			) : (
+				<div style={{ fontSize: '18px', lineHeight: '2.5' }}>
+					<Text strong style={{ color: '#000' }}>
+						Имя пользователя:{' '}
+					</Text>
+					<Text style={{ color: '#333' }}>
+						{profile.username || 'Не указано'}
+					</Text>
+					<br />
+					<Text strong style={{ color: '#000' }}>
+						Имя:{' '}
+					</Text>
+					<Text style={{ color: '#333' }}>
+						{profile.first_name || 'Не указано'}
+					</Text>
+					<br />
+					<Text strong style={{ color: '#000' }}>
+						Фамилия:{' '}
+					</Text>
+					<Text style={{ color: '#333' }}>
+						{profile.last_name || 'Не указано'}
+					</Text>
+					<br />
+					<Text strong style={{ color: '#000' }}>
+						Email:{' '}
+					</Text>
+					<Text style={{ color: '#333' }}>{profile.email}</Text>
+					<br />
+					<Text strong style={{ color: '#000' }}>
+						Телефон:{' '}
+					</Text>
+					<Text style={{ color: '#333' }}>{profile.phone || 'Не указан'}</Text>
+					<br />
+					<Text strong style={{ color: '#000' }}>
+						Подписка на рассылку:{' '}
+					</Text>
+					<Text style={{ color: profile.subscription ? '#000' : '#666' }}>
+						{profile.subscription ? 'Активна' : 'Неактивна'}
+					</Text>
+					<br />
+					{profile.created_at && (
+						<>
+							<Text strong style={{ color: '#000' }}>
+								Дата регистрации:{' '}
+							</Text>
+							<Text style={{ color: '#333' }}>
+								{dayjs(profile.created_at).format('D MMMM YYYY')}
+							</Text>
+						</>
+					)}
+					<div style={{ marginTop: '40px', textAlign: 'right' }}>
+						<Space>
+							<Button
+								type='primary'
+								icon={<EditOutlined />}
+								onClick={() => setIsEditing(true)}
+								style={{
+									backgroundColor: '#000',
+									color: '#fff',
+									border: 'none',
+								}}
+							>
+								Редактировать
+							</Button>
+							<Button
+								danger
+								icon={<LogoutOutlined />}
+								onClick={() => setLogoutModalOpen(true)}
+								style={{
+									backgroundColor: '#f5f5f5',
+									color: '#000',
+									border: '1px solid #ccc',
+								}}
+							>
+								Выйти
+							</Button>
+						</Space>
+					</div>
 				</div>
-			</div>
+			)}
+			<Modal
+				title={<span style={{ color: '#000' }}>Подтверждение выхода</span>}
+				open={logoutModalOpen}
+				onOk={handleLogout}
+				onCancel={() => setLogoutModalOpen(false)}
+				okText='Выйти'
+				cancelText='Отмена'
+				okButtonProps={{
+					danger: true,
+					style: { backgroundColor: '#000', color: '#fff', border: 'none' },
+				}}
+				cancelButtonProps={{
+					style: {
+						backgroundColor: '#f5f5f5',
+						color: '#000',
+						border: '1px solid #ccc',
+					},
+				}}
+				style={{ backgroundColor: '#fff' }}
+				bodyStyle={{ backgroundColor: '#fff', color: '#000' }}
+			>
+				<p>Вы уверены, что хотите выйти?</p>
+			</Modal>
 		</div>
 	)
 }

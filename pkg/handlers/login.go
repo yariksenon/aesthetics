@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net/http"
@@ -8,14 +9,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtSecret = []byte("TheSecretKeyAlwayssafe")
-
 func LoginHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
+		defer cancel()
+
 		var req struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`
@@ -27,19 +28,33 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		email := strings.TrimSpace(strings.ToLower(req.Email))
+		if email == "" || req.Password == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email and password are required"})
+			return
+		}
+
+		// Стандартная задержка для неудачных попыток
+		defer func(start time.Time) {
+			if c.Writer.Status() != http.StatusOK {
+				elapsed := time.Since(start)
+				if elapsed < 1*time.Second {
+					time.Sleep(1*time.Second - elapsed)
+				}
+			}
+		}(time.Now())
 
 		var userID int
 		var role string
 		var dbPassword string
+		var username string
 
-		err := db.QueryRow(`
-            SELECT id, role, password 
-            FROM users 
+		err := db.QueryRowContext(ctx, `
+            SELECT id, role, password, username 
+            FROM users
             WHERE email = $1
-        `, email).Scan(&userID, &role, &dbPassword)
+        `, email).Scan(&userID, &role, &dbPassword, &username)
 
 		if err != nil {
-			time.Sleep(500 * time.Millisecond)
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			} else {
@@ -50,45 +65,19 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(req.Password)); err != nil {
-			time.Sleep(time.Second)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"user_id": userID,
-			"email":   email,
-			"role":    role,
-			"exp":     time.Now().Add(24 * time.Hour).Unix(),
-		})
-
-		tokenString, err := token.SignedString(jwtSecret)
-		if err != nil {
-			log.Printf("JWT generation error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
-			return
-		}
-
-		// Устанавливаем токен в куки
-		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie(
-			"auth_token", // имя куки
-			tokenString,  // значение
-			86400,        // время жизни в секундах (24 часа)
-			"/",          // путь
-			"",           // домен (пусто для текущего домена)
-			false,        // secure (false для HTTP, true для HTTPS)
-			true,         // httpOnly (ограничивает доступ JavaScript)
-		)
-
-		// Возвращаем ответ без токена в теле
+		// Возвращаем данные пользователя без создания сессии
 		c.JSON(http.StatusOK, gin.H{
-			"message":    "Login successful",
-			"token":     tokenString, // Добавляем токен в ответ
-			"user_id":    userID,
-			"role":       role,
-			// "first_name": firstName, // Добавьте это поле, если оно есть в вашей БД
-			"expires_in": 86400,
+			"message": "Login successful",
+			"user": gin.H{
+				"id":       userID,
+				"username": username,
+				"email":    email,
+				"role":     role,
+			},
 		})
 	}
 }
