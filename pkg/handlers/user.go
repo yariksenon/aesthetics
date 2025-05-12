@@ -97,7 +97,7 @@ func UpdateUser(db *sql.DB) gin.HandlerFunc {
 
 		userId := c.Param("id")
 
-		query := `UPDATE "user" SET first_name = $1, last_name = $2, username = $3, email = $4, phone = $5, password = $6, role = $7 WHERE id = $8`
+		query := `UPDATE users SET first_name = $1, last_name = $2, username = $3, email = $4, phone = $5, password = $6, role = $7 WHERE id = $8`
 		_, err := db.Exec(query, user.FirstName, user.LastName, user.Username, user.Email, user.Phone, user.Password, user.Role, userId)
 		if err != nil {
 			log.Printf("Не удалось изменить данные о пользователе: %v", err)

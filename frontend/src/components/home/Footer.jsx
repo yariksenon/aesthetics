@@ -92,21 +92,21 @@ const AboutBlock = () => {
 	return (
 		<div className='w-full md:w-[20%] py-[2%]'>
 			<p className='text-lg md:text-xl lg:text-2xl cursor-default mb-2'>
-				About
+				О нас
 			</p>
 			<Link
 				to='/about'
 				target='_top'
 				className='text-red-500 text-base md:text-lg lg:text-xl custom-underline'
 			>
-				Why us
+				Почему мы
 			</Link>{' '}
 			<br />
 			<Link
 				to={`/${gender}/new`}
 				className='text-red-300 text-base md:text-lg lg:text-xl custom-underline'
 			>
-				Our products
+				Наши продукты
 			</Link>
 		</div>
 	)

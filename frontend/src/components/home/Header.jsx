@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import axios from 'axios'
 import headerLogo from '../../assets/home/Header/Logo.svg'
 import headerBasket from '../../assets/home/Header/Basket.svg'
 import closeButtonWhite from '../../assets/home/Header/CloseButtonWhite.svg'
@@ -100,9 +101,13 @@ function Header() {
 	const [isAuthenticated, setIsAuthenticated] = useState(false)
 	const [userData, setUserData] = useState(null)
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+	const [cartItemsCount, setCartItemsCount] = useState(0) // Состояние для количества товаров
 	const dropdownRef = useRef(null)
 	const navigate = useNavigate()
 	const { gender } = useParams()
+
+	// Получаем userId из localStorage
+	const userId = localStorage.getItem('userId')
 
 	useEffect(() => {
 		const token = localStorage.getItem('authToken')
@@ -112,7 +117,27 @@ function Header() {
 			setIsAuthenticated(true)
 			setUserData(user)
 		}
+
+		// Загружаем количество товаров в корзине
+		fetchCartCount()
 	}, [])
+
+	// Функция для получения количества товаров в корзине
+	const fetchCartCount = async () => {
+		if (!userId) return
+
+		try {
+			const response = await axios.get(
+				`http://localhost:8080/api/v1/cart/${userId}`
+			)
+			const items = response.data?.items || []
+			const count = items.reduce((total, item) => total + item.quantity, 0)
+			setCartItemsCount(count)
+		} catch (error) {
+			console.error('Ошибка при загрузке корзины:', error)
+			setCartItemsCount(0)
+		}
+	}
 
 	useEffect(() => {
 		const handleClickOutside = event => {
@@ -133,6 +158,8 @@ function Header() {
 		setIsAuthenticated(true)
 		setUserData(user)
 		setIsModalOpen(false)
+		// Обновляем количество после входа
+		fetchCartCount()
 	}, [])
 
 	const handleLogout = useCallback(() => {
@@ -141,6 +168,7 @@ function Header() {
 		setIsAuthenticated(false)
 		setUserData(null)
 		setIsDropdownOpen(false)
+		setCartItemsCount(0) // Сбрасываем счетчик при выходе
 		navigate('/')
 	}, [navigate])
 
@@ -319,17 +347,22 @@ function Header() {
 					</button>
 				)}
 
-				<div className='flex items-center transition-transform duration-300 ease-in-out hover:scale-110'>
-					<img
-						src={headerBasket}
-						className='h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer'
-						alt='Basket'
-					/>
-					<Link
-						to='/cart'
-						className='text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline'
-					>
-						<p>Корзина</p>
+				<div className='flex items-center transition-transform duration-300 ease-in-out hover:scale-110 relative'>
+					<Link to='/cart' className='flex items-center'>
+						<img
+							src={headerBasket}
+							className='h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer'
+							alt='Basket'
+						/>
+						{/* Бейдж с количеством товаров */}
+						{cartItemsCount > 0 && (
+							<span className='absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center'>
+								{cartItemsCount > 9 ? '9+' : cartItemsCount}
+							</span>
+						)}
+						<span className='text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline ml-1'>
+							Корзина
+						</span>
 					</Link>
 				</div>
 			</div>

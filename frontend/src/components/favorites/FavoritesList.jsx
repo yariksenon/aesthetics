@@ -9,6 +9,8 @@ import {
 	Modal,
 	Typography,
 	Space,
+	Badge,
+	Divider,
 } from 'antd'
 import {
 	HeartFilled,
@@ -16,6 +18,7 @@ import {
 	DeleteOutlined,
 } from '@ant-design/icons'
 import { useCart } from '../../context/CartContext'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const { Title, Text } = Typography
 
@@ -26,74 +29,6 @@ const WishlistPage = () => {
 	const [deletingId, setDeletingId] = useState(null)
 	const { addToCart } = useCart()
 	const navigate = useNavigate()
-
-	// Стили
-	const styles = {
-		container: {
-			padding: '24px',
-			maxWidth: '1200px',
-			margin: '0',
-			minHeight: '100vh',
-		},
-		header: {
-			marginBottom: '32px',
-			textAlign: 'center',
-		},
-		grid: {
-			display: 'grid',
-			gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-			gap: '24px',
-			padding: '16px 0',
-		},
-		card: {
-			borderRadius: '8px',
-			overflow: 'hidden',
-			boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
-			border: '1px solid #e8e8e8',
-			transition: 'all 0.3s ease',
-			background: '#fff',
-			'&:hover': {
-				boxShadow: '0 6px 16px rgba(0, 0, 0, 0.1)',
-				transform: 'translateY(-4px)',
-			},
-		},
-		imageContainer: {
-			position: 'relative',
-			paddingTop: '100%',
-			overflow: 'hidden',
-			background: '#f0f0f0',
-		},
-		image: {
-			position: 'absolute',
-			top: 0,
-			left: 0,
-			width: '100%',
-			height: '100%',
-			objectFit: 'cover',
-			filter: 'grayscale(20%)',
-			transition: 'filter 0.3s ease',
-			'&:hover': {
-				filter: 'grayscale(0%)',
-			},
-		},
-		actionButton: {
-			border: 'none',
-			background: 'rgba(255, 255, 255, 0.9)',
-			boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-		},
-		priceText: {
-			fontWeight: 600,
-			fontSize: '16px',
-			color: '#000',
-		},
-		emptyContainer: {
-			display: 'flex',
-			flexDirection: 'column',
-			alignItems: 'center',
-			justifyContent: 'center',
-			height: '60vh',
-		},
-	}
 
 	useEffect(() => {
 		const storedUserId = localStorage.getItem('userId')
@@ -178,101 +113,157 @@ const WishlistPage = () => {
 
 	if (!userId || loading) {
 		return (
-			<div style={{ ...styles.emptyContainer, height: '100vh' }}>
+			<div className='flex justify-center items-center h-screen'>
 				<Spin size='large' />
 			</div>
 		)
 	}
 
-	if (!wishlistItems.length) {
-		return (
-			<div style={styles.emptyContainer}>
-				<Empty
-					description={
-						<Space direction='vertical' size='middle'>
-							<Text style={{ fontSize: '18px', color: '#666' }}>
-								Ваш список желаний пуст
-							</Text>
-							<Button
-								type='primary'
-								size='large'
-								style={{ background: '#000', borderColor: '#000' }}
-								onClick={() => navigate('/products')}
-							>
-								Перейти к товарам
-							</Button>
-						</Space>
-					}
-					imageStyle={{ height: 120 }}
-				/>
-			</div>
-		)
-	}
-
 	return (
-		<div style={styles.container}>
-			<div style={styles.grid}>
-				{wishlistItems.map(product => (
-					<Card
-						key={product.id}
-						hoverable
-						style={styles.card}
-						onClick={() => navigate(`/product/${product.id}`)}
-						cover={
-							<div style={styles.imageContainer}>
-								<img
-									alt={product.name}
-									src={`http://localhost:8080/static/${product.image_path}`}
-									style={styles.image}
-									onError={e =>
-										(e.target.src =
-											'https://placehold.co/600x400?text=No+Image')
-									}
-								/>
-							</div>
-						}
-						actions={[
-							<Button
-								icon={<DeleteOutlined />}
-								shape='circle'
-								size='large'
-								style={styles.actionButton}
-								loading={deletingId === product.id}
-								onClick={e => {
-									e.stopPropagation()
-									confirmRemove(product.id, product.name)
-								}}
-							/>,
-							<Button
-								icon={<ShoppingCartOutlined />}
-								shape='circle'
-								size='large'
-								style={styles.actionButton}
-								onClick={e => handleAddToCart(product, e)}
-							/>,
-						]}
-					>
-						<Card.Meta
-							title={
-								<Text ellipsis={{ tooltip: product.name }}>{product.name}</Text>
-							}
-							description={
-								<div
-									style={{
-										display: 'flex',
-										justifyContent: 'space-between',
-										alignItems: 'center',
-									}}
-								>
-									<Text style={styles.priceText}>
-										{product.price.toFixed(2)} руб.
-									</Text>
-								</div>
-							}
+		<div className='container mx-auto py-8'>
+			<motion.div
+				initial={{ opacity: 0, y: -20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+				className='mb-8'
+			>
+				<Title level={2} className='m-0 flex items-center gap-3'>
+					Избранное
+					<HeartFilled className='text-red-500' />
+					{wishlistItems.length > 0 && (
+						<Badge
+							count={wishlistItems.length}
+							style={{ backgroundColor: '#000' }}
+							className='ml-2'
 						/>
-					</Card>
-				))}
-			</div>
+					)}
+				</Title>
+			</motion.div>
+
+			<Divider className='my-6' />
+
+			{wishlistItems.length === 0 ? (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.5 }}
+					className='text-center py-12'
+				>
+					<div className='max-w-md mx-auto'>
+						<motion.div
+							animate={{ y: [-5, 5, -5] }}
+							transition={{ repeat: Infinity, duration: 3 }}
+						>
+							<HeartFilled className='text-6xl text-gray-400 mb-6 mx-auto' />
+						</motion.div>
+						<h2 className='text-2xl font-medium text-gray-700 mb-3'>
+							Ваш список желаний пуст
+						</h2>
+						<p className='text-gray-500 mb-8'>
+							Похоже, вы еще не добавили товары в избранное. Начните покупки
+							прямо сейчас!
+						</p>
+						<motion.button
+							whileHover={{ scale: 1.03, backgroundColor: '#1a1a1a' }}
+							whileTap={{ scale: 0.98 }}
+							onClick={() => navigate('/products')}
+							className='bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors text-lg font-medium shadow-md'
+						>
+							Перейти к товарам
+						</motion.button>
+					</div>
+				</motion.div>
+			) : (
+				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+					<AnimatePresence>
+						{wishlistItems.map(product => (
+							<motion.div
+								key={product.id}
+								layout
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, scale: 0.8 }}
+								transition={{ duration: 0.3 }}
+							>
+								<Card
+									hoverable
+									className='w-full h-full border-none shadow-sm hover:shadow-md transition-all duration-300'
+									onClick={() => navigate(`/product/${product.id}`)}
+									cover={
+										<div className='relative pt-[100%] bg-gray-100 overflow-hidden'>
+											<motion.img
+												alt={product.name}
+												src={
+													product.image_path
+														? `http://localhost:8080/static/${product.image_path}`
+														: 'https://placehold.co/600x400?text=No+Image'
+												}
+												className='absolute top-0 left-0 w-full h-full object-cover'
+												whileHover={{ scale: 1.05 }}
+												transition={{ duration: 0.3 }}
+												onError={e => {
+													e.target.src =
+														'https://placehold.co/600x400?text=Error+Loading'
+												}}
+											/>
+										</div>
+									}
+									actions={[
+										<motion.div
+											whileHover={{ scale: 1.1 }}
+											whileTap={{ scale: 0.9 }}
+											key='delete'
+										>
+											<Button
+												icon={<DeleteOutlined />}
+												shape='circle'
+												size='large'
+												className='border-none text-gray-500 hover:text-red-500'
+												loading={deletingId === product.id}
+												onClick={e => {
+													e.stopPropagation()
+													confirmRemove(product.id, product.name)
+												}}
+											/>
+										</motion.div>,
+										<motion.div
+											whileHover={{ scale: 1.1 }}
+											whileTap={{ scale: 0.9 }}
+											key='cart'
+										>
+											<Button
+												icon={<ShoppingCartOutlined />}
+												shape='circle'
+												size='large'
+												className='border-none text-gray-500 hover:text-blue-500'
+												onClick={e => handleAddToCart(product, e)}
+											/>
+										</motion.div>,
+									]}
+								>
+									<Card.Meta
+										title={
+											<Text
+												ellipsis={{ tooltip: product.name }}
+												className='font-medium text-base'
+											>
+												{product.name}
+											</Text>
+										}
+										description={
+											<div className='flex justify-between items-center mt-3'>
+												<Text className='font-semibold text-lg'>
+													{product.price.toFixed(2)} руб.
+												</Text>
+											</div>
+										}
+									/>
+								</Card>
+							</motion.div>
+						))}
+					</AnimatePresence>
+				</div>
+			)}
 		</div>
 	)
 }

@@ -12,55 +12,66 @@ type ProductResponse struct {
 	ID        int     `json:"id"`
 	Name      string  `json:"name"`
 	Price     float64 `json:"price"`
-	ImagePath string  `json:"image_path"`
+	ImagePath string  `json:"image_path"` // Изменили на обычную string
 }
 
 func GetWishlist(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, err := strconv.Atoi(c.Param("userId"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-			return
-		}
-
-		rows, err := db.Query(`
-			SELECT 
-				p.id,
-				p.name,
-				p.price,
-				p.image_path
-			FROM wishlist w
-			JOIN product p ON w.product_id = p.id
-			WHERE w.user_id = $1`, userID)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
-			return
-		}
-		defer rows.Close()
-
-		var items []ProductResponse
-		for rows.Next() {
-			var item ProductResponse
-			if err := rows.Scan(
-				&item.ID,
-				&item.Name,
-				&item.Price,
-				&item.ImagePath,
-			); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan product: " + err.Error()})
-				return
+			userID, err := strconv.Atoi(c.Param("userId"))
+			if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
+					return
 			}
-			items = append(items, item)
-		}
 
-		if err = rows.Err(); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Error processing wishlist: " + err.Error()})
-			return
-		}
+			rows, err := db.Query(`
+					SELECT 
+							p.id,
+							p.name,
+							p.price,
+							COALESCE(pi.image_path, '') as image_path
+					FROM wishlist w
+					JOIN product p ON w.product_id = p.id
+					LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
+					WHERE w.user_id = $1`, userID)
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "Ошибка базы данных",
+							"details": err.Error(),
+					})
+					return
+			}
+			defer rows.Close()
 
-		c.JSON(http.StatusOK, gin.H{"items": items})
+			var items []ProductResponse
+			for rows.Next() {
+					var item ProductResponse
+					if err := rows.Scan(
+							&item.ID,
+							&item.Name,
+							&item.Price,
+							&item.ImagePath,
+					); err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{
+									"error": "Ошибка обработки товара",
+									"details": err.Error(),
+							})
+							return
+					}
+					items = append(items, item)
+			}
+
+			if err = rows.Err(); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "Ошибка обработки избранного",
+							"details": err.Error(),
+					})
+					return
+			}
+
+			c.JSON(http.StatusOK, gin.H{"items": items})
 	}
 }
+
 
 func AddToWishlist(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

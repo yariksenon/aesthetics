@@ -3,9 +3,9 @@ package admin
 import (
 	"aesthetics/models"
 	"database/sql"
-	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -37,16 +37,11 @@ func AdminGetCategories(db *sql.DB) gin.HandlerFunc {
 // AdminCreateCategory создает новую категорию
 func AdminCreateCategory(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Логируем входящий запрос
-		requestBody, _ := c.GetRawData()
-		log.Printf("Received request to create category: %s", string(requestBody))
-
 		var cat struct {
 			Name string `json:"name" binding:"required,min=1,max=100"`
 		}
 
 		if err := c.ShouldBindJSON(&cat); err != nil {
-			log.Printf("Bad request: %v", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"error":   "Invalid request data",
 				"details": err.Error(),
@@ -54,7 +49,7 @@ func AdminCreateCategory(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Проверяем, не существует ли уже категория с таким именем
+		// Check if category exists
 		var exists bool
 		err := db.QueryRow(
 			"SELECT EXISTS(SELECT 1 FROM category WHERE name = $1)",
@@ -62,7 +57,6 @@ func AdminCreateCategory(db *sql.DB) gin.HandlerFunc {
 		).Scan(&exists)
 
 		if err != nil {
-			log.Printf("Database check error: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "Database error",
 			})
@@ -76,7 +70,7 @@ func AdminCreateCategory(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Создаем новую категорию
+		// Create new category with error handling for sequence issues
 		var id int
 		err = db.QueryRow(
 			"INSERT INTO category (name) VALUES ($1) RETURNING id",
@@ -84,15 +78,36 @@ func AdminCreateCategory(db *sql.DB) gin.HandlerFunc {
 		).Scan(&id)
 
 		if err != nil {
-			log.Printf("Database insert error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Failed to create category",
-				"details": err.Error(),
-			})
-			return
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				// If it's a sequence error, try to reset it and retry once
+				_, seqErr := db.Exec("SELECT setval('category_id_seq', (SELECT MAX(id) FROM category))")
+				if seqErr != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Failed to fix sequence issue",
+					})
+					return
+				}
+
+				// Try the insert again
+				err = db.QueryRow(
+					"INSERT INTO category (name) VALUES ($1) RETURNING id",
+					cat.Name,
+				).Scan(&id)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+						"error": "Failed to create category after sequence reset",
+					})
+					return
+				}
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error":   "Failed to create category",
+					"details": err.Error(),
+				})
+				return
+			}
 		}
 
-		log.Printf("Successfully created category with ID: %d", id)
 		c.JSON(http.StatusCreated, gin.H{
 			"id":   id,
 			"name": cat.Name,

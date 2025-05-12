@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Spin, message } from 'antd'
+import { Spin, message, Divider } from 'antd'
 import axios from 'axios'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const ShoppingCart = () => {
 	const [cartItems, setCartItems] = useState([])
@@ -9,7 +10,6 @@ const ShoppingCart = () => {
 	const [total, setTotal] = useState(0)
 	const navigate = useNavigate()
 
-	// Получаем userId из localStorage или используем дефолтный (для демо)
 	const userId = localStorage.getItem('userId') || 1
 
 	useEffect(() => {
@@ -23,7 +23,6 @@ const ShoppingCart = () => {
 				`http://localhost:8080/api/v1/cart/${userId}`
 			)
 
-			// Гарантируем, что items всегда будет массивом
 			const items = Array.isArray(response.data?.items)
 				? response.data.items
 				: []
@@ -50,9 +49,7 @@ const ShoppingCart = () => {
 		try {
 			await axios.put(
 				`http://localhost:8080/api/v1/cart/${userId}/${productId}`,
-				{
-					quantity: newQuantity,
-				}
+				{ quantity: newQuantity }
 			)
 			await fetchCartItems()
 			message.success('Количество обновлено')
@@ -89,115 +86,169 @@ const ShoppingCart = () => {
 
 	if (loading) {
 		return (
-			<div className='flex justify-center items-center min-h-screen'>
-				<Spin size='large' tip='Загрузка корзины...' />
+			<div className='flex justify-center items-center h-screen'>
+				<Spin size='large' />
 			</div>
 		)
 	}
 
-	// Безопасный рендеринг товаров
 	const safeCartItems = Array.isArray(cartItems) ? cartItems : []
 
 	return (
-		<div className='container mx-auto px-4 py-8 bg-white text-black min-h-screen'>
-			<h1 className='text-3xl font-bold mb-8 border-b border-gray-300 pb-2'>
-				Корзина
-			</h1>
+		<div className='container mx-auto py-8'>
+			<motion.div
+				initial={{ opacity: 0, y: -20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+				className='mb-8'
+			>
+				<h1 className='text-3xl font-bold m-0'>Корзина</h1>
+			</motion.div>
+
+			<Divider className='my-6' />
 
 			{safeCartItems.length === 0 ? (
-				<div className='text-center py-12'>
-					<p className='text-gray-500 text-xl mb-6'>Ваша корзина пуста</p>
-					<button
-						onClick={() => navigate('/')}
-						className='bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors'
-					>
-						Вернуться к покупкам
-					</button>
-				</div>
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.5 }}
+					className='text-center py-12'
+				>
+					<div className='max-w-md mx-auto'>
+						<motion.div
+							animate={{ y: [-5, 5, -5] }}
+							transition={{ repeat: Infinity, duration: 3 }}
+						>
+							<svg
+								xmlns='http://www.w3.org/2000/svg'
+								className='h-24 w-24 mx-auto text-gray-400 mb-6'
+								fill='none'
+								viewBox='0 0 24 24'
+								stroke='currentColor'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth={1.5}
+									d='M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z'
+								/>
+							</svg>
+						</motion.div>
+						<h2 className='text-2xl font-medium text-gray-700 mb-3'>
+							Ваша корзина пуста
+						</h2>
+						<p className='text-gray-500 mb-8'>
+							Похоже, вы еще не добавили товары в корзину. Начните покупки прямо
+							сейчас!
+						</p>
+						<motion.button
+							whileHover={{ scale: 1.03, backgroundColor: '#1a1a1a' }}
+							whileTap={{ scale: 0.98 }}
+							onClick={() => navigate('/')}
+							className='bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors text-lg font-medium shadow-md'
+						>
+							Перейти к товарам
+						</motion.button>
+					</div>
+				</motion.div>
 			) : (
 				<div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
 					<div className='lg:col-span-2'>
-						<div className='bg-white rounded-lg shadow-md p-6 border border-gray-200'>
-							{safeCartItems.map(item => (
-								<div
-									key={item.id || item.product_id}
-									className='p-4 border-b border-gray-200 flex flex-col sm:flex-row hover:bg-gray-50 transition-colors'
-								>
-									<div className='w-full sm:w-32 h-32 flex-shrink-0 mb-4 sm:mb-0'>
-										<img
-											src={
-												item.image_path
-													? `http://localhost:8080/static/${item.image_path}`
-													: 'https://placehold.co/200'
-											}
-											alt={item.name}
-											className='w-full h-full object-contain'
-											onError={e => {
-												e.target.src = 'https://placehold.co/200'
-											}}
-										/>
-									</div>
-									<div className='flex-1 sm:ml-4'>
-										<h2 className='text-lg font-semibold'>
-											{item.name || 'Без названия'}
-										</h2>
-										<p className='text-gray-600'>
-											Br {item.price?.toFixed(2) || '0.00'}
-										</p>
-
-										<div className='mt-3 flex items-center'>
-											<button
-												onClick={() =>
-													updateQuantity(item.product_id, item.quantity - 1)
+						<div className='bg-white rounded-lg shadow-sm p-6 border border-gray-200'>
+							<AnimatePresence>
+								{safeCartItems.map(item => (
+									<motion.div
+										key={item.id || item.product_id}
+										layout
+										initial={{ opacity: 0, y: 20 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, scale: 0.8 }}
+										transition={{ duration: 0.3 }}
+										className='p-4 border-b border-gray-200 flex flex-col sm:flex-row hover:bg-gray-50 transition-colors'
+									>
+										<div className='w-full sm:w-32 h-32 flex-shrink-0 mb-4 sm:mb-0'>
+											<img
+												src={
+													item.image_path
+														? `http://localhost:8080/static/${item.image_path}`
+														: 'https://placehold.co/200'
 												}
-												className='bg-gray-200 text-black px-3 py-1 rounded-l hover:bg-gray-100 disabled:opacity-50'
-												disabled={item.quantity <= 1}
-											>
-												-
-											</button>
-											<span className='bg-gray-100 px-4 py-1'>
-												{item.quantity || 1}
-											</span>
-											<button
-												onClick={() =>
-													updateQuantity(item.product_id, item.quantity + 1)
-												}
-												className='bg-gray-200 text-black px-3 py-1 rounded-r hover:bg-gray-100'
-											>
-												+
-											</button>
+												alt={item.name}
+												className='w-full h-full object-contain'
+												onError={e => {
+													e.target.src = 'https://placehold.co/200'
+												}}
+											/>
 										</div>
+										<div className='flex-1 sm:ml-4'>
+											<h2 className='text-lg font-semibold'>
+												{item.name || 'Без названия'}
+											</h2>
+											<p className='text-gray-600'>
+												Br {item.price?.toFixed(2) || '0.00'}
+											</p>
 
-										<button
-											onClick={() => removeFromCart(item.product_id)}
-											className='mt-3 text-red-500 hover:text-red-700 text-sm flex items-center'
-										>
-											<svg
-												xmlns='http://www.w3.org/2000/svg'
-												className='h-4 w-4 mr-1'
-												fill='none'
-												viewBox='0 0 24 24'
-												stroke='currentColor'
+											<div className='mt-3 flex items-center'>
+												<motion.button
+													whileTap={{ scale: 0.95 }}
+													onClick={() =>
+														updateQuantity(item.product_id, item.quantity - 1)
+													}
+													className='bg-gray-200 text-black px-3 py-1 rounded-l hover:bg-gray-100 disabled:opacity-50'
+													disabled={item.quantity <= 1}
+												>
+													-
+												</motion.button>
+												<span className='bg-gray-100 px-4 py-1'>
+													{item.quantity || 1}
+												</span>
+												<motion.button
+													whileTap={{ scale: 0.95 }}
+													onClick={() =>
+														updateQuantity(item.product_id, item.quantity + 1)
+													}
+													className='bg-gray-200 text-black px-3 py-1 rounded-r hover:bg-gray-100'
+												>
+													+
+												</motion.button>
+											</div>
+
+											<motion.button
+												whileHover={{ scale: 1.05 }}
+												whileTap={{ scale: 0.95 }}
+												onClick={() => removeFromCart(item.product_id)}
+												className='mt-3 text-red-500 hover:text-red-700 text-sm flex items-center'
 											>
-												<path
-													strokeLinecap='round'
-													strokeLinejoin='round'
-													strokeWidth={2}
-													d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-												/>
-											</svg>
-											Удалить
-										</button>
-									</div>
-									<div className='mt-2 sm:mt-0 sm:ml-4 text-right'>
-										<p className='text-lg font-semibold'>
-											Br {((item.price || 0) * (item.quantity || 1)).toFixed(2)}
-										</p>
-									</div>
-								</div>
-							))}
+												<svg
+													xmlns='http://www.w3.org/2000/svg'
+													className='h-4 w-4 mr-1'
+													fill='none'
+													viewBox='0 0 24 24'
+													stroke='currentColor'
+												>
+													<path
+														strokeLinecap='round'
+														strokeLinejoin='round'
+														strokeWidth={2}
+														d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+													/>
+												</svg>
+												Удалить
+											</motion.button>
+										</div>
+										<div className='mt-2 sm:mt-0 sm:ml-4 text-right'>
+											<p className='text-lg font-semibold'>
+												Br{' '}
+												{((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+											</p>
+										</div>
+									</motion.div>
+								))}
+							</AnimatePresence>
 
-							<button
+							<motion.button
+								whileHover={{ scale: 1.02 }}
+								whileTap={{ scale: 0.98 }}
 								onClick={clearCart}
 								className='mt-6 text-red-500 hover:text-red-700 text-sm flex items-center'
 							>
@@ -216,12 +267,17 @@ const ShoppingCart = () => {
 									/>
 								</svg>
 								Очистить корзину
-							</button>
+							</motion.button>
 						</div>
 					</div>
 
 					<div className='lg:col-span-1'>
-						<div className='bg-white rounded-lg shadow-md p-6 border border-gray-200 sticky top-4'>
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.2 }}
+							className='bg-white rounded-lg shadow-sm p-6 border border-gray-200 sticky top-4'
+						>
 							<h2 className='text-xl font-bold mb-4 border-b border-gray-200 pb-2'>
 								Итого
 							</h2>
@@ -244,14 +300,16 @@ const ShoppingCart = () => {
 								<span>Всего:</span>
 								<span>Br {total.toFixed(2)}</span>
 							</div>
-							<button
+							<motion.button
+								whileHover={{ scale: 1.02, backgroundColor: '#1a1a1a' }}
+								whileTap={{ scale: 0.98 }}
 								onClick={() => navigate('/checkout')}
 								className='w-full mt-6 bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors'
 								disabled={safeCartItems.length === 0}
 							>
 								Оформить заказ
-							</button>
-						</div>
+							</motion.button>
+						</motion.div>
 					</div>
 				</div>
 			)}

@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GetProfile(db *sql.DB) gin.HandlerFunc {
@@ -104,4 +105,56 @@ func UpdateProfile(db *sql.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{"message": "Profile updated successfully"})
 	}
+}
+
+func PutPasswordProfile(db *sql.DB) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // Получение userId из параметров URL
+        userIdStr := c.Param("userId")
+        if userIdStr == "" {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+            return
+        }
+
+        userId, err := strconv.Atoi(userIdStr)
+        if err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
+            return
+        }
+
+        // Проверка, существует ли пользователь
+        var exists bool
+        err = db.QueryRow(`SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)`, userId).Scan(&exists)
+        if err != nil || !exists {
+            c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+            return
+        }
+
+        // Получение нового пароля из запроса
+        var passwordData struct {
+            Password string `json:"password"`
+        }
+
+        if err := c.ShouldBindJSON(&passwordData); err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+            return
+        }
+
+        // Хеширование пароля
+        hashedPassword, err := bcrypt.GenerateFromPassword([]byte(passwordData.Password), bcrypt.DefaultCost)
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+            return
+        }
+
+        // Обновление пароля в базе данных
+        _, err = db.Exec(`UPDATE users SET password = $1 WHERE id = $2`, hashedPassword, userId)
+        if err != nil {
+            log.Printf("Password update error: %v", err)
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password"})
+            return
+        }
+
+        c.JSON(http.StatusOK, gin.H{"message": "Password updated successfully"})
+    }
 }

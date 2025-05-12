@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import {
 	BrowserRouter as Router,
 	Routes,
@@ -11,43 +11,31 @@ import { VALID_CATEGORIES } from './components/categories/Сategories'
 import { VALID_GENDERS } from './components/gender/Gender'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 import { CartProvider } from './context/CartContext'
-import { FavoritesProvider } from './context/FavoritesContext' // Добавлен провайдер избранного
+import { FavoritesProvider } from './context/FavoritesContext'
 
-const Home = lazy(() => import('./components/home/Home'))
-const Cart = lazy(() => import('./components/cart/Cart'))
-const Categories = lazy(() => import('./components/categories/Сategories'))
-const WhyUs = lazy(() => import('./components/home/WhyUs'))
-const NotFound = lazy(() => import('./components/notFound/NotFound'))
-const SubCategory = lazy(() => import('./components/subCategory/SubCategory'))
-const Product = lazy(() => import('./components/product/Product'))
-const Profile = lazy(() => import('./components/profile/Profile'))
-const Favorites = lazy(() => import('./components/favorites/Favorites')) // Новый компонент избранного
+// Импортируем компоненты напрямую
+import Home from './components/home/Home'
+import Cart from './components/cart/Cart'
+import Categories from './components/categories/Сategories'
+import WhyUs from './components/home/WhyUs'
+import NotFound from './components/notFound/NotFound'
+import SubCategory from './components/subCategory/SubCategory'
+import Product from './components/product/Product'
+import Profile from './components/profile/Profile'
+import Favorites from './components/favorites/Favorites'
+import Checkout from './components/checkout/Checkout'
 
-const ForSeller = lazy(() => import('./components/seller/ForSeller')) // Новый компонент избранного
-
-const AdminUsers = lazy(() => import('./components/admin/Users'))
-const AdminUserAddress = lazy(() => import('./components/admin/UserAddress'))
-const AdminCategory = lazy(() => import('./components/admin/Category'))
-const AdminPanel = lazy(() => import('./components/admin/Panel'))
-const AdminProduct = lazy(() => import('./components/admin/Products'))
-const AdminProductAdd = lazy(() =>
-	import('./components/admin/product/AdminProductAdd')
-)
-const AdminProductDelete = lazy(() =>
-	import('./components/admin/product/AdminProductDelete')
-)
-const AdminProductEdit = lazy(() =>
-	import('./components/admin/product/AdminProductEdit')
-)
-const AdminProductView = lazy(() =>
-	import('./components/admin/product/AdminProductView')
-)
-const AdminSubCategories = lazy(() =>
-	import('./components/admin/SubCategories')
-)
-const Order = lazy(() => import('./components/order/Order'))
-
-const AdminSeller = lazy(() => import('./components/admin/AdminSeller'))
+// Админские компоненты
+import AdminPanel from './components/admin/Panel'
+import AdminUsers from './components/admin/Users'
+import AdminUserAddress from './components/admin/UserAddress'
+import AdminCategory from './components/admin/Category'
+import AdminProduct from './components/admin/Products'
+import AdminProductAdd from './components/admin/product/AdminProductAdd'
+import AdminProductDelete from './components/admin/product/AdminProductDelete'
+import AdminProductEdit from './components/admin/product/AdminProductEdit'
+import AdminProductView from './components/admin/product/AdminProductView'
+import AdminSubCategories from './components/admin/SubCategories'
 
 function GenderRoute() {
 	const { gender } = useParams()
@@ -63,6 +51,57 @@ function CategoryRoute() {
 	)
 }
 
+// Конфигурация маршрутов
+const routes = [
+	{ path: '/', redirect: true },
+	{ path: '/about', component: WhyUs },
+	{ path: '/cart', component: Cart },
+	{ path: '/favorites', component: Favorites },
+	{ path: '/404', component: NotFound },
+	{ path: '/:gender', component: GenderRoute },
+	{ path: '/:gender/:category', component: CategoryRoute },
+	{ path: '/:gender/:category/:subcategory', component: SubCategory },
+	{ path: '/:gender/:category/:subcategory/:productid', component: Product },
+	{ path: '/product/:id', component: Product },
+	{ path: '/checkout', component: Checkout },
+	{ path: '/profile', component: Profile },
+]
+
+// Конфигурация админских маршрутов
+const adminRoutes = [
+	{ path: '/admin', component: AdminPanel, protected: true },
+	{ path: '/admin/users', component: AdminUsers, protected: true },
+	{ path: '/admin/user_address', component: AdminUserAddress, protected: true },
+	{ path: '/admin/categories', component: AdminCategory, protected: true },
+	{
+		path: '/admin/subcategories',
+		component: AdminSubCategories,
+		protected: true,
+	},
+	{ path: '/admin/products', component: AdminProduct, protected: true },
+	{ path: '/admin/products/add', component: AdminProductAdd, protected: true },
+	{
+		path: '/admin/products/edit/:id',
+		component: AdminProductEdit,
+		protected: true,
+	},
+	{
+		path: '/admin/products/delete',
+		component: AdminProductDelete,
+		protected: true,
+	},
+	{
+		path: '/admin/products/view',
+		component: AdminProductView,
+		protected: true,
+	},
+	{ path: '/admin/orders', component: SubCategory, protected: true },
+	{ path: '/admin/payments', component: SubCategory, protected: true },
+	{ path: '/admin/wishlists', component: SubCategory, protected: true },
+	{ path: '/admin/carts', component: SubCategory, protected: true },
+	{ path: '/admin/statistics', component: SubCategory, protected: true },
+]
+
 export default function App() {
 	const savedGender = localStorage.getItem('activeMenuItem')
 	const initialGender = VALID_GENDERS.includes(savedGender)
@@ -72,160 +111,41 @@ export default function App() {
 	return (
 		<CartProvider>
 			<FavoritesProvider>
-				{' '}
-				{/* Добавлен провайдер избранного */}
 				<Router>
 					<Suspense fallback={<Loading />}>
 						<Routes>
 							<Route path='/' element={<Navigate to={`/${initialGender}`} />} />
-							<Route path='/about' element={<WhyUs />} />
-							<Route path='/cart' element={<Cart />} />
-							<Route path='/favorites' element={<Favorites />} />{' '}
-							{/* Новый маршрут для избранного */}
-							<Route path='/404' element={<NotFound />} />
 							<Route path='*' element={<Navigate to='/404' />} />
-							<Route path='/:gender' element={<GenderRoute />} />
-							<Route path='/:gender/:category' element={<CategoryRoute />} />
-							<Route
-								path='/:gender/:category/:subcategory'
-								element={<SubCategory />}
-							/>
-							<Route
-								path='/:gender/:category/:subcategory/:productid'
-								element={<Product />}
-							/>
-							<Route path='/product/:productid' element={<Product />} />
-							<Route path='/order' element={<Order />} />
-							<Route path='/for_seller' element={<ForSeller />} />
-							<Route
-								path='/admin'
-								element={
-									<ProtectedRoute>
-										<AdminPanel />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/users'
-								element={
-									<ProtectedRoute>
-										<AdminUsers />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/user_address'
-								element={
-									<ProtectedRoute>
-										<AdminUserAddress />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/categories'
-								element={
-									<ProtectedRoute>
-										<AdminCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/seller_applications'
-								element={
-									<ProtectedRoute>
-										<AdminSeller />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/subcategories'
-								element={
-									<ProtectedRoute>
-										<AdminSubCategories />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/products'
-								element={
-									<ProtectedRoute>
-										<AdminProduct />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/products/add'
-								element={
-									<ProtectedRoute>
-										<AdminProductAdd />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/products/edit'
-								element={
-									<ProtectedRoute>
-										<AdminProductEdit />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/products/delete'
-								element={
-									<ProtectedRoute>
-										<AdminProductDelete />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/products/view'
-								element={
-									<ProtectedRoute>
-										<AdminProductView />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/orders'
-								element={
-									<ProtectedRoute>
-										<SubCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/payments'
-								element={
-									<ProtectedRoute>
-										<SubCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/wishlists'
-								element={
-									<ProtectedRoute>
-										<SubCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/carts'
-								element={
-									<ProtectedRoute>
-										<SubCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route
-								path='/admin/statistics'
-								element={
-									<ProtectedRoute>
-										<SubCategory />
-									</ProtectedRoute>
-								}
-							/>
-							<Route path='/profile' element={<Profile />} />
+
+							{routes.map((route, index) => (
+								<Route
+									key={index}
+									path={route.path}
+									element={
+										route.redirect ? (
+											<Navigate to={`/${initialGender}`} />
+										) : (
+											<route.component />
+										)
+									}
+								/>
+							))}
+
+							{adminRoutes.map((route, index) => (
+								<Route
+									key={`admin-${index}`}
+									path={route.path}
+									element={
+										route.protected ? (
+											<ProtectedRoute>
+												<route.component />
+											</ProtectedRoute>
+										) : (
+											<route.component />
+										)
+									}
+								/>
+							))}
 						</Routes>
 					</Suspense>
 				</Router>

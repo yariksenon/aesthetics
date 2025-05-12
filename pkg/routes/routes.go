@@ -25,12 +25,14 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 				categoryGroup.GET("/", handlers.GetCategory(db))
 
-				subCategoryGroup := categoryGroup.Group("/:subcategory")
-				{
-					subCategoryGroup.GET("/", handlers.GetSubCategories(db))
-				}
+				// subCategoryGroup := categoryGroup.Group("/:subcategory")
+				// {
+					// subCategoryGroup.GET("/", handlers.GetSubCategories(db))
+				// }
 			}
 		}
+
+		v1.GET("/subcategory", handlers.UserGetSubCategories(db))
 
 		// Authorization
 		v1.POST("/register", handlers.RegisterPage(db, twilioClient))
@@ -41,7 +43,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/product/:id", handlers.GetProduct(db))
 
 		// Orders
-		v1.GET("/orders", handlers.GetProducts(db))
+		v1.POST("/orders/:userId", handlers.PostOrder(db))
 
 		// Profile
 		v1.GET("/profile/address", handlers.GetAddress(db))
@@ -49,6 +51,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		v1.GET("/profile/:userId", handlers.GetProfile(db))
 		v1.PUT("/profile/:userId", handlers.UpdateProfile(db))
+		v1.PUT("/profile/:userId/password", handlers.PutPasswordProfile(db))
+		
 
 		// Cart
 		v1.GET("/cart/:userId", handlers.GetCart(db))                         // Получить содержимое корзины пользователя
@@ -61,11 +65,20 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/wishlist/:userId", handlers.GetWishlist(db))
     v1.POST("/wishlist/:userId/:productId", handlers.AddToWishlist(db))
     v1.DELETE("/wishlist/:userId/:productId", handlers.RemoveFromWishlist(db))
-		
+    v1.GET("/wishlist/:userId/:productId", handlers.RemoveFromWishlist(db))
 
 		// Email
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
-		v1.GET("/addresses", handlers.GetProduct(db))
+
+
+
+		v1.GET("/categories", handlers.GetCategories(db))
+		v1.GET("/sub-categories", handlers.GetSubCategories(db))
+	
+		v1.GET("/size-types", handlers.GetSizeTypes(db))
+		v1.GET("/sizes", handlers.GetSizes(db))
+
+
 
 		customer := v1.Group("/customer")
 		{
@@ -92,14 +105,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				user.PUT("/:id", admin.AdminUpdateUser(db))
 				user.DELETE("/:id", admin.AdminDeleteUser(db))
 			}
-
-			userAddress := routesAdmin.Group("/user_addresses")
-			{
-				userAddress.GET("", admin.AdminGetUserAddresses(db))         // Получение всех адресов пользователя
-				userAddress.PUT("/:id", admin.AdminUpdateUserAddress(db))    // Обновление адреса по ID
-				userAddress.DELETE("/:id", admin.AdminDeleteUserAddress(db)) // Удаление адреса по ID
-			}
-
 			category := routesAdmin.Group("/categories")
 			{
 				category.GET("", admin.AdminGetCategories(db))         // Получение всех категорий
@@ -120,7 +125,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			product := routesAdmin.Group("/products")
 			{
 				product.GET("", admin.AdminGetProducts(db))          // Получение всех товаров
-				product.GET("/:id", admin.AdminGetProduct(db))       // Получение товара по ID
 				product.POST("", admin.AdminCreateProduct(db))       // Создание товара
 				product.PUT("/:id", admin.AdminUpdateProduct(db))    // Обновление товара
 				product.DELETE("/:id", admin.AdminDeleteProduct(db)) // Удаление товара

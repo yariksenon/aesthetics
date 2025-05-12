@@ -141,3 +141,102 @@ INSERT INTO sub_category (id, category_id, name) VALUES
 (99, 21, 'Шарфы'),
 (100, 21, 'Аксессуары для осени')
 ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO size_types (id, name, description) VALUES
+(1, 'Обувь мужские', 'Мужские размеры обуви'),
+(2, 'Обувь женские', 'Женские размеры обуви'),
+(3, 'Обувь детские', 'Детские размеры обуви'),
+
+(4, 'Одежда мужские', 'Мужская одежда'),
+(5, 'Одежда женские', 'Женская одежда'),
+(6, 'Одежда детские', 'Детская одежда'),
+
+(7, 'Аксессуары головные уборы', 'Обхват головы в см'),
+(8, 'Аксессуары перчатки', 'Окружность ладони в см'),
+(9, 'Аксессуары носки', 'Размер носков по обуви')
+ON CONFLICT (id) DO NOTHING;
+
+-- Обувь мужские (size_type_id = 1)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(1, 1, '39', 'Размер EU 39'),
+(2, 1, '40', 'Размер EU 40'),
+(3, 1, '41', 'Размер EU 41'),
+(4, 1, '42', 'Размер EU 42'),
+(5, 1, '43', 'Размер EU 43'),
+(6, 1, '44', 'Размер EU 44'),
+(7, 1, '45', 'Размер EU 45')
+ON CONFLICT (id) DO NOTHING;
+
+-- Обувь женские (size_type_id = 2)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(8, 2, '35', 'Размер EU 35'),
+(9, 2, '36', 'Размер EU 36'),
+(10, 2, '37', 'Размер EU 37'),
+(11, 2, '38', 'Размер EU 38'),
+(12, 2, '39', 'Размер EU 39'),
+(13, 2, '40', 'Размер EU 40'),
+(14, 2, '41', 'Размер EU 41')
+ON CONFLICT (id) DO NOTHING;
+
+-- Обувь детские (size_type_id = 3)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(15, 3, '28', 'Размер EU 28'),
+(16, 3, '29', 'Размер EU 29'),
+(17, 3, '30', 'Размер EU 30'),
+(18, 3, '31', 'Размер EU 31'),
+(19, 3, '32', 'Размер EU 32'),
+(20, 3, '33', 'Размер EU 33'),
+(21, 3, '34', 'Размер EU 34')
+ON CONFLICT (id) DO NOTHING;
+
+-- Одежда мужская (size_type_id = 4)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(22, 4, 'S', 'Маленький (S)'),
+(23, 4, 'M', 'Средний (M)'),
+(24, 4, 'L', 'Большой (L)'),
+(25, 4, 'XL', 'Очень большой (XL)'),
+(26, 4, 'XXL', 'Очень-очень большой (XXL)')
+ON CONFLICT (id) DO NOTHING;
+
+-- Одежда женская (size_type_id = 5)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(27, 5, 'XS', 'Очень маленький (XS)'),
+(28, 5, 'S', 'Маленький (S)'),
+(29, 5, 'M', 'Средний (M)'),
+(30, 5, 'L', 'Большой (L)'),
+(31, 5, 'XL', 'Очень большой (XL)')
+ON CONFLICT (id) DO NOTHING;
+
+-- Одежда детская (size_type_id = 6)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(32, 6, '110', 'Рост 110 см'),
+(33, 6, '116', 'Рост 116 см'),
+(34, 6, '122', 'Рост 122 см'),
+(35, 6, '128', 'Рост 128 см'),
+(36, 6, '134', 'Рост 134 см'),
+(37, 6, '140', 'Рост 140 см')
+ON CONFLICT (id) DO NOTHING;
+
+-- Головные уборы (аксессуары) (size_type_id = 7)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(38, 7, '54', 'Обхват головы 54 см'),
+(39, 7, '56', 'Обхват головы 56 см'),
+(40, 7, '58', 'Обхват головы 58 см'),
+(41, 7, '60', 'Обхват головы 60 см')
+ON CONFLICT (id) DO NOTHING;
+
+-- Перчатки (аксессуары) (size_type_id = 8)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(42, 8, '7', 'Окружность ладони ~18 см'),
+(43, 8, '8', 'Окружность ладони ~20 см'),
+(44, 8, '9', 'Окружность ладони ~23 см'),
+(45, 8, '10', 'Окружность ладони ~25 см')
+ON CONFLICT (id) DO NOTHING;
+
+-- Носки (аксессуары) (size_type_id = 9)
+INSERT INTO sizes (id, size_type_id, value, description) VALUES
+(46, 9, '35-37', 'Размер обуви 35-37'),
+(47, 9, '38-40', 'Размер обуви 38-40'),
+(48, 9, '41-43', 'Размер обуви 41-43'),
+(49, 9, '44-46', 'Размер обуви 44-46')
+ON CONFLICT (id) DO NOTHING;

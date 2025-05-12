@@ -3,110 +3,60 @@ package handlers
 import (
 	"database/sql"
 	"log"
+	"aesthetics/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type Category struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
-}
-
-type SubCategory struct {
-	ID         int    `json:"id"`
-	CategoryID int    `json:"category_id" db:"category_id"`
-	Name       string `json:"name"`
-}
-
-func GetCategories(db *sql.DB) gin.HandlerFunc {
+// GET /sub-categories?category_id=X
+func GetSubCategories(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var categories []Category
-
-		rows, err := db.Query("SELECT id, name FROM category ORDER BY id")
-		if err != nil {
-			log.Println("Ошибка при получении категорий:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Не удалось получить список категорий",
-				"details": err.Error(),
-			})
+		categoryID := c.DefaultQuery("category_id", "")
+		if categoryID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "category_id обязателен"})
 			return
 		}
-		defer func() {
-			if err := rows.Close(); err != nil {
-				log.Println("Ошибка при закрытии rows:", err)
-			}
-		}()
 
-		for rows.Next() {
-			var category Category
-			if err := rows.Scan(&category.ID, &category.Name); err != nil {
-				log.Println("Ошибка при сканировании категории:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error":   "Ошибка обработки данных",
-					"details": err.Error(),
-				})
-				return
-			}
-			categories = append(categories, category)
+		// Convert category_id from string to integer
+		categoryIDInt, err := strconv.Atoi(categoryID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category_id"})
+			return
 		}
 
-		if err := rows.Err(); err != nil {
-			log.Println("Ошибка после итерации:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Ошибка при обработке запроса",
-				"details": err.Error(),
-			})
+		var subCategories []models.SubCategory
+
+		// Use parameterized query to prevent SQL injection
+		rows, err := db.Query("SELECT id, name, category_id FROM sub_category WHERE category_id = $1", categoryIDInt)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении подкатегорий"})
+			log.Println(err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var subCategory models.SubCategory
+			err := rows.Scan(&subCategory.ID, &subCategory.Name, &subCategory.CategoryID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сканировании подкатегорий"})
+				log.Println(err)
+				return
+			}
+
+			subCategories = append(subCategories, subCategory)
+		}
+
+		// Handle the case where no sub-categories are found
+		if len(subCategories) == 0 {
+			c.JSON(http.StatusOK, gin.H{"sub_categories": []string{}})
 			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"category": categories,
+			"sub_categories": subCategories,
 		})
-	}
-}
-
-func GetSubCategories(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var subCategories []SubCategory
-
-		rows, err := db.Query("SELECT id, category_id, name FROM sub_category ORDER BY category_id, id")
-		if err != nil {
-			log.Println("Ошибка при получении подкатегорий:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Не удалось получить список подкатегорий",
-				"details": err.Error(),
-			})
-			return
-		}
-		defer func() {
-			if err := rows.Close(); err != nil {
-				log.Println("Ошибка при закрытии rows:", err)
-			}
-		}()
-
-		for rows.Next() {
-			var subCat SubCategory
-			if err := rows.Scan(&subCat.ID, &subCat.CategoryID, &subCat.Name); err != nil {
-				log.Println("Ошибка при сканировании подкатегории:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error":   "Ошибка обработки данных",
-					"details": err.Error(),
-				})
-				return
-			}
-			subCategories = append(subCategories, subCat)
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Println("Ошибка после итерации:", err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   "Ошибка при обработке запроса",
-				"details": err.Error(),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, subCategories)
 	}
 }

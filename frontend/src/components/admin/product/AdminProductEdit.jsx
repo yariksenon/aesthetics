@@ -1,472 +1,298 @@
 import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Form, Button, notification, Space, Spin } from 'antd'
 import axios from 'axios'
+import ProductNameInput from './form/Name'
+import ProductDescriptionInput from './form/Description'
+import ProductSummaryInput from './form/Summary'
+import ProductCategorySelect from './form/Category'
+import ProductSubCategorySelect from './form/SubCategory'
+import Color from './form/Color'
+import SKU from './form/SKU'
+import Price from './form/Price'
+import Gender from './form/Gender'
+import ImageUploader from './form/ImageUploader'
+import SizeQuantity from './form/SizeQuantity'
 
 const AdminProductEdit = () => {
-	const [products, setProducts] = useState([])
-	const [editingProduct, setEditingProduct] = useState(null)
-	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState(null)
-	const [isSaving, setIsSaving] = useState(false)
-	const [successMessage, setSuccessMessage] = useState(null)
-	const [categories, setCategories] = useState([])
-	const [subCategories, setSubCategories] = useState([])
+	const [form] = Form.useForm()
+	const [api, contextHolder] = notification.useNotification()
+	const [submitting, setSubmitting] = useState(false)
+	const [loading, setLoading] = useState(true)
+	const [categoryId, setCategoryId] = useState(null)
+	const [productImages, setProductImages] = useState([])
+	const [existingImages, setExistingImages] = useState([])
+	const { id } = useParams()
+	const navigate = useNavigate()
+
+	const showNotification = (type, message, description) => {
+		api[type]({
+			message,
+			description,
+			placement: 'topRight',
+			duration: 4.5,
+		})
+	}
 
 	useEffect(() => {
-		const fetchData = async () => {
+		const fetchProduct = async () => {
 			try {
-				const [productsRes, categoriesRes] = await Promise.all([
-					axios.get('http://localhost:8080/api/v1/admin/products'),
-					axios.get('http://localhost:8080/api/v1/admin/categories'),
-				])
+				setLoading(true)
+				const response = await axios.get(
+					`http://localhost:8080/api/v1/admin/products/${id}`
+				)
+				const product = response.data
 
-				setProducts(productsRes.data)
-				setCategories(categoriesRes.data)
-				setIsLoading(false)
-			} catch (err) {
-				setError(err.response?.data?.error || err.message)
-				setIsLoading(false)
-			}
-		}
+				// Заполняем форму данными товара
+				form.setFieldsValue({
+					name: product.name,
+					description: product.description,
+					summary: product.summary,
+					category_id: product.category_id,
+					sub_category_id: product.sub_category_id,
+					color: product.color,
+					sku: product.sku,
+					price: product.price,
+					gender: product.gender,
+					size_type_id: product.size_type_id,
+				})
 
-		fetchData()
-	}, [])
+				// Устанавливаем categoryId для подкатегорий
+				setCategoryId(product.category_id)
 
-	// Загружаем подкатегории при выборе категории
-	useEffect(() => {
-		if (editingProduct?.category_id) {
-			const fetchSubCategories = async () => {
-				try {
-					const response = await axios.get(
-						`http://localhost:8080/api/v1/admin/categories/${editingProduct.category_id}/subcategories`
-					)
-					setSubCategories(response.data)
-				} catch (err) {
-					console.error('Error fetching subcategories:', err)
-					setSubCategories([])
+				// Обрабатываем размеры
+				if (product.size_quantities) {
+					const sizeQuantities = JSON.parse(product.size_quantities)
+					Object.keys(sizeQuantities).forEach(size => {
+						form.setFieldsValue({
+							[`size_${size}`]: sizeQuantities[size],
+						})
+					})
 				}
+
+				// Обрабатываем изображения
+				if (product.images && product.images.length > 0) {
+					setExistingImages(
+						product.images.map(img => ({
+							id: img.id.toString(),
+							image_path: img.image_path,
+							alt_text: img.alt_text || '',
+							is_primary: img.is_primary,
+							display_order: img.display_order,
+							isExisting: true,
+						}))
+					)
+				}
+			} catch (error) {
+				console.error('Ошибка загрузки товара:', error)
+				showNotification(
+					'error',
+					'Ошибка',
+					'Не удалось загрузить данные товара'
+				)
+				navigate('/admin/products')
+			} finally {
+				setLoading(false)
 			}
-
-			fetchSubCategories()
 		}
-	}, [editingProduct?.category_id])
 
-	const handleEditClick = product => {
-		setEditingProduct({
-			...product,
-			// Инициализируем поля, если они undefined
-			price: product.price || 0,
-			quantity: product.quantity || 0,
-			sub_category_id: product.sub_category_id || '',
-			category_id: product.category_id || '',
-		})
-		setError(null)
-		setSuccessMessage(null)
-	}
+		fetchProduct()
+	}, [id, form, navigate])
 
-	const handleCancelEdit = () => {
-		setEditingProduct(null)
-	}
-
-	const handleInputChange = e => {
-		const { name, value } = e.target
-		setEditingProduct({
-			...editingProduct,
-			[name]: value,
+	const handleCategoryChange = selectedCategoryId => {
+		setCategoryId(selectedCategoryId)
+		form.setFieldsValue({
+			sub_category_id: undefined,
 		})
 	}
 
-	const validateProduct = () => {
-		const errors = []
-
-		if (!editingProduct.name || editingProduct.name.trim().length < 2) {
-			errors.push('Product name must be at least 2 characters long')
-		}
-
-		if (isNaN(editingProduct.price) || editingProduct.price <= 0) {
-			errors.push('Price must be a positive number')
-		}
-
-		if (isNaN(editingProduct.quantity) || editingProduct.quantity < 0) {
-			errors.push('Quantity must be a non-negative number')
-		}
-
-		if (!editingProduct.category_id) {
-			errors.push('Please select a category')
-		}
-
-		if (!editingProduct.sub_category_id) {
-			errors.push('Please select a subcategory')
-		}
-
-		if (errors.length > 0) {
-			setError(errors.join('. '))
-			return false
-		}
-
-		return true
+	const handleImageUpload = files => {
+		const newImages = Array.from(files).map((file, index) => ({
+			id: Math.random().toString(36).substr(2, 9),
+			file,
+			image_path: URL.createObjectURL(file),
+			alt_text: '',
+			is_primary: productImages.length === 0 && existingImages.length === 0,
+			display_order: productImages.length + existingImages.length + index,
+			isExisting: false,
+		}))
+		setProductImages([...productImages, ...newImages])
 	}
 
-	const handleSave = async () => {
-		if (!editingProduct) return
-
-		if (!validateProduct()) {
-			return
+	const handleImageDelete = id => {
+		// Для существующих изображений просто помечаем на удаление
+		if (existingImages.some(img => img.id === id)) {
+			setExistingImages(existingImages.filter(img => img.id !== id))
+		} else {
+			setProductImages(productImages.filter(img => img.id !== id))
 		}
+	}
 
-		setIsSaving(true)
-		setError(null)
+	const handlePrimaryImageChange = id => {
+		// Обновляем основное изображение для всех изображений
+		const updateImages = images =>
+			images.map(img => ({
+				...img,
+				is_primary: img.id === id,
+			}))
 
+		setExistingImages(updateImages(existingImages))
+		setProductImages(updateImages(productImages))
+	}
+
+	const handleAltTextChange = (id, value) => {
+		// Обновляем alt text для существующих изображений
+		const updateExisting = existingImages.map(img =>
+			img.id === id ? { ...img, alt_text: value } : img
+		)
+		setExistingImages(updateExisting)
+
+		// Обновляем alt text для новых изображений
+		const updateNew = productImages.map(img =>
+			img.id === id ? { ...img, alt_text: value } : img
+		)
+		setProductImages(updateNew)
+	}
+
+	const handleSubmit = async values => {
 		try {
-			// Преобразуем числовые поля
-			const dataToSend = {
-				...editingProduct,
-				price: parseFloat(editingProduct.price),
-				quantity: parseInt(editingProduct.quantity),
-				sub_category_id: parseInt(editingProduct.sub_category_id),
-				category_id: parseInt(editingProduct.category_id),
+			setSubmitting(true)
+
+			// 1. Подготовка данных о размерах
+			const sizeQuantities = {}
+			Object.keys(values).forEach(key => {
+				if (key.startsWith('size_')) {
+					sizeQuantities[key.replace('size_', '')] = values[key]
+				}
+			})
+
+			// 2. Создаем FormData
+			const formData = new FormData()
+
+			// 3. Добавляем основные данные
+			const productData = {
+				name: values.name,
+				description: values.description,
+				summary: values.summary,
+				category_id: values.category_id,
+				sub_category_id: values.sub_category_id,
+				color: values.color,
+				sku: values.sku,
+				price: values.price,
+				gender: values.gender,
+				size_type_id: values.size_type_id,
+				size_quantities: JSON.stringify(sizeQuantities),
 			}
 
+			Object.entries(productData).forEach(([key, value]) => {
+				if (value !== undefined) {
+					formData.append(key, value)
+				}
+			})
+
+			// 4. Добавляем новые изображения
+			productImages.forEach(img => {
+				formData.append('new_images', img.file)
+				formData.append('new_alt_texts', img.alt_text)
+				formData.append('new_is_primary', img.is_primary.toString())
+				formData.append('new_display_orders', img.display_order.toString())
+			})
+
+			// 5. Добавляем информацию о существующих изображениях
+			existingImages.forEach(img => {
+				formData.append('existing_images', img.id)
+				formData.append('existing_alt_texts', img.alt_text)
+				formData.append('existing_is_primary', img.is_primary.toString())
+				formData.append('existing_display_orders', img.display_order.toString())
+			})
+
+			// 6. Отправка данных
 			const response = await axios.put(
-				`http://localhost:8080/api/v1/admin/products/${editingProduct.id}`,
-				dataToSend,
+				`http://localhost:8080/api/v1/admin/products/${id}`,
+				formData,
 				{
 					headers: {
-						'Content-Type': 'application/json',
+						'Content-Type': 'multipart/form-data',
 					},
 				}
 			)
 
-			if (response.status === 200) {
-				setProducts(
-					products.map(p => (p.id === editingProduct.id ? response.data : p))
-				)
-				setEditingProduct(null)
-				setSuccessMessage('Product updated successfully!')
-				setTimeout(() => setSuccessMessage(null), 3000)
+			// 7. Успешное завершение
+			showNotification('success', 'Успех', `Товар успешно обновлен`)
+			navigate('/admin/products')
+		} catch (error) {
+			console.error('Ошибка обновления товара:', error)
+
+			let errorMessage = 'Ошибка сервера'
+			if (error.response) {
+				errorMessage =
+					error.response.data?.message ||
+					error.response.data?.error ||
+					'Неизвестная ошибка сервера'
 			}
-		} catch (err) {
-			console.error('Update error:', err)
-			setError(
-				err.response?.data?.error || err.message || 'Failed to update product'
-			)
+
+			showNotification('error', 'Ошибка', errorMessage)
 		} finally {
-			setIsSaving(false)
+			setSubmitting(false)
 		}
 	}
 
-	if (isLoading)
-		return (
-			<div className='flex justify-center items-center h-screen'>
-				<div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-black'></div>
-			</div>
-		)
+	const allImages = [...existingImages, ...productImages]
 
 	return (
-		<div className='min-h-screen bg-white'>
-			{/* Header */}
-			<header className='border-b border-gray-200'>
-				<div className='max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8'>
-					<h1 className='text-2xl font-bold'>Product Management</h1>
-				</div>
-			</header>
+		<div
+			className='product-form-container'
+			style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}
+		>
+			{contextHolder}
+			<Spin spinning={loading || submitting}>
+				<Form
+					form={form}
+					layout='vertical'
+					onFinish={handleSubmit}
+					size='large'
+				>
+					<Space direction='vertical' size='middle' style={{ display: 'flex' }}>
+						<ProductNameInput />
+						<ProductDescriptionInput />
+						<ProductSummaryInput />
 
-			<main className='max-w-7xl mx-auto py-6 sm:px-6 lg:px-8'>
-				{/* Notifications */}
-				{error && (
-					<div className='mb-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4'>
-						<div className='flex justify-between'>
-							<p className='font-bold'>Error</p>
-							<button onClick={() => setError(null)} className='font-bold'>
-								&times;
-							</button>
-						</div>
-						<p>{error}</p>
-					</div>
-				)}
+						<ProductCategorySelect onCategoryChange={handleCategoryChange} />
 
-				{successMessage && (
-					<div className='mb-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4'>
-						<div className='flex justify-between'>
-							<p className='font-bold'>Success</p>
-							<button
-								onClick={() => setSuccessMessage(null)}
-								className='font-bold'
+						<ProductSubCategorySelect
+							categoryId={categoryId}
+							onError={message => showNotification('error', 'Ошибка', message)}
+						/>
+
+						<Color />
+						<SKU />
+						<Price />
+						<Gender />
+
+						<ImageUploader
+							productImages={allImages}
+							handleImageUpload={handleImageUpload}
+							handleImageDelete={handleImageDelete}
+							handlePrimaryImageChange={handlePrimaryImageChange}
+							handleAltTextChange={handleAltTextChange}
+						/>
+
+						<SizeQuantity form={form} />
+
+						<Form.Item>
+							<Button
+								type='primary'
+								htmlType='submit'
+								loading={submitting}
+								size='large'
+								block
 							>
-								&times;
-							</button>
-						</div>
-						<p>{successMessage}</p>
-					</div>
-				)}
-
-				{/* Products Table */}
-				<div className='border border-gray-200 rounded-lg overflow-hidden mb-8'>
-					<div className='px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white'>
-						<h2 className='text-lg font-medium'>Products List</h2>
-						<span className='bg-white border border-black text-xs font-semibold px-2.5 py-0.5 rounded'>
-							{products.length} items
-						</span>
-					</div>
-
-					<div className='overflow-x-auto'>
-						<table className='min-w-full divide-y divide-gray-200'>
-							<thead className='bg-white'>
-								<tr>
-									<th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-black'>
-										ID
-									</th>
-									<th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-black'>
-										Name
-									</th>
-									<th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-black'>
-										Price
-									</th>
-									<th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-black'>
-										Stock
-									</th>
-									<th className='px-6 py-3 text-left text-xs font-medium uppercase tracking-wider border-b border-black'>
-										Actions
-									</th>
-								</tr>
-							</thead>
-							<tbody className='bg-white divide-y divide-gray-200'>
-								{products.map(product => (
-									<tr
-										key={product.id}
-										className='hover:bg-gray-50 transition-colors'
-									>
-										{editingProduct && editingProduct.id === product.id ? (
-											<>
-												<td className='px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-200'>
-													{product.id}
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap border-b border-gray-200'>
-													<input
-														type='text'
-														name='name'
-														value={editingProduct.name || ''}
-														onChange={handleInputChange}
-														className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-														required
-														minLength={2}
-													/>
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap border-b border-gray-200'>
-													<div className='flex items-center'>
-														<span className='mr-1'>$</span>
-														<input
-															type='number'
-															name='price'
-															value={editingProduct.price || ''}
-															onChange={handleInputChange}
-															className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-															step='0.01'
-															min='0.01'
-															required
-														/>
-													</div>
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap border-b border-gray-200'>
-													<input
-														type='number'
-														name='quantity'
-														value={editingProduct.quantity || ''}
-														onChange={handleInputChange}
-														className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-														min='0'
-														required
-													/>
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-200'>
-													<div className='flex space-x-2'>
-														<button
-															onClick={handleSave}
-															disabled={isSaving}
-															className={`bg-black text-white px-3 py-1 rounded text-sm font-medium ${
-																isSaving ? 'opacity-50 cursor-not-allowed' : ''
-															}`}
-														>
-															{isSaving ? 'Saving...' : 'Save'}
-														</button>
-														<button
-															onClick={handleCancelEdit}
-															className='bg-white border border-black px-3 py-1 rounded text-sm font-medium'
-														>
-															Cancel
-														</button>
-													</div>
-												</td>
-											</>
-										) : (
-											<>
-												<td className='px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-200'>
-													{product.id}
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap text-sm border-b border-gray-200'>
-													{product.name}
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap text-sm border-b border-gray-200'>
-													${product.price}
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap text-sm border-b border-gray-200'>
-													<span
-														className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full border ${
-															product.quantity > 0
-																? 'border-black'
-																: 'border-gray-400'
-														}`}
-													>
-														{product.quantity} in stock
-													</span>
-												</td>
-												<td className='px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-200'>
-													<button
-														onClick={() => handleEditClick(product)}
-														className='underline'
-													>
-														Edit
-													</button>
-												</td>
-											</>
-										)}
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				</div>
-
-				{/* Edit Form */}
-				{editingProduct && (
-					<div className='border border-gray-200 rounded-lg overflow-hidden'>
-						<div className='px-6 py-4 border-b border-gray-200 bg-white'>
-							<h2 className='text-lg font-medium'>Edit Product Details</h2>
-						</div>
-						<div className='p-6 grid grid-cols-1 md:grid-cols-2 gap-6'>
-							<div>
-								<label className='block text-sm font-medium mb-1'>
-									Description
-								</label>
-								<textarea
-									name='description'
-									value={editingProduct.description || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full h-32'
-								/>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>
-									Summary
-								</label>
-								<textarea
-									name='summary'
-									value={editingProduct.summary || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full h-32'
-								/>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>Color</label>
-								<input
-									type='text'
-									name='color'
-									value={editingProduct.color || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-								/>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>Size</label>
-								<input
-									type='text'
-									name='size'
-									value={editingProduct.size || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-								/>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>SKU</label>
-								<input
-									type='text'
-									name='sku'
-									value={editingProduct.sku || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-								/>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>
-									Category
-								</label>
-								<select
-									name='category_id'
-									value={editingProduct.category_id || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-									required
-								>
-									<option value=''>Select a category</option>
-									{categories.map(category => (
-										<option key={category.id} value={category.id}>
-											{category.name}
-										</option>
-									))}
-								</select>
-							</div>
-							<div>
-								<label className='block text-sm font-medium mb-1'>
-									Subcategory
-								</label>
-								<select
-									name='sub_category_id'
-									value={editingProduct.sub_category_id || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-									required
-									disabled={!editingProduct.category_id}
-								>
-									<option value=''>Select a subcategory</option>
-									{subCategories.map(subCategory => (
-										<option key={subCategory.id} value={subCategory.id}>
-											{subCategory.name}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className='md:col-span-2'>
-								<label className='block text-sm font-medium mb-1'>
-									Image Path
-								</label>
-								<input
-									type='text'
-									name='image_path'
-									value={editingProduct.image_path || ''}
-									onChange={handleInputChange}
-									className='border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-black w-full'
-								/>
-							</div>
-						</div>
-						<div className='px-6 py-4 bg-gray-50 text-right'>
-							<button
-								onClick={handleCancelEdit}
-								className='bg-white border border-black px-4 py-2 rounded text-sm font-medium mr-3'
-							>
-								Cancel
-							</button>
-							<button
-								onClick={handleSave}
-								disabled={isSaving}
-								className={`bg-black text-white px-4 py-2 rounded text-sm font-medium ${
-									isSaving ? 'opacity-50 cursor-not-allowed' : ''
-								}`}
-							>
-								{isSaving ? 'Saving...' : 'Save Changes'}
-							</button>
-						</div>
-					</div>
-				)}
-			</main>
+								Обновить товар
+							</Button>
+						</Form.Item>
+					</Space>
+				</Form>
+			</Spin>
 		</div>
 	)
 }

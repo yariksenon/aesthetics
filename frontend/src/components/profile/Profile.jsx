@@ -3,6 +3,7 @@ import AsideBanner from '../home/AsideBanner'
 import Section from '../home/Section'
 import UserProfile from './UserProfile'
 import Footer from '../home/Footer'
+import ChangePassword from './ChangePassword'
 
 const Profile = () => {
 	return (
@@ -12,6 +13,7 @@ const Profile = () => {
 			<Section />
 			<div className='mx-[15%]'>
 				<UserProfile />
+				<ChangePassword />
 			</div>
 			<Footer />
 		</div>

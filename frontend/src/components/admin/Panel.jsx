@@ -5,13 +5,10 @@ import {
 	FaUsers,
 	FaBox,
 	FaList,
-	FaShoppingCart,
 	FaStream,
-	FaHeart,
 	FaShoppingBag,
 	FaChartBar,
-	FaMapMarkerAlt,
-	FaClipboardList,
+	FaCommentDots,
 	FaMoneyBillAlt,
 	FaCheckCircle,
 } from 'react-icons/fa'
@@ -23,11 +20,6 @@ const buttons = [
 		path: '/admin/users',
 		label: 'Пользователи',
 		icon: <FaUsers className='mr-2' />,
-	},
-	{
-		path: '/admin/user_address',
-		label: 'Адреса пользователей',
-		icon: <FaMapMarkerAlt className='mr-2' />,
 	},
 	{
 		path: '/admin/products',
@@ -45,29 +37,14 @@ const buttons = [
 		icon: <FaStream className='mr-2' />,
 	},
 	{
-		path: '/admin/carts',
-		label: 'Корзина',
-		icon: <FaShoppingCart className='mr-2' />,
-	},
-	{
-		path: '/admin/cart_items',
-		label: 'Элемент корзины',
-		icon: <FaShoppingCart className='mr-2' />,
-	},
-	{
-		path: '/admin/wishlists',
-		label: 'Список желаний',
-		icon: <FaHeart className='mr-2' />,
-	},
-	{
 		path: '/admin/orders',
 		label: 'Заказы',
 		icon: <FaShoppingBag className='mr-2' />,
 	},
 	{
-		path: '/admin/order_items',
-		label: 'Детали заказа',
-		icon: <FaClipboardList className='mr-2' />,
+		path: '/admin/reviews',
+		label: 'Отзывы',
+		icon: <FaCommentDots className='mr-2' />,
 	},
 	{
 		path: '/admin/payment_details',
@@ -78,12 +55,6 @@ const buttons = [
 		path: '/admin/seller_applications',
 		label: 'Заявки продавцов',
 		icon: <FaCheckCircle className='mr-2' />,
-		fullWidth: true,
-	},
-	{
-		path: '/admin/statistics',
-		label: 'Статистика',
-		icon: <FaChartBar className='mr-2' />,
 		fullWidth: true,
 	},
 ]

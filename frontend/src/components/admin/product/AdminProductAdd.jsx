@@ -1,98 +1,126 @@
-import React, { useState, useEffect } from 'react'
-import {
-	Form,
-	Input,
-	InputNumber,
-	Button,
-	Upload,
-	message,
-	Select,
-	Spin,
-} from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import React, { useState } from 'react'
+import { Form, Button, notification, Space, Spin } from 'antd'
 import axios from 'axios'
-
-const { Option } = Select
-const { TextArea } = Input
+import ProductNameInput from './form/Name'
+import ProductDescriptionInput from './form/Description'
+import ProductSummaryInput from './form/Summary'
+import ProductCategorySelect from './form/Category'
+import ProductSubCategorySelect from './form/SubCategory'
+import Color from './form/Color'
+import SKU from './form/SKU'
+import Price from './form/Price'
+import Gender from './form/Gender'
+import ImageUploader from './form/ImageUploader'
+import SizeQuantity from './form/SizeQuantity'
 
 const AdminProductAdd = () => {
 	const [form] = Form.useForm()
-	const [loading, setLoading] = useState(false)
-	const [imageFile, setImageFile] = useState(null)
-	const [categories, setCategories] = useState([])
-	const [subCategories, setSubCategories] = useState([])
+	const [api, contextHolder] = notification.useNotification()
+	const [submitting, setSubmitting] = useState(false)
+	const [categoryId, setCategoryId] = useState(null)
+	const [productImages, setProductImages] = useState([])
 
-	// Загрузка категорий
-	useEffect(() => {
-		const fetchCategories = async () => {
-			try {
-				const res = await axios.get(
-					'http://localhost:8080/api/v1/admin/categories'
-				)
-				setCategories(res.data)
-			} catch (error) {
-				message.error('Ошибка загрузки категорий')
-			}
-		}
-		fetchCategories()
-	}, [])
+	const showNotification = (type, message, description) => {
+		api[type]({
+			message,
+			description,
+			placement: 'topRight',
+			duration: 4.5,
+		})
+	}
 
-	// Загрузка подкатегорий
-	const handleCategoryChange = async categoryId => {
-		try {
-			const res = await axios.get(
-				`http://localhost:8080/api/v1/admin/sub_categories/by_category/${categoryId}`
+	const handleCategoryChange = selectedCategoryId => {
+		setCategoryId(selectedCategoryId)
+		form.setFieldsValue({
+			sub_category_id: undefined,
+			sku: generateSKU(selectedCategoryId),
+		})
+	}
+
+	const generateSKU = categoryId => {
+		if (!categoryId) return ''
+		const prefix = `CAT-${categoryId}-`
+		const randomPart = Math.floor(1000 + Math.random() * 9000)
+		return `${prefix}${randomPart}`
+	}
+
+	const handleImageUpload = files => {
+		const newImages = Array.from(files).map((file, index) => ({
+			id: Math.random().toString(36).substr(2, 9),
+			file,
+			image_path: URL.createObjectURL(file),
+			alt_text: '',
+			is_primary: productImages.length === 0,
+			display_order: productImages.length + index,
+		}))
+		setProductImages([...productImages, ...newImages])
+	}
+
+	const handleImageDelete = id => {
+		setProductImages(productImages.filter(img => img.id !== id))
+	}
+
+	const handlePrimaryImageChange = id => {
+		setProductImages(
+			productImages.map(img => ({
+				...img,
+				is_primary: img.id === id,
+			}))
+		)
+	}
+
+	const handleAltTextChange = (id, value) => {
+		setProductImages(
+			productImages.map(img =>
+				img.id === id ? { ...img, alt_text: value } : img
 			)
-			setSubCategories(res.data)
-			form.setFieldsValue({ sub_category_id: undefined })
-		} catch (error) {
-			message.error('Ошибка загрузки подкатегорий')
-		}
+		)
 	}
 
-	// Загрузка изображения
-	const beforeUpload = file => {
-		const isImage = file.type.startsWith('image/')
-		if (!isImage) {
-			message.error('Можно загружать только изображения!')
-			return Upload.LIST_IGNORE
-		}
-
-		const isLt5M = file.size / 1024 / 1024 < 5
-		if (!isLt5M) {
-			message.error('Изображение должно быть меньше 5MB!')
-			return Upload.LIST_IGNORE
-		}
-
-		setImageFile(file)
-		return false
-	}
-
-	// Отправка формы
-	const onFinish = async values => {
-		setLoading(true)
-
-		const formData = new FormData()
-
-		// Добавляем данные продукта
-		formData.append('Name', values.name)
-		formData.append('Description', values.description || '')
-		formData.append('Summary', values.summary || '')
-		formData.append('CategoryID', values.category_id)
-		formData.append('SubCategoryID', values.sub_category_id)
-		formData.append('Color', values.color || '')
-		formData.append('Size', values.size || '')
-		formData.append('SKU', values.sku)
-		formData.append('Price', values.price)
-		formData.append('Quantity', values.quantity || 0)
-		formData.append('Currency', values.currency || 'USD')
-
-		// Добавляем изображение, если оно есть
-		if (imageFile) {
-			formData.append('Image', imageFile)
-		}
-
+	const handleSubmit = async values => {
 		try {
+			setSubmitting(true)
+
+			// 1. Подготовка данных о размерах
+			const sizeQuantities = {}
+			Object.keys(values).forEach(key => {
+				if (key.startsWith('size_')) {
+					sizeQuantities[key.replace('size_', '')] = values[key]
+				}
+			})
+
+			// 2. Создаем FormData
+			const formData = new FormData()
+
+			// 3. Добавляем основные данные
+			const productData = {
+				name: values.name,
+				description: values.description,
+				summary: values.summary,
+				category_id: values.category_id,
+				sub_category_id: values.sub_category_id,
+				color: values.color,
+				sku: values.sku,
+				price: values.price,
+				gender: values.gender,
+				size_type_id: values.size_type_id,
+				size_quantities: JSON.stringify(sizeQuantities),
+			}
+
+			Object.entries(productData).forEach(([key, value]) => {
+				if (value !== undefined) {
+					formData.append(key, value)
+				}
+			})
+
+			// 4. Добавляем изображения (новый способ)
+			productImages.forEach(img => {
+				formData.append('images', img.file)
+				formData.append('alt_texts', img.alt_text)
+				formData.append('is_primary', img.is_primary.toString())
+			})
+
+			// 5. Отправка данных
 			const response = await axios.post(
 				'http://localhost:8080/api/v1/admin/products',
 				formData,
@@ -103,179 +131,85 @@ const AdminProductAdd = () => {
 				}
 			)
 
-			message.success('Товар успешно добавлен!')
-			form.resetFields()
-			setImageFile(null)
-		} catch (error) {
-			console.error('Ошибка при добавлении товара:', error)
-			message.error(
-				error.response?.data?.error || 'Ошибка при добавлении товара'
+			// 6. Успешное завершение
+			showNotification(
+				'success',
+				'Успех',
+				`Товар создан с ID: ${response.data.id}`
 			)
+			form.resetFields()
+			setProductImages([])
+		} catch (error) {
+			console.error('Ошибка создания товара:', error)
+
+			let errorMessage = 'Ошибка сервера'
+			if (error.response) {
+				errorMessage =
+					error.response.data?.message ||
+					error.response.data?.error ||
+					'Неизвестная ошибка сервера'
+			}
+
+			showNotification('error', 'Ошибка', errorMessage)
 		} finally {
-			setLoading(false)
+			setSubmitting(false)
 		}
 	}
 
 	return (
-		<div className='max-w-4xl mx-auto p-4 bg-white rounded-lg shadow'>
-			<h1 className='text-2xl font-bold mb-6'>Добавить новый товар</h1>
+		<div
+			className='product-form-container'
+			style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}
+		>
+			{contextHolder}
+			<Spin spinning={submitting}>
+				<Form
+					form={form}
+					layout='vertical'
+					onFinish={handleSubmit}
+					size='large'
+				>
+					<Space direction='vertical' size='middle' style={{ display: 'flex' }}>
+						<ProductNameInput />
+						<ProductDescriptionInput />
+						<ProductSummaryInput />
 
-			<Form
-				form={form}
-				layout='vertical'
-				onFinish={onFinish}
-				initialValues={{
-					quantity: 0,
-					currency: 'USD',
-					price: 0.0,
-				}}
-			>
-				<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-					{/* Основная информация */}
-					<div className='space-y-4'>
-						<Form.Item
-							label='Название товара'
-							name='name'
-							rules={[{ required: true, message: 'Введите название товара' }]}
-						>
-							<Input placeholder='Название товара' />
-						</Form.Item>
+						<ProductCategorySelect onCategoryChange={handleCategoryChange} />
 
-						<Form.Item
-							label='Артикул (SKU)'
-							name='sku'
-							rules={[
-								{
-									required: true,
-									message: 'Введите артикул',
-								},
-							]}
-						>
-							<Input placeholder='Уникальный артикул' />
-						</Form.Item>
+						<ProductSubCategorySelect
+							categoryId={categoryId}
+							onError={message => showNotification('error', 'Ошибка', message)}
+						/>
 
-						<Form.Item
-							label='Категория'
-							name='category_id'
-							rules={[{ required: true, message: 'Выберите категорию' }]}
-						>
-							<Select
-								placeholder='Выберите категорию'
-								onChange={handleCategoryChange}
-								loading={categories.length === 0}
+						<Color />
+						<SKU />
+						<Price />
+						<Gender />
+
+						<ImageUploader
+							productImages={productImages}
+							handleImageUpload={handleImageUpload}
+							handleImageDelete={handleImageDelete}
+							handlePrimaryImageChange={handlePrimaryImageChange}
+							handleAltTextChange={handleAltTextChange}
+						/>
+
+						<SizeQuantity form={form} />
+
+						<Form.Item>
+							<Button
+								type='primary'
+								htmlType='submit'
+								loading={submitting}
+								size='large'
+								block
 							>
-								{categories.map(category => (
-									<Option key={category.id} value={category.id}>
-										{category.name}
-									</Option>
-								))}
-							</Select>
+								Сохранить товар
+							</Button>
 						</Form.Item>
-
-						<Form.Item
-							label='Подкатегория'
-							name='sub_category_id'
-							rules={[{ required: true, message: 'Выберите подкатегорию' }]}
-						>
-							<Select
-								placeholder='Выберите подкатегорию'
-								loading={subCategories.length === 0}
-								disabled={subCategories.length === 0}
-							>
-								{subCategories.map(subCat => (
-									<Option key={subCat.id} value={subCat.id}>
-										{subCat.name}
-									</Option>
-								))}
-							</Select>
-						</Form.Item>
-
-						<Form.Item
-							label='Цена'
-							name='price'
-							rules={[
-								{
-									required: true,
-									message: 'Введите цену',
-									type: 'number',
-									min: 0.01,
-								},
-							]}
-						>
-							<InputNumber min={0.01} step={0.01} style={{ width: '100%' }} />
-						</Form.Item>
-
-						<Form.Item label='Валюта' name='currency'>
-							<Select>
-								<Option value='USD'>USD ($)</Option>
-								<Option value='EUR'>EUR (€)</Option>
-								<Option value='RUB'>RUB (₽)</Option>
-							</Select>
-						</Form.Item>
-					</div>
-
-					{/* Дополнительная информация */}
-					<div className='space-y-4'>
-						<Form.Item label='Краткое описание' name='summary'>
-							<TextArea
-								rows={3}
-								placeholder='Краткое описание для карточки товара'
-								maxLength={255}
-							/>
-						</Form.Item>
-
-						<Form.Item label='Полное описание' name='description'>
-							<TextArea rows={5} placeholder='Подробное описание товара' />
-						</Form.Item>
-
-						<Form.Item label='Цвет' name='color'>
-							<Input placeholder='Цвет товара' />
-						</Form.Item>
-
-						<Form.Item label='Размер' name='size'>
-							<Input placeholder='Размер товара' />
-						</Form.Item>
-
-						<Form.Item label='Количество' name='quantity'>
-							<InputNumber min={0} style={{ width: '100%' }} />
-						</Form.Item>
-
-						<Form.Item label='Изображение товара'>
-							<Upload
-								beforeUpload={beforeUpload}
-								maxCount={1}
-								accept='image/*'
-								listType='picture'
-								fileList={
-									imageFile
-										? [
-												{
-													uid: '-1',
-													name: imageFile.name,
-													status: 'done',
-												},
-										  ]
-										: []
-								}
-								onRemove={() => setImageFile(null)}
-							>
-								<Button icon={<UploadOutlined />}>Выбрать изображение</Button>
-							</Upload>
-							{imageFile && (
-								<div className='mt-2 text-sm text-gray-500'>
-									Выбрано: {imageFile.name}
-								</div>
-							)}
-						</Form.Item>
-					</div>
-				</div>
-
-				<Form.Item className='mt-6'>
-					<Button type='primary' htmlType='submit' loading={loading}>
-						Добавить товар
-					</Button>
-				</Form.Item>
-			</Form>
+					</Space>
+				</Form>
+			</Spin>
 		</div>
 	)
 }

@@ -5,9 +5,71 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
+
+type SubCategoryRequest struct {
+	CategoryID int    `json:"category_id" binding:"required"`
+	Name       string `json:"name" binding:"required,min=1,max=100"`
+}
+
+func AdminCreateSubCategory(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req SubCategoryRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error":   "Invalid request data",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		// Проверка существования категории
+		var categoryExists bool
+		err := db.QueryRow(
+			"SELECT EXISTS(SELECT 1 FROM category WHERE id = $1)", 
+			req.CategoryID,
+		).Scan(&categoryExists)
+		
+		if err != nil {
+			log.Printf("Database error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			return
+		}
+
+		if !categoryExists {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Category does not exist"})
+			return
+		}
+
+		// Создание подкатегории без явного указания ID
+		var id int
+		err = db.QueryRow(
+			`INSERT INTO sub_category (category_id, name) 
+			 VALUES ($1, $2) 
+			 RETURNING id`,
+			req.CategoryID, req.Name,
+		).Scan(&id)
+
+		if err != nil {
+			log.Printf("Database insert error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to create subcategory",
+				"details": err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusCreated, gin.H{
+			"id":          id,
+			"category_id": req.CategoryID,
+			"name":        req.Name,
+		})
+	}
+}
+
 
 // AdminGetSubCategories возвращает все подкатегории
 func AdminGetSubCategories(db *sql.DB) gin.HandlerFunc {
@@ -40,39 +102,6 @@ func AdminGetSubCategories(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, subCategories)
-	}
-}
-
-// AdminCreateSubCategory создает новую подкатегорию
-func AdminCreateSubCategory(db *sql.DB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var sc models.SubCategory
-		if err := c.ShouldBindJSON(&sc); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Проверяем существование категории
-		var categoryExists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM category WHERE id = $1)", sc.CategoryID).Scan(&categoryExists)
-		if err != nil || !categoryExists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Category does not exist"})
-			return
-		}
-
-		var id int
-		err = db.QueryRow(
-			"INSERT INTO sub_category (category_id, name) VALUES ($1, $2) RETURNING id",
-			sc.CategoryID, sc.Name,
-		).Scan(&id)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		sc.ID = id
-		c.JSON(http.StatusCreated, sc)
 	}
 }
 

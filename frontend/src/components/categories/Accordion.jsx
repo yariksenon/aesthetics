@@ -5,7 +5,7 @@ import Arrow from '../../assets/category/accordion/DownArrow.svg'
 const Accordion = () => {
 	const [openIndexes, setOpenIndexes] = useState([])
 	const [categories, setCategories] = useState([])
-	const [subCategories, setSubCategories] = useState({})
+	const [subCategories, setSubCategories] = useState([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
 	const contentRefs = useRef([])
@@ -15,29 +15,16 @@ const Accordion = () => {
 			try {
 				const [categoriesRes, subCategoriesRes] = await Promise.all([
 					axios.get('http://localhost:8080/api/v1/gender/category/'),
-					axios.get(
-						'http://localhost:8080/api/v1/gender/category/subCategory/'
-					),
+					axios.get('http://localhost:8080/api/v1/subcategory'),
 				])
 
+				// Обрабатываем категории
 				const validCategories = (categoriesRes.data?.category || []).filter(
 					cat => cat?.id && cat?.name?.trim()
 				)
 
-				const subCategoriesMap = (subCategoriesRes.data || [])
-					.filter(
-						subCat => subCat?.id && subCat?.name?.trim() && subCat?.category_id
-					)
-					.reduce((acc, subCat) => {
-						if (!acc[subCat.category_id]) {
-							acc[subCat.category_id] = []
-						}
-						acc[subCat.category_id].push(subCat)
-						return acc
-					}, {})
-
 				setCategories(validCategories)
-				setSubCategories(subCategoriesMap)
+				setSubCategories(subCategoriesRes.data || [])
 			} catch (err) {
 				console.error('Ошибка при загрузке данных:', err)
 				setError('Не удалось загрузить данные. Пожалуйста, попробуйте позже.')
@@ -48,6 +35,11 @@ const Accordion = () => {
 
 		fetchData()
 	}, [])
+
+	// Группируем подкатегории по category_id
+	const getSubCategoriesByCategory = categoryId => {
+		return subCategories.filter(subCat => subCat.category_id === categoryId)
+	}
 
 	const toggleAccordion = index => {
 		setOpenIndexes(prev =>
@@ -64,54 +56,60 @@ const Accordion = () => {
 	return (
 		<div className='mr-5'>
 			<ul>
-				{categories.slice(0, 8).map((category, index) => (
-					<li key={category.id} className='py-1'>
-						<button
-							onClick={() => toggleAccordion(index)}
-							className='w-full text-left focus:outline-none flex justify-between items-center'
-							aria-expanded={openIndexes.includes(index)}
-							aria-controls={`category-${category.id}-content`}
-						>
-							<span className='text-lg py-1 font-semibold'>
-								{category.name || 'Без названия'}
-							</span>
-							{subCategories[category.id]?.length > 0 && (
-								<img
-									src={Arrow}
-									alt={openIndexes.includes(index) ? 'Свернуть' : 'Развернуть'}
-									className={`h-6 w-6 transition-transform duration-300 ${
-										openIndexes.includes(index) ? 'rotate-180' : 'rotate-0'
-									}`}
-								/>
-							)}
-						</button>
-						<div
-							id={`category-${category.id}-content`}
-							ref={el => (contentRefs.current[index] = el)}
-							style={{
-								maxHeight: openIndexes.includes(index)
-									? `${contentRefs.current[index]?.scrollHeight}px`
-									: '0',
-								overflow: 'hidden',
-								transition: 'max-height 0.3s ease-out',
-							}}
-							className='mt-2'
-							aria-hidden={!openIndexes.includes(index)}
-						>
-							{subCategories[category.id]?.length > 0 ? (
-								subCategories[category.id].map(subCategory => (
-									<div key={subCategory.id} className='py-2'>
-										<span className='text-md cursor-pointer text-gray-600 hover:text-stone-900'>
-											{subCategory.name || 'Без названия'}
-										</span>
-									</div>
-								))
-							) : (
-								<div className='py-2 text-gray-400'>Нет подкатегорий</div>
-							)}
-						</div>
-					</li>
-				))}
+				{categories.slice(0, 8).map((category, index) => {
+					const categorySubs = getSubCategoriesByCategory(category.id)
+
+					return (
+						<li key={category.id} className='py-1'>
+							<button
+								onClick={() => toggleAccordion(index)}
+								className='w-full text-left focus:outline-none flex justify-between items-center'
+								aria-expanded={openIndexes.includes(index)}
+								aria-controls={`category-${category.id}-content`}
+							>
+								<span className='text-lg py-1 font-semibold'>
+									{category.name || 'Без названия'}
+								</span>
+								{categorySubs.length > 0 && (
+									<img
+										src={Arrow}
+										alt={
+											openIndexes.includes(index) ? 'Свернуть' : 'Развернуть'
+										}
+										className={`h-6 w-6 transition-transform duration-300 ${
+											openIndexes.includes(index) ? 'rotate-180' : 'rotate-0'
+										}`}
+									/>
+								)}
+							</button>
+							<div
+								id={`category-${category.id}-content`}
+								ref={el => (contentRefs.current[index] = el)}
+								style={{
+									maxHeight: openIndexes.includes(index)
+										? `${contentRefs.current[index]?.scrollHeight}px`
+										: '0',
+									overflow: 'hidden',
+									transition: 'max-height 0.3s ease-out',
+								}}
+								className='mt-2'
+								aria-hidden={!openIndexes.includes(index)}
+							>
+								{categorySubs.length > 0 ? (
+									categorySubs.map(subCategory => (
+										<div key={subCategory.id} className='py-2'>
+											<span className='text-md cursor-pointer text-gray-600 hover:text-stone-900'>
+												{subCategory.name || 'Без названия'}
+											</span>
+										</div>
+									))
+								) : (
+									<div className='py-2 text-gray-400'>Нет подкатегорий</div>
+								)}
+							</div>
+						</li>
+					)
+				})}
 			</ul>
 		</div>
 	)

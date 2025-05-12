@@ -14,16 +14,14 @@ type CartItemResponse struct {
 	Name      string  `json:"name"`
 	Price     float64 `json:"price"`
 	Quantity  int     `json:"quantity"`
-	ImagePath string  `json:"image_path"`
+	ImagePath string  `json:"image_path"` // Изменили на обычную string
 }
-
-// Остальной код остается без изменений...
 
 func GetCart(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := strconv.Atoi(c.Param("userId"))
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID пользователя"})
 			return
 		}
 
@@ -39,11 +37,14 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 				})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка базы данных",
+				"details": err.Error(),
+			})
 			return
 		}
 
-		// 2. Получаем товары в корзине
+		// 2. Получаем товары в корзине с основным изображением
 		rows, err := db.Query(`
 			SELECT 
 				ci.id,
@@ -51,12 +52,16 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 				p.name,
 				p.price,
 				ci.quantity,
-				p.image_path
+				COALESCE(pi.image_path, '') as image_path
 			FROM cart_item ci
 			JOIN product p ON ci.product_id = p.id
+			LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
 			WHERE ci.cart_id = $1`, cartID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка при получении товаров",
+				"details": err.Error(),
+			})
 			return
 		}
 		defer rows.Close()
@@ -75,11 +80,22 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 				&item.ImagePath,
 			)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Ошибка обработки товара",
+					"details": err.Error(),
+				})
 				return
 			}
 			items = append(items, item)
 			total += item.Price * float64(item.Quantity)
+		}
+
+		if err = rows.Err(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка при обработке результатов",
+				"details": err.Error(),
+			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{

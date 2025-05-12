@@ -1,222 +1,502 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
 	Table,
 	Button,
 	Modal,
 	Form,
 	Input,
-	Select,
 	message,
 	Popconfirm,
 	Space,
+	Card,
+	Typography,
+	Tooltip,
+	Row,
+	Col,
+	Badge,
+	Alert,
+	Tag,
+	Spin,
+	Select,
+	ConfigProvider,
 } from 'antd'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
-import { FaArrowLeft } from 'react-icons/fa'
+import {
+	DeleteOutlined,
+	EditOutlined,
+	PlusOutlined,
+	SearchOutlined,
+	ArrowLeftOutlined,
+	ExclamationCircleFilled,
+} from '@ant-design/icons'
+import { motion } from 'framer-motion'
+import ruRU from 'antd/lib/locale/ru_RU'
 
+const { Title, Text } = Typography
+const { confirm } = Modal
 const { Option } = Select
 
 const SubCategories = () => {
-	const [subCategories, setSubCategories] = useState([])
-	const [categories, setCategories] = useState([])
-	const [loading, setLoading] = useState(false)
-	const [isModalOpen, setIsModalOpen] = useState(false)
-	const [editingSubCategory, setEditingSubCategory] = useState(null)
+	const [state, setState] = useState({
+		subcategories: [],
+		categories: [],
+		filteredSubcategories: [],
+		loading: false,
+		categoriesLoading: false,
+		selectedKeys: [],
+		searchQuery: '',
+		modalVisible: false,
+		currentSubcategory: null,
+		apiErrors: null,
+		pagination: {
+			current: 1,
+			pageSize: 10,
+			total: 0,
+		},
+	})
+
 	const [form] = Form.useForm()
 	const navigate = useNavigate()
-
-	const API_URL = 'http://localhost:8080/api/v1/admin/sub_categories'
-	const CATEGORIES_API_URL = 'http://localhost:8080/api/v1/admin/categories'
+	const SUBCATEGORIES_API = 'http://localhost:8080/api/v1/admin/sub_categories'
+	const CATEGORIES_API = 'http://localhost:8080/api/v1/admin/categories'
 
 	const columns = [
 		{
-			title: 'ID',
-			dataIndex: 'id',
-			key: 'id',
-		},
-		{
-			title: 'Категория',
-			dataIndex: 'category_name',
-			key: 'category_name',
-		},
-		{
-			title: 'Подкатегория',
+			title: 'Название подкатегории',
 			dataIndex: 'name',
 			key: 'name',
+			render: text => <Text strong>{text}</Text>,
+			sorter: (a, b) => a.name.localeCompare(b.name),
+		},
+		{
+			title: 'Родительская категория',
+			key: 'category',
+			render: (_, record) => {
+				const category = state.categories.find(
+					cat => cat.id === record.category_id
+				)
+				return category ? (
+					<Tag
+						color='default'
+						style={{ color: '#666', borderColor: '#d9d9d9' }}
+					>
+						{category.name}
+					</Tag>
+				) : (
+					<Tag
+						color='default'
+						style={{ color: '#666', borderColor: '#d9d9d9' }}
+					>
+						Не указана
+					</Tag>
+				)
+			},
 		},
 		{
 			title: 'Действия',
-			key: 'action',
+			key: 'actions',
+			align: 'right',
 			render: (_, record) => (
 				<Space size='middle'>
-					<Button type='link' onClick={() => handleEdit(record)}>
-						Редактировать
-					</Button>
-					<Popconfirm
-						title='Вы уверены, что хотите удалить эту подкатегорию?'
-						onConfirm={() => handleDelete(record.id)}
-						okText='Да'
-						cancelText='Нет'
-					>
-						<Button type='link' danger>
-							Удалить
-						</Button>
-					</Popconfirm>
+					<Tooltip title='Редактировать'>
+						<Button
+							shape='circle'
+							icon={<EditOutlined />}
+							onClick={() => showEditModal(record)}
+							style={{ color: '#333', borderColor: '#d9d9d9' }}
+						/>
+					</Tooltip>
+					<Tooltip title='Удалить'>
+						<Popconfirm
+							title='Подтверждение удаления'
+							description={`Удалить подкатегорию "${record.name}"?`}
+							onConfirm={() => deleteSubcategory(record.id)}
+							okText='Да'
+							cancelText='Нет'
+						>
+							<Button
+								shape='circle'
+								icon={<DeleteOutlined />}
+								danger
+								style={{ borderColor: '#d9d9d9' }}
+							/>
+						</Popconfirm>
+					</Tooltip>
 				</Space>
 			),
 		},
 	]
 
 	useEffect(() => {
-		fetchSubCategories()
-		fetchCategories()
+		fetchInitialData()
 	}, [])
 
-	const fetchSubCategories = async () => {
-		setLoading(true)
+	useEffect(() => {
+		filterSubcategories()
+	}, [state.searchQuery, state.subcategories])
+
+	const fetchInitialData = async () => {
 		try {
-			const response = await axios.get(API_URL)
-			setSubCategories(response.data)
+			setState(prev => ({
+				...prev,
+				loading: true,
+				categoriesLoading: true,
+				apiErrors: null,
+			}))
+
+			const [subcategoriesRes, categoriesRes] = await Promise.all([
+				axios.get(SUBCATEGORIES_API),
+				axios.get(CATEGORIES_API),
+			])
+
+			setState(prev => ({
+				...prev,
+				subcategories: subcategoriesRes.data,
+				categories: categoriesRes.data,
+				loading: false,
+				categoriesLoading: false,
+				pagination: {
+					...prev.pagination,
+					total: subcategoriesRes.data.length,
+				},
+			}))
 		} catch (error) {
-			message.error('Ошибка при загрузке подкатегорий')
-			console.error('Error fetching subcategories:', error)
-		} finally {
-			setLoading(false)
+			setState(prev => ({
+				...prev,
+				loading: false,
+				categoriesLoading: false,
+				apiErrors: error.response?.data?.message || 'Ошибка загрузки данных',
+			}))
 		}
 	}
 
-	const fetchCategories = async () => {
-		try {
-			const response = await axios.get(CATEGORIES_API_URL)
-			setCategories(response.data)
-		} catch (error) {
-			message.error('Ошибка при загрузке категорий')
-			console.error('Error fetching categories:', error)
-		}
+	const filterSubcategories = () => {
+		const filtered = state.subcategories.filter(subcategory =>
+			subcategory.name.toLowerCase().includes(state.searchQuery.toLowerCase())
+		)
+		setState(prev => ({
+			...prev,
+			filteredSubcategories: filtered,
+			pagination: {
+				...prev.pagination,
+				total: filtered.length,
+			},
+		}))
 	}
 
-	const handleCreate = () => {
+	const handleTableChange = pagination => {
+		setState(prev => ({
+			...prev,
+			pagination: {
+				...prev.pagination,
+				current: pagination.current,
+				pageSize: pagination.pageSize,
+			},
+		}))
+	}
+
+	const showCreateModal = () => {
 		form.resetFields()
-		setEditingSubCategory(null)
-		setIsModalOpen(true)
+		setState(prev => ({
+			...prev,
+			modalVisible: true,
+			currentSubcategory: null,
+		}))
 	}
 
-	const handleEdit = record => {
+	const showEditModal = record => {
 		form.setFieldsValue({
-			...record,
+			name: record.name,
 			category_id: record.category_id.toString(),
 		})
-		setEditingSubCategory(record)
-		setIsModalOpen(true)
+		setState(prev => ({
+			...prev,
+			modalVisible: true,
+			currentSubcategory: record,
+		}))
 	}
 
-	const handleDelete = async id => {
-		try {
-			await axios.delete(`${API_URL}/${id}`)
-			message.success('Подкатегория успешно удалена')
-			fetchSubCategories()
-		} catch (error) {
-			if (error.response?.data?.error?.includes('products')) {
-				Modal.error({
-					title: 'Нельзя удалить подкатегорию',
-					content:
-						'Эта подкатегория содержит товары. Сначала удалите или переместите их.',
-				})
-			} else {
-				message.error('Ошибка при удалении подкатегории')
-			}
-			console.error('Error deleting subcategory:', error)
-		}
-	}
-
-	const handleSubmit = async () => {
+	const handleModalSubmit = async () => {
 		try {
 			const values = await form.validateFields()
-			const payload = {
-				...values,
-				category_id: parseInt(values.category_id),
+			const method = state.currentSubcategory ? 'put' : 'post'
+			const url = state.currentSubcategory
+				? `${SUBCATEGORIES_API}/${state.currentSubcategory.id}`
+				: SUBCATEGORIES_API
+
+			const requestData = {
+				name: values.name,
+				category_id: Number(values.category_id),
 			}
 
-			if (editingSubCategory) {
-				await axios.put(`${API_URL}/${editingSubCategory.id}`, payload)
-				message.success('Подкатегория успешно обновлена')
-			} else {
-				await axios.post(API_URL, payload)
-				message.success('Подкатегория успешно создана')
-			}
-
-			setIsModalOpen(false)
-			fetchSubCategories()
+			await axios[method](url, requestData)
+			message.success(
+				`Подкатегория успешно ${
+					state.currentSubcategory ? 'обновлена' : 'создана'
+				}`
+			)
+			setState(prev => ({ ...prev, modalVisible: false }))
+			fetchInitialData()
 		} catch (error) {
-			message.error('Ошибка при сохранении')
-			console.error('Error submitting form:', error)
+			let errorMessage = 'Ошибка при сохранении данных'
+			if (error.response?.data?.error) {
+				if (error.response.data.error.includes('already exists')) {
+					errorMessage = 'Подкатегория с таким названием уже существует'
+				} else {
+					errorMessage = error.response.data.error
+				}
+			}
+			message.error(errorMessage)
 		}
 	}
 
-	return (
-		<div className='p-4'>
-			<div className='flex justify-between items-center mb-4'>
-				<button
-					onClick={() => navigate(-1)}
-					className='bg-black text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center'
-				>
-					<FaArrowLeft className='mr-2' /> Назад
-				</button>
+	const deleteSubcategory = async id => {
+		try {
+			await axios.delete(`${SUBCATEGORIES_API}/${id}`)
+			message.success('Подкатегория удалена')
+			fetchInitialData()
+		} catch (error) {
+			message.error('Ошибка при удалении подкатегории')
+		}
+	}
 
-				<Button type='primary' onClick={handleCreate}>
-					Создать подкатегорию
-				</Button>
-			</div>
+	const handleBulkDelete = () => {
+		confirm({
+			title: 'Массовое удаление подкатегорий',
+			icon: <ExclamationCircleFilled />,
+			content: (
+				<div>
+					<p>
+						Вы уверены, что хотите удалить {state.selectedKeys.length}{' '}
+						подкатегорий?
+					</p>
+					<Alert
+						type='warning'
+						message='Все связанные товары могут стать недоступны'
+						showIcon
+					/>
+				</div>
+			),
+			okText: 'Удалить',
+			cancelText: 'Отмена',
+			async onOk() {
+				try {
+					const results = await Promise.allSettled(
+						state.selectedKeys.map(id =>
+							axios.delete(`${SUBCATEGORIES_API}/${id}`)
+						)
+					)
 
-			<Table
-				columns={columns}
-				dataSource={subCategories}
-				rowKey='id'
-				loading={loading}
-				bordered
-			/>
+					const successCount = results.filter(
+						r => r.status === 'fulfilled'
+					).length
 
-			<Modal
-				title={
-					editingSubCategory
-						? 'Редактировать подкатегорию'
-						: 'Создать подкатегорию'
+					if (successCount > 0) {
+						message.success(`Удалено ${successCount} подкатегорий`)
+						setState(prev => ({ ...prev, selectedKeys: [] }))
+						fetchInitialData()
+					}
+				} catch (error) {
+					message.error('Ошибка при массовом удалении')
 				}
-				open={isModalOpen}
-				onOk={handleSubmit}
-				onCancel={() => setIsModalOpen(false)}
-				okText='Сохранить'
-				cancelText='Отмена'
-			>
-				<Form form={form} layout='vertical'>
-					<Form.Item
-						name='category_id'
-						label='Категория'
-						rules={[
-							{ required: true, message: 'Пожалуйста, выберите категорию!' },
-						]}
-					>
-						<Select placeholder='Выберите категорию'>
-							{categories.map(category => (
-								<Option key={category.id} value={category.id.toString()}>
-									{category.name}
-								</Option>
-							))}
-						</Select>
-					</Form.Item>
+			},
+		})
+	}
 
-					<Form.Item
-						name='name'
-						label='Название подкатегории'
-						rules={[
-							{ required: true, message: 'Пожалуйста, введите название!' },
-						]}
-					>
-						<Input />
-					</Form.Item>
-				</Form>
-			</Modal>
-		</div>
+	const rowSelection = {
+		selectedRowKeys: state.selectedKeys,
+		onChange: selectedKeys => setState(prev => ({ ...prev, selectedKeys })),
+	}
+
+	const hasSelected = state.selectedKeys.length > 0
+
+	return (
+		<ConfigProvider locale={ruRU}>
+			<motion.div
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 0.3 }}
+				className='p-4'
+			>
+				<Card
+					title={
+						<div className='flex items-center'>
+							<Title level={4} className='mb-0' style={{ color: '#333' }}>
+								Управление подкатегориями
+							</Title>
+						</div>
+					}
+					bordered={false}
+					style={{ background: '#fff', borderColor: '#d9d9d9' }}
+					extra={
+						<Space>
+							<Button
+								icon={<ArrowLeftOutlined />}
+								onClick={() => navigate(-1)}
+								style={{ color: '#333', borderColor: '#d9d9d9' }}
+							>
+								Назад
+							</Button>
+							<Button
+								type='primary'
+								icon={<PlusOutlined />}
+								onClick={showCreateModal}
+								style={{ background: '#333', borderColor: '#333' }}
+							>
+								Добавить
+							</Button>
+						</Space>
+					}
+				>
+					{state.apiErrors && (
+						<Alert
+							message='Ошибка'
+							description={state.apiErrors}
+							type='error'
+							showIcon
+							closable
+							className='mb-4'
+						/>
+					)}
+
+					<Row gutter={16} className='mb-4'>
+						<Col span={16}>
+							<Input
+								placeholder='Поиск по названию...'
+								prefix={<SearchOutlined />}
+								value={state.searchQuery}
+								onChange={e =>
+									setState(prev => ({
+										...prev,
+										searchQuery: e.target.value,
+									}))
+								}
+								allowClear
+								style={{ borderColor: '#d9d9d9' }}
+							/>
+						</Col>
+						<Col span={8} className='text-right'>
+							<Space>
+								<Button
+									danger
+									icon={<DeleteOutlined />}
+									onClick={handleBulkDelete}
+									disabled={!hasSelected}
+									style={{ borderColor: '#d9d9d9' }}
+								>
+									Удалить выбранные
+								</Button>
+								{hasSelected && (
+									<Badge
+										count={state.selectedKeys.length}
+										showZero
+										className='mr-1'
+										style={{ backgroundColor: '#666' }}
+									/>
+								)}
+							</Space>
+						</Col>
+					</Row>
+
+					<Spin spinning={state.loading}>
+						<Table
+							columns={columns}
+							dataSource={state.filteredSubcategories}
+							rowKey='id'
+							loading={state.loading}
+							bordered
+							style={{ borderColor: '#d9d9d9' }}
+							pagination={{
+								...state.pagination,
+								showSizeChanger: true,
+								pageSizeOptions: ['10', '20', '50'],
+								showTotal: (total, range) =>
+									`Показано ${range[0]}-${range[1]} из ${total} подкатегорий`,
+								position: ['bottomCenter'],
+								locale: {
+									items_per_page: 'записей на странице',
+									jump_to: 'Перейти',
+									jump_to_confirm: 'подтвердить',
+									page: 'Страница',
+									prev_page: 'Предыдущая',
+									next_page: 'Следующая',
+									prev_5: 'Предыдущие 5',
+									next_5: 'Следующие 5',
+									prev_3: 'Предыдущие 3',
+									next_3: 'Следующие 3',
+								},
+							}}
+							onChange={handleTableChange}
+							rowSelection={{
+								type: 'checkbox',
+								...rowSelection,
+							}}
+							scroll={{ x: true }}
+						/>
+					</Spin>
+				</Card>
+
+				<Modal
+					title={
+						<span style={{ color: '#333' }}>
+							{state.currentSubcategory ? (
+								<>
+									<EditOutlined className='mr-2' />
+									Редактирование подкатегории
+								</>
+							) : (
+								<>
+									<PlusOutlined className='mr-2' />
+									Новая подкатегория
+								</>
+							)}
+						</span>
+					}
+					open={state.modalVisible}
+					onOk={handleModalSubmit}
+					onCancel={() => setState(prev => ({ ...prev, modalVisible: false }))}
+					okText={state.currentSubcategory ? 'Обновить' : 'Создать'}
+					cancelText='Отмена'
+					destroyOnClose
+					okButtonProps={{ style: { background: '#333', borderColor: '#333' } }}
+				>
+					<Form form={form} layout='vertical'>
+						<Form.Item
+							name='name'
+							label='Название подкатегории'
+							rules={[
+								{ required: true, message: 'Введите название подкатегории' },
+								{ min: 2, message: 'Минимум 2 символа' },
+								{ max: 100, message: 'Максимум 100 символов' },
+							]}
+						>
+							<Input
+								placeholder='Например: Футболки, Кроссовки и т.д.'
+								style={{ borderColor: '#d9d9d9' }}
+							/>
+						</Form.Item>
+						<Form.Item
+							name='category_id'
+							label='Родительская категория'
+							rules={[{ required: true, message: 'Выберите категорию' }]}
+						>
+							<Select
+								placeholder='Выберите категорию'
+								loading={state.categoriesLoading}
+								style={{ borderColor: '#d9d9d9' }}
+							>
+								{state.categories.map(category => (
+									<Option key={category.id} value={category.id.toString()}>
+										{category.name}
+									</Option>
+								))}
+							</Select>
+						</Form.Item>
+					</Form>
+				</Modal>
+			</motion.div>
+		</ConfigProvider>
 	)
 }
 
