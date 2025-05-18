@@ -109,7 +109,7 @@ const CheckoutPage = () => {
 
 			if (response.status === 201) {
 				toast.success('Заказ успешно оформлен!')
-				navigate('/order-success', {
+				navigate('/my-order', {
 					state: { orderId: response.data.order_id },
 				})
 			}

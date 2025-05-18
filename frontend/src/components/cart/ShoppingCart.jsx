@@ -43,13 +43,16 @@ const ShoppingCart = () => {
 		}
 	}
 
-	const updateQuantity = async (productId, newQuantity) => {
+	const updateQuantity = async (productId, newQuantity, sizeId) => {
 		if (newQuantity < 1) return
 
 		try {
 			await axios.put(
 				`http://localhost:8080/api/v1/cart/${userId}/${productId}`,
-				{ quantity: newQuantity }
+				{
+					quantity: newQuantity,
+					size_id: sizeId,
+				}
 			)
 			await fetchCartItems()
 			message.success('Количество обновлено')
@@ -59,28 +62,18 @@ const ShoppingCart = () => {
 		}
 	}
 
-	const removeFromCart = async productId => {
-		try {
-			await axios.delete(
-				`http://localhost:8080/api/v1/cart/${userId}/${productId}`
-			)
-			await fetchCartItems()
-			message.success('Товар удален из корзины')
-		} catch (error) {
-			console.error('Error removing item:', error)
-			message.error('Не удалось удалить товар')
-		}
-	}
-
 	const clearCart = async () => {
 		try {
 			await axios.delete(`http://localhost:8080/api/v1/cart/${userId}/clear`)
-			setCartItems([])
-			setTotal(0)
+			setCartItems([]) // Ensure state is cleared
+			setTotal(0) // Reset total
+			await fetchCartItems() // Refresh cart to confirm
 			message.success('Корзина очищена')
 		} catch (error) {
 			console.error('Error clearing cart:', error)
 			message.error('Не удалось очистить корзину')
+			setCartItems([]) // Fallback to clear state on error
+			setTotal(0)
 		}
 	}
 
@@ -158,7 +151,7 @@ const ShoppingCart = () => {
 							<AnimatePresence>
 								{safeCartItems.map(item => (
 									<motion.div
-										key={item.id || item.product_id}
+										key={`${item.product_id}-${item.size_id}`}
 										layout
 										initial={{ opacity: 0, y: 20 }}
 										animate={{ opacity: 1, y: 0 }}
@@ -184,15 +177,22 @@ const ShoppingCart = () => {
 											<h2 className='text-lg font-semibold'>
 												{item.name || 'Без названия'}
 											</h2>
-											<p className='text-gray-600'>
+											<p className='text-gray-500 text-sm mt-1'>
+												Размер:{' '}
+												<span className='font-medium'>{item.size || '—'}</span>
+											</p>
+											<p className='text-gray-600 mt-1'>
 												Br {item.price?.toFixed(2) || '0.00'}
 											</p>
-
 											<div className='mt-3 flex items-center'>
 												<motion.button
 													whileTap={{ scale: 0.95 }}
 													onClick={() =>
-														updateQuantity(item.product_id, item.quantity - 1)
+														updateQuantity(
+															item.product_id,
+															item.quantity - 1,
+															item.size_id
+														)
 													}
 													className='bg-gray-200 text-black px-3 py-1 rounded-l hover:bg-gray-100 disabled:opacity-50'
 													disabled={item.quantity <= 1}
@@ -205,36 +205,17 @@ const ShoppingCart = () => {
 												<motion.button
 													whileTap={{ scale: 0.95 }}
 													onClick={() =>
-														updateQuantity(item.product_id, item.quantity + 1)
+														updateQuantity(
+															item.product_id,
+															item.quantity + 1,
+															item.size_id
+														)
 													}
 													className='bg-gray-200 text-black px-3 py-1 rounded-r hover:bg-gray-100'
 												>
 													+
 												</motion.button>
 											</div>
-
-											<motion.button
-												whileHover={{ scale: 1.05 }}
-												whileTap={{ scale: 0.95 }}
-												onClick={() => removeFromCart(item.product_id)}
-												className='mt-3 text-red-500 hover:text-red-700 text-sm flex items-center'
-											>
-												<svg
-													xmlns='http://www.w3.org/2000/svg'
-													className='h-4 w-4 mr-1'
-													fill='none'
-													viewBox='0 0 24 24'
-													stroke='currentColor'
-												>
-													<path
-														strokeLinecap='round'
-														strokeLinejoin='round'
-														strokeWidth={2}
-														d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-													/>
-												</svg>
-												Удалить
-											</motion.button>
 										</div>
 										<div className='mt-2 sm:mt-0 sm:ml-4 text-right'>
 											<p className='text-lg font-semibold'>
@@ -246,28 +227,53 @@ const ShoppingCart = () => {
 								))}
 							</AnimatePresence>
 
-							<motion.button
-								whileHover={{ scale: 1.02 }}
-								whileTap={{ scale: 0.98 }}
-								onClick={clearCart}
-								className='mt-6 text-red-500 hover:text-red-700 text-sm flex items-center'
-							>
-								<svg
-									xmlns='http://www.w3.org/2000/svg'
-									className='h-4 w-4 mr-1'
-									fill='none'
-									viewBox='0 0 24 24'
-									stroke='currentColor'
+							<div className='flex justify-between mt-6'>
+								<motion.button
+									whileHover={{ scale: 1.02 }}
+									whileTap={{ scale: 0.98 }}
+									onClick={clearCart}
+									className='text-red-500 hover:text-red-700 text-sm flex items-center'
 								>
-									<path
-										strokeLinecap='round'
-										strokeLinejoin='round'
-										strokeWidth={2}
-										d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-									/>
-								</svg>
-								Очистить корзину
-							</motion.button>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										className='h-4 w-4 mr-1'
+										fill='none'
+										viewBox='0 0 24 24'
+										stroke='currentColor'
+									>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth={2}
+											d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+										/>
+									</svg>
+									Очистить корзину
+								</motion.button>
+
+								<motion.button
+									whileHover={{ scale: 1.02 }}
+									whileTap={{ scale: 0.98 }}
+									onClick={() => navigate('/')}
+									className='text-blue-500 hover:text-blue-700 text-sm flex items-center'
+								>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										className='h-4 w-4 mr-1'
+										fill='none'
+										viewBox='0 0 24 24'
+										stroke='currentColor'
+									>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth={2}
+											d='M10 19l-7-7m0 0l7-7m-7 7h18'
+										/>
+									</svg>
+									Продолжить покупки
+								</motion.button>
+							</div>
 						</div>
 					</div>
 
@@ -278,13 +284,13 @@ const ShoppingCart = () => {
 							transition={{ delay: 0.2 }}
 							className='bg-white rounded-lg shadow-sm p-6 border border-gray-200 sticky top-4'
 						>
-							<h2 className='text-xl font-bold mb-4 border-b border-gray-200 pb-2'>
+							<h2 className='text-xl font-bold mb-4 border-b border‌گرay-200 pb-2'>
 								Итого
 							</h2>
 							<div className='space-y-3 text-gray-600 mb-4'>
 								{safeCartItems.map(item => (
 									<div
-										key={item.id || item.product_id}
+										key={`${item.product_id}-${item.size_id}`}
 										className='flex justify-between'
 									>
 										<span className='truncate max-w-[160px]'>
@@ -304,10 +310,17 @@ const ShoppingCart = () => {
 								whileHover={{ scale: 1.02, backgroundColor: '#1a1a1a' }}
 								whileTap={{ scale: 0.98 }}
 								onClick={() => navigate('/checkout')}
-								className='w-full mt-6 bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors'
+								className='w-full bg-black text-white py-2 px-3 rounded-md hover:bg-gray-800 transition-colors relative flex flex-col items-center'
 								disabled={safeCartItems.length === 0}
 							>
-								Оформить заказ
+								<span className='text-base font-medium'>К оформлению</span>
+								<div className='mt-2 text-xs text-gray-300'>
+									{safeCartItems.reduce(
+										(sum, item) => sum + (item.quantity || 0),
+										0
+									)}{' '}
+									товара - {total.toFixed(2)} BYN
+								</div>
 							</motion.button>
 						</motion.div>
 					</div>

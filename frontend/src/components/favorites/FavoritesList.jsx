@@ -8,15 +8,9 @@ import {
 	message,
 	Modal,
 	Typography,
-	Space,
-	Badge,
 	Divider,
 } from 'antd'
-import {
-	HeartFilled,
-	ShoppingCartOutlined,
-	DeleteOutlined,
-} from '@ant-design/icons'
+import { HeartFilled, DeleteOutlined } from '@ant-design/icons'
 import { useCart } from '../../context/CartContext'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -101,16 +95,6 @@ const WishlistPage = () => {
 		})
 	}
 
-	const handleAddToCart = async (product, e) => {
-		e.stopPropagation()
-		try {
-			await addToCart({ product_id: product.id, quantity: 1 })
-			message.success(`${product.name} добавлен в корзину!`)
-		} catch (error) {
-			message.error(error.message || 'Не удалось добавить товар в корзину')
-		}
-	}
-
 	if (!userId || loading) {
 		return (
 			<div className='flex justify-center items-center h-screen'>
@@ -128,15 +112,18 @@ const WishlistPage = () => {
 				className='mb-8'
 			>
 				<Title level={2} className='m-0 flex items-center gap-3'>
-					Избранное
-					<HeartFilled className='text-red-500' />
-					{wishlistItems.length > 0 && (
-						<Badge
-							count={wishlistItems.length}
-							style={{ backgroundColor: '#000' }}
-							className='ml-2'
-						/>
-					)}
+					<span className='text-black'>Избранное</span>
+					<div className='relative'>
+						<HeartFilled className='text-red-500' />
+						{wishlistItems.length > 0 && (
+							<span
+								className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 
+                    text-white text-xs font-bold'
+							>
+								{wishlistItems.length}
+							</span>
+						)}
+					</div>
 				</Title>
 			</motion.div>
 
@@ -174,7 +161,7 @@ const WishlistPage = () => {
 					</div>
 				</motion.div>
 			) : (
-				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'>
+				<div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8'>
 					<AnimatePresence>
 						{wishlistItems.map(product => (
 							<motion.div
@@ -184,26 +171,27 @@ const WishlistPage = () => {
 								animate={{ opacity: 1, y: 0 }}
 								exit={{ opacity: 0, scale: 0.8 }}
 								transition={{ duration: 0.3 }}
+								className='h-full'
 							>
 								<Card
 									hoverable
 									className='w-full h-full border-none shadow-sm hover:shadow-md transition-all duration-300'
 									onClick={() => navigate(`/product/${product.id}`)}
 									cover={
-										<div className='relative pt-[100%] bg-gray-100 overflow-hidden'>
+										<div className='h-80 bg-gray-50 flex items-center justify-center overflow-hidden'>
 											<motion.img
 												alt={product.name}
 												src={
 													product.image_path
 														? `http://localhost:8080/static/${product.image_path}`
-														: 'https://placehold.co/600x400?text=No+Image'
+														: 'https://placehold.co/600x900?text=No+Image'
 												}
-												className='absolute top-0 left-0 w-full h-full object-cover'
+												className='w-full h-full object-contain'
 												whileHover={{ scale: 1.05 }}
 												transition={{ duration: 0.3 }}
 												onError={e => {
 													e.target.src =
-														'https://placehold.co/600x400?text=Error+Loading'
+														'https://placehold.co/600x900?text=Error+Loading'
 												}}
 											/>
 										</div>
@@ -226,33 +214,20 @@ const WishlistPage = () => {
 												}}
 											/>
 										</motion.div>,
-										<motion.div
-											whileHover={{ scale: 1.1 }}
-											whileTap={{ scale: 0.9 }}
-											key='cart'
-										>
-											<Button
-												icon={<ShoppingCartOutlined />}
-												shape='circle'
-												size='large'
-												className='border-none text-gray-500 hover:text-blue-500'
-												onClick={e => handleAddToCart(product, e)}
-											/>
-										</motion.div>,
 									]}
 								>
 									<Card.Meta
 										title={
 											<Text
 												ellipsis={{ tooltip: product.name }}
-												className='font-medium text-base'
+												className='font-medium text-lg'
 											>
 												{product.name}
 											</Text>
 										}
 										description={
-											<div className='flex justify-between items-center mt-3'>
-												<Text className='font-semibold text-lg'>
+											<div className='flex justify-between items-center mt-4'>
+												<Text className='font-semibold text-xl'>
 													{product.price.toFixed(2)} руб.
 												</Text>
 											</div>

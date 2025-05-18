@@ -17,13 +17,15 @@ import { FavoritesProvider } from './context/FavoritesContext'
 import Home from './components/home/Home'
 import Cart from './components/cart/Cart'
 import Categories from './components/categories/Сategories'
-import WhyUs from './components/home/WhyUs'
+import WhyUs from './components/home/Rules'
 import NotFound from './components/notFound/NotFound'
 import SubCategory from './components/subCategory/SubCategory'
 import Product from './components/product/Product'
 import Profile from './components/profile/Profile'
 import Favorites from './components/favorites/Favorites'
 import Checkout from './components/checkout/Checkout'
+import MyOrder from './components/order/MyOrderList'
+import Brand from './components/brand/Brand'
 
 // Админские компоненты
 import AdminPanel from './components/admin/Panel'
@@ -36,6 +38,9 @@ import AdminProductDelete from './components/admin/product/AdminProductDelete'
 import AdminProductEdit from './components/admin/product/AdminProductEdit'
 import AdminProductView from './components/admin/product/AdminProductView'
 import AdminSubCategories from './components/admin/SubCategories'
+import AdminReview from './components/admin/Review'
+import AdminOrder from './components/admin/Order'
+import AdminBrand from './components/admin/Brand'
 
 function GenderRoute() {
 	const { gender } = useParams()
@@ -54,7 +59,7 @@ function CategoryRoute() {
 // Конфигурация маршрутов
 const routes = [
 	{ path: '/', redirect: true },
-	{ path: '/about', component: WhyUs },
+	{ path: '/rules', component: WhyUs },
 	{ path: '/cart', component: Cart },
 	{ path: '/favorites', component: Favorites },
 	{ path: '/404', component: NotFound },
@@ -65,6 +70,8 @@ const routes = [
 	{ path: '/product/:id', component: Product },
 	{ path: '/checkout', component: Checkout },
 	{ path: '/profile', component: Profile },
+	{ path: '/my-order', component: MyOrder },
+	{ path: '/brand', component: Brand },
 ]
 
 // Конфигурация админских маршрутов
@@ -95,11 +102,11 @@ const adminRoutes = [
 		component: AdminProductView,
 		protected: true,
 	},
-	{ path: '/admin/orders', component: SubCategory, protected: true },
-	{ path: '/admin/payments', component: SubCategory, protected: true },
+	{ path: '/admin/order', component: AdminOrder, protected: true },
 	{ path: '/admin/wishlists', component: SubCategory, protected: true },
 	{ path: '/admin/carts', component: SubCategory, protected: true },
-	{ path: '/admin/statistics', component: SubCategory, protected: true },
+	{ path: '/admin/review', component: AdminReview, protected: true },
+	{ path: '/admin/seller_request', component: AdminBrand, protected: true },
 ]
 
 export default function App() {

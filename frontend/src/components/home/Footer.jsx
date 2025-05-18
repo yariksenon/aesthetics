@@ -95,18 +95,18 @@ const AboutBlock = () => {
 				О нас
 			</p>
 			<Link
-				to='/about'
+				to='/rules'
 				target='_top'
 				className='text-red-500 text-base md:text-lg lg:text-xl custom-underline'
 			>
-				Почему мы
+				условия
 			</Link>{' '}
 			<br />
 			<Link
 				to={`/${gender}/new`}
 				className='text-red-300 text-base md:text-lg lg:text-xl custom-underline'
 			>
-				Наши продукты
+				товары
 			</Link>
 		</div>
 	)

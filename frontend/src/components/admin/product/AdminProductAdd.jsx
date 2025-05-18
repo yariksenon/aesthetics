@@ -81,6 +81,12 @@ const AdminProductAdd = () => {
 		try {
 			setSubmitting(true)
 
+			// Получение userId из localStorage
+			const userId = localStorage.getItem('userId')
+			if (!userId) {
+				throw new Error('User ID не найден в localStorage')
+			}
+
 			// 1. Подготовка данных о размерах
 			const sizeQuantities = {}
 			Object.keys(values).forEach(key => {
@@ -113,7 +119,7 @@ const AdminProductAdd = () => {
 				}
 			})
 
-			// 4. Добавляем изображения (новый способ)
+			// 4. Добавляем изображения
 			productImages.forEach(img => {
 				formData.append('images', img.file)
 				formData.append('alt_texts', img.alt_text)
@@ -122,7 +128,7 @@ const AdminProductAdd = () => {
 
 			// 5. Отправка данных
 			const response = await axios.post(
-				'http://localhost:8080/api/v1/admin/products',
+				`http://localhost:8080/api/v1/create-product/${userId}`,
 				formData,
 				{
 					headers: {
@@ -142,7 +148,7 @@ const AdminProductAdd = () => {
 		} catch (error) {
 			console.error('Ошибка создания товара:', error)
 
-			let errorMessage = 'Ошибка сервера'
+			let errorMessage = error.message || 'Ошибка сервера'
 			if (error.response) {
 				errorMessage =
 					error.response.data?.message ||

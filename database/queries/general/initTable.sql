@@ -42,6 +42,18 @@ CREATE TABLE IF NOT EXISTS sizes (
     CONSTRAINT unique_size_per_type UNIQUE (size_type_id, value)
 );
 
+CREATE TABLE IF NOT EXISTS brand (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    website VARCHAR(255),
+    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP
+);
+
 -- 6. Теперь создаём таблицу товаров (зависит от category, sub_category, size_types)
 CREATE TABLE IF NOT EXISTS product (
     id SERIAL PRIMARY KEY,
@@ -54,10 +66,12 @@ CREATE TABLE IF NOT EXISTS product (
     sku VARCHAR(100) NOT NULL,
     price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
     gender VARCHAR(20),
+    brand_id INTEGER REFERENCES brand(id) ON DELETE SET NULL,
     image_path VARCHAR(255),
     size_type_id INTEGER REFERENCES size_types(id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
 
 CREATE TABLE IF NOT EXISTS product_images (
     id SERIAL PRIMARY KEY,
@@ -131,11 +145,14 @@ CREATE TABLE IF NOT EXISTS order_item (
 
 CREATE TABLE IF NOT EXISTS reviews (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    product_id INTEGER NOT NULL REFERENCES product(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
-    status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'rejected')),
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    status VARCHAR(20) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT NOW(),
-    published_at TIMESTAMP NULL
+    published_at TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES product(id)
 );
 
 

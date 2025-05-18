@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useCart } from '../../context/CartContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Spin, Empty, message, Pagination } from 'antd'
-import {
-	HeartOutlined,
-	HeartFilled,
-	ShoppingCartOutlined,
-} from '@ant-design/icons'
+import { HeartOutlined, HeartFilled } from '@ant-design/icons'
 
 const ProductList = ({ filters = {} }) => {
 	const [products, setProducts] = useState([])
@@ -17,9 +12,10 @@ const ProductList = ({ filters = {} }) => {
 		pageSize: 12,
 		totalPages: 1,
 	})
-	const { addToCart } = useCart()
 	const [favorites, setFavorites] = useState([])
 	const [processingFavorites, setProcessingFavorites] = useState([])
+	const [hoverImageIndex, setHoverImageIndex] = useState({})
+	const [hoveredProduct, setHoveredProduct] = useState(null)
 	const navigate = useNavigate()
 	const location = useLocation()
 
@@ -29,16 +25,10 @@ const ProductList = ({ filters = {} }) => {
 		setLoading(true)
 		try {
 			let url = `http://localhost:8080/api/v1/products?page=${current}&limit=${pageSize}`
-
-			if (filters.category_id) {
-				url += `&category_id=${filters.category_id}`
-			}
-			if (filters.sub_category_id) {
+			if (filters.category_id) url += `&category_id=${filters.category_id}`
+			if (filters.sub_category_id)
 				url += `&sub_category_id=${filters.sub_category_id}`
-			}
-			if (filters.gender) {
-				url += `&gender=${filters.gender}`
-			}
+			if (filters.gender) url += `&gender=${filters.gender}`
 
 			const response = await fetch(url)
 			if (!response.ok) throw new Error('Не удалось загрузить товары')
@@ -60,13 +50,11 @@ const ProductList = ({ filters = {} }) => {
 
 	const fetchFavorites = async () => {
 		if (!userId) return
-
 		try {
 			const response = await fetch(
 				`http://localhost:8080/api/v1/wishlist/${userId}`
 			)
 			if (!response.ok) throw new Error('Не удалось загрузить избранное')
-
 			const data = await response.json()
 			setFavorites(
 				Array.isArray(data?.items) ? data.items.map(item => item.id) : []
@@ -83,15 +71,13 @@ const ProductList = ({ filters = {} }) => {
 
 	const handleFavoriteClick = async (productId, e) => {
 		e.stopPropagation()
-
 		if (!userId) {
-			message.error('Войдите в систему, чтобы добавлять товары в избранное')
+			message.error('Войдите в аккаунт, чтобы добавлять товары в избранное')
 			navigate('/login')
 			return
 		}
 
 		setProcessingFavorites(prev => [...prev, productId])
-
 		try {
 			const isFavorite = favorites.includes(productId)
 			const url = `http://localhost:8080/api/v1/wishlist/${userId}/${productId}`
@@ -102,7 +88,7 @@ const ProductList = ({ filters = {} }) => {
 
 			await fetchFavorites()
 			message.success(
-				isFavorite ? 'Товар удален из избранного' : 'Товар добавлен в избранное'
+				isFavorite ? 'Товар удалён из избранного' : 'Товар добавлен в избранное'
 			)
 		} catch (error) {
 			message.error(error.message)
@@ -111,18 +97,34 @@ const ProductList = ({ filters = {} }) => {
 		}
 	}
 
-	const handleAddToCart = async (product, e) => {
-		e.stopPropagation()
-		try {
-			await addToCart({ product_id: product.id, quantity: 1 })
-			message.success(`${product.name} добавлен в корзину!`)
-		} catch (error) {
-			message.error(error.message || 'Не удалось добавить товар в корзину')
-		}
-	}
-
 	const handlePageChange = (current, pageSize) => {
 		fetchProducts(current, pageSize)
+	}
+
+	const handleMouseMove = (e, product) => {
+		const card = e.currentTarget
+		const rect = card.getBoundingClientRect()
+		const mouseX = e.clientX - rect.left
+		const sectionWidth = rect.width / product.image_paths.length
+		const sectionIndex = Math.floor(mouseX / sectionWidth)
+		const imageCount = product.image_paths?.length || 1
+		const effectiveIndex = Math.min(sectionIndex, imageCount - 1)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[product.id]: effectiveIndex,
+		}))
+	}
+
+	const handleMouseEnter = productId => {
+		setHoveredProduct(productId)
+	}
+
+	const handleMouseLeave = productId => {
+		setHoveredProduct(null)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[productId]: 0,
+		}))
 	}
 
 	if (loading) {
@@ -155,7 +157,7 @@ const ProductList = ({ filters = {} }) => {
 	}
 
 	return (
-		<div style={{ padding: '16px' }}>
+		<div>
 			<div
 				style={{
 					display: 'grid',
@@ -166,66 +168,91 @@ const ProductList = ({ filters = {} }) => {
 				{products.map(product => {
 					const isFavorite = favorites.includes(product.id)
 					const isProcessing = processingFavorites.includes(product.id)
+					const currentImageIndex = hoverImageIndex[product.id] || 0
+					const currentImage =
+						product.image_paths?.[currentImageIndex] ||
+						product.primary_image ||
+						'https://placehold.co/600x900'
+
+					const availableSizes =
+						product.sizes?.filter(size => size.quantity > 0) || []
 
 					return (
 						<Card
 							key={product.id}
 							hoverable
 							onClick={() => navigate(`/product/${product.id}`)}
+							bordered={false}
+							onMouseMove={e => handleMouseMove(e, product)}
+							onMouseEnter={() => handleMouseEnter(product.id)}
+							onMouseLeave={() => handleMouseLeave(product.id)}
 							style={{
-								border: '1px solid #e8e8e8',
-								borderRadius: 4,
 								transition: 'all 0.3s',
-								':hover': {
-									boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-								},
+								position: 'relative',
+								boxShadow: 'none',
+							}}
+							bodyStyle={{
+								padding: 0,
+								margin: 0,
 							}}
 							cover={
 								<div
 									style={{
 										position: 'relative',
-										paddingTop: '100%',
+										paddingTop: '150%',
 										overflow: 'hidden',
 									}}
 								>
-									{product.primary_image ? (
-										<img
-											alt={product.name}
-											src={`http://localhost:8080/static/${product.primary_image}`}
-											style={{
-												position: 'absolute',
-												top: 0,
-												left: 0,
-												width: '100%',
-												height: '100%',
-												objectFit: 'cover',
-											}}
-											onError={e => {
-												e.currentTarget.src = 'https://placehold.co/600x400'
-												e.currentTarget.style = {
-													objectFit: 'contain',
-													padding: '16px',
-													backgroundColor: '#f5f5f5',
-												}
-											}}
-										/>
-									) : (
-										<div
-											style={{
-												position: 'absolute',
-												top: 0,
-												left: 0,
-												width: '100%',
-												height: '100%',
+									{hoveredProduct === product.id &&
+										product.image_paths?.length > 1 && (
+											<div
+												style={{
+													position: 'absolute',
+													top: 8,
+													left: '50%',
+													transform: 'translateX(-50%)',
+													display: 'flex',
+													gap: 4,
+													zIndex: 10,
+												}}
+											>
+												{product.image_paths.map((_, index) => (
+													<div
+														key={index}
+														style={{
+															width: 30,
+															height: 4,
+															backgroundColor:
+																index === currentImageIndex ? '#000' : '#ccc',
+														}}
+													/>
+												))}
+											</div>
+										)}
+
+									<img
+										key={currentImage}
+										alt={product.name}
+										src={`http://localhost:8080/static/${currentImage}`}
+										style={{
+											position: 'absolute',
+											top: 0,
+											left: 0,
+											width: '100%',
+											height: '100%',
+											objectFit: 'contain',
+											transition: 'opacity 0.3s ease',
+										}}
+										onError={e => {
+											e.currentTarget.src = 'https://placehold.co/600x900'
+											e.currentTarget.style = {
+												objectFit: 'contain',
+												padding: '16px',
 												backgroundColor: '#f5f5f5',
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-											}}
-										>
-											Нет изображения
-										</div>
-									)}
+											}
+										}}
+									/>
+
 									<Button
 										icon={
 											isFavorite ? (
@@ -239,63 +266,53 @@ const ProductList = ({ filters = {} }) => {
 											position: 'absolute',
 											top: 8,
 											right: 8,
-											backgroundColor: 'rgba(255, 255, 255, 0.8)',
 											border: 'none',
-											':hover': {
-												color: '#000',
-											},
 										}}
 										onClick={e => handleFavoriteClick(product.id, e)}
 									/>
 								</div>
 							}
 						>
-							<Card.Meta
-								title={product.name}
-								description={
-									<>
-										<div style={{ marginBottom: 8, color: '#666' }}>
-											{product.category}
-											{product.sub_category && ` • ${product.sub_category}`}
-										</div>
-										<div
+							<div>
+								<div style={{ fontWeight: 'bold', fontSize: 16 }}>
+									{product.name}
+								</div>
+								<div style={{ fontSize: 14, color: '#666' }}>
+									{product.brand_name || 'Без бренда'}
+								</div>
+								<div style={{ fontWeight: 'bold', fontSize: 16, marginTop: 4 }}>
+									{product.price.toFixed(2)} BYN
+								</div>
+								<div
+									style={{
+										marginTop: 8,
+										minHeight: 24,
+										display: 'flex',
+										gap: 8,
+										flexWrap: 'wrap',
+										visibility:
+											hoveredProduct === product.id ? 'visible' : 'hidden',
+									}}
+								>
+									{availableSizes.map(size => (
+										<span
+											key={size.id}
 											style={{
-												display: 'flex',
-												justifyContent: 'space-between',
-												alignItems: 'center',
+												fontSize: 12,
+												padding: '2px 6px',
 											}}
 										>
-											<span style={{ fontWeight: 'bold', color: '#000' }}>
-												{product.price.toFixed(2)} ₽
-											</span>
-											<Button
-												icon={<ShoppingCartOutlined />}
-												onClick={e => handleAddToCart(product, e)}
-												style={{
-													backgroundColor: '#fff',
-													color: '#000',
-													borderColor: '#d9d9d9',
-													':hover': {
-														backgroundColor: '#000',
-														color: '#fff',
-														borderColor: '#000',
-													},
-												}}
-											>
-												В корзину
-											</Button>
-										</div>
-									</>
-								}
-							/>
+											{size.value}
+										</span>
+									))}
+								</div>
+							</div>
 						</Card>
 					)
 				})}
 			</div>
 
-			<div
-				style={{ display: 'flex', justifyContent: 'center', margin: '24px 0' }}
-			>
+			<div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
 				<Pagination
 					current={pagination.current}
 					total={pagination.total}
@@ -310,9 +327,8 @@ const ProductList = ({ filters = {} }) => {
 						items_per_page: 'товаров на странице',
 						jump_to: 'Перейти',
 						jump_to_confirm: 'подтвердить',
-						page: 'Страница',
+						page: 'страница',
 					}}
-					className='custom-pagination' // Добавьте этот класс
 				/>
 			</div>
 		</div>

@@ -13,13 +13,20 @@ export const CartProvider = ({ children }) => {
 				throw new Error('Некорректный ID товара')
 			}
 
+			// Проверка size_id, если передан
+			const sizeId = product?.size_id
+			if (sizeId && (isNaN(sizeId) || sizeId <= 0)) {
+				throw new Error('Некорректный ID размера')
+			}
+
 			// 2. Подготовка данных для сервера
 			const userId = localStorage.getItem('userId')
 			if (!userId) throw new Error('Требуется авторизация')
 
 			const requestData = {
-				product_id: Number(productId), // Важно: согласовать с бэкендом!
-				quantity: 1,
+				product_id: Number(productId),
+				quantity: product?.quantity || 1,
+				...(sizeId && { size_id: Number(sizeId) }), // Добавляем size_id, если он есть
 			}
 
 			// 3. Отправка запроса
@@ -47,7 +54,8 @@ export const CartProvider = ({ children }) => {
 		} catch (error) {
 			console.error('Ошибка при добавлении в корзину:', {
 				error: error.message,
-				productId: product?.id,
+				productId: product?.id || product?.product_id,
+				sizeId: productHedgedgeId || product?.size_id,
 				userId: localStorage.getItem('userId'),
 			})
 			throw error

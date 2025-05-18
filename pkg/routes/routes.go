@@ -38,28 +38,31 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/register", handlers.RegisterPage(db, twilioClient))
 		v1.POST("/login", handlers.LoginHandler(db))
 
-		// Products
-		v1.GET("/products", handlers.GetProducts(db))
-		v1.GET("/product/:id", handlers.GetProduct(db))
-
 		// Orders
 		v1.POST("/orders/:userId", handlers.PostOrder(db))
+		v1.GET("/orders/:userId", handlers.GetOrders(db))
+		v1.GET("/orders/:userId/:orderId", handlers.GetOrderDetails(db))
+		v1.DELETE("/orders/:userId/:orderId", handlers.CancelOrder(db))
+
 
 		// Profile
-		v1.GET("/profile/address", handlers.GetAddress(db))
-		v1.POST("/profile/address", handlers.SaveAddress(db))
-
 		v1.GET("/profile/:userId", handlers.GetProfile(db))
 		v1.PUT("/profile/:userId", handlers.UpdateProfile(db))
 		v1.PUT("/profile/:userId/password", handlers.PutPasswordProfile(db))
+		// v1.GET("/profile/address", handlers.GetAddress(db))
+		// v1.POST("/profile/address", handlers.SaveAddress(db))
+
+
+		// Reviews
+		v1.GET("/reviews/:id", handlers.GetReviews(db))
+		v1.POST("/reviews/:userId", handlers.CreateReview(db))
 		
 
 		// Cart
 		v1.GET("/cart/:userId", handlers.GetCart(db))                         // Получить содержимое корзины пользователя
 		v1.POST("/cart/:userId", handlers.AddCartProduct(db))                 // Добавить товар в корзину
 		v1.PUT("/cart/:userId/:productId", handlers.UpdateCartProduct(db))    // Обновить количество товара в корзине
-		v1.DELETE("/cart/:userId/:productId", handlers.RemoveCartProduct(db)) // Удалить товар из корзины
-		v1.DELETE("/cart/:userId", handlers.ClearCart(db))                    // Очистить корзину пользователя
+		v1.DELETE("/cart/:userId/clear", handlers.ClearCart(db))                    // Очистить корзину пользователя
 
 			// Wishlist
 		v1.GET("/wishlist/:userId", handlers.GetWishlist(db))
@@ -71,30 +74,26 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
 
 
-
 		v1.GET("/categories", handlers.GetCategories(db))
 		v1.GET("/sub-categories", handlers.GetSubCategories(db))
 	
 		v1.GET("/size-types", handlers.GetSizeTypes(db))
 		v1.GET("/sizes", handlers.GetSizes(db))
 
+		v1.POST("/be-brand", handlers.PostBrand(db))
+		v1.GET("/check-brand-application", handlers.CheckBrandApplication(db))
+		v1.PUT("/brand/:id/resubmit", handlers.ResubmitBrand(db))
 
+		// Products
+		v1.GET("/products", handlers.GetProducts(db))
+		v1.GET("/product/:id", handlers.GetProduct(db))
+		v1.POST("/create-product/:userId", handlers.BrandCreateProduct(db))       // Создание товара
 
-		customer := v1.Group("/customer")
-		{
-			customer.GET("")
-		}
+		// v1.GET("", handlers.BrandGetProducts(db))          // Получение всех товаров
+		// v1.PUT("/:id", handlers.BrandUpdateProduct(db))    // Обновление товара
+		// v1.DELETE("/:id", handlers.BrandDeleteProduct(db)) // Удаление товара
 
-		manager := v1.Group("/manager")
-		{
-			manager.GET("")
-		}
-
-		seller := v1.Group("/seller")
-		{
-			seller.POST("/application", handlers.PostSeller(db))
-		}
-
+		
 		routesAdmin := v1.Group("/admin")
 		{
 			routesAdmin.GET("", admin.AdminGetPanel(db))
@@ -130,10 +129,32 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				product.DELETE("/:id", admin.AdminDeleteProduct(db)) // Удаление товара
 			}
 
-			seller := routesAdmin.Group("/seller")
+			reviews := routesAdmin.Group("/reviews")
 			{
-				seller.GET("", admin.AdminGetSellers(db))
-				seller.PUT("/:id/approve", admin.AdminApproveSeller(db))
+				reviews.PUT("/:id/approve", admin.ApproveReview(db))
+				reviews.DELETE("/:id", admin.DeleteReview(db))
+			}
+
+			order := routesAdmin.Group("/order")
+			{
+				order.GET("/:userId", admin.GetOrders(db))
+				order.GET("/:userId/:orderId", admin.GetOrderDetails(db))
+				order.DELETE("/:userId/:orderId", admin.CancelOrder(db))
+			}
+
+			brand := routesAdmin.Group("/brand")
+			{
+					brand.GET("/approved", admin.AdminGetApprovedSellers(db))
+					brand.GET("/pending", admin.AdminGetPendingSellers(db))
+					
+					
+					brand.GET("/:id", admin.AdminGetSellerByID(db))
+
+					brand.PUT("/:id/approve", admin.AdminApproveBrand(db, smtpClient))
+					brand.PUT("/:id/reject", admin.AdminRejectBrand(db, smtpClient))
+					// brand.PUT("/:id/resubmit", admin.AdminResubmitBrand(db))
+					
+					brand.DELETE("/:id", admin.AdminDeleteBrand(db))
 			}
 		}
 	}

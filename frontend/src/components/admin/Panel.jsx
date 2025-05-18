@@ -37,22 +37,17 @@ const buttons = [
 		icon: <FaStream className='mr-2' />,
 	},
 	{
-		path: '/admin/orders',
+		path: '/admin/order',
 		label: 'Заказы',
 		icon: <FaShoppingBag className='mr-2' />,
 	},
 	{
-		path: '/admin/reviews',
+		path: '/admin/review',
 		label: 'Отзывы',
 		icon: <FaCommentDots className='mr-2' />,
 	},
 	{
-		path: '/admin/payment_details',
-		label: 'Способ оплаты',
-		icon: <FaMoneyBillAlt className='mr-2' />,
-	},
-	{
-		path: '/admin/seller_applications',
+		path: '/admin/seller_request',
 		label: 'Заявки продавцов',
 		icon: <FaCheckCircle className='mr-2' />,
 		fullWidth: true,

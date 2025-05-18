@@ -302,7 +302,7 @@ function Header() {
 									Мой профиль
 								</Link>
 								<Link
-									to='/orders'
+									to='/my-order'
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
 									onClick={() => setIsDropdownOpen(false)}
 								>
@@ -317,11 +317,11 @@ function Header() {
 								</Link>
 
 								<Link
-									to='/for_seller'
+									to='/brand'
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
 									onClick={() => setIsDropdownOpen(false)}
 								>
-									Стать продавцом
+									Бренд
 								</Link>
 
 								<div className='border-t border-gray-200 my-1'></div>
