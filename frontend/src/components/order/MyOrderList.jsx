@@ -8,12 +8,10 @@ import {
 	message,
 	Spin,
 	Image,
-	Steps,
-	Card,
-	Input,
-	Form,
+	Tag,
 } from 'antd'
 import axios from 'axios'
+import { format } from 'date-fns'
 
 import Header from '../home/Header'
 import AsideBanner from '../home/AsideBanner'
@@ -23,19 +21,15 @@ import Footer from '../home/Footer'
 const API_BASE_URL = 'http://localhost:8080/api/v1/orders'
 const STATIC_BASE_URL = 'http://localhost:8080/static/'
 
-const { Step } = Steps
-
 const MyOrderList = () => {
 	const [orders, setOrders] = useState([])
 	const [loading, setLoading] = useState(false)
 	const [selectedOrder, setSelectedOrder] = useState(null)
 	const [isModalVisible, setIsModalVisible] = useState(false)
-	const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false)
-	const [paymentStep, setPaymentStep] = useState(0)
-	const [paymentForm] = Form.useForm()
+	const [hoverImageIndex, setHoverImageIndex] = useState({})
+	const [hoveredProduct, setHoveredProduct] = useState(null)
 	const userId = localStorage.getItem('userId')
 
-	// Fetch all orders for the user
 	const fetchOrders = async () => {
 		if (!userId) {
 			message.error('Пожалуйста, войдите для просмотра заказов')
@@ -44,7 +38,7 @@ const MyOrderList = () => {
 		setLoading(true)
 		try {
 			const response = await axios.get(`${API_BASE_URL}/${userId}`)
-			setOrders(response.data.orders)
+			setOrders(response.data.orders || [])
 		} catch (error) {
 			message.error('Не удалось загрузить заказы')
 		} finally {
@@ -52,7 +46,6 @@ const MyOrderList = () => {
 		}
 	}
 
-	// Fetch details for a specific order
 	const fetchOrderDetails = async orderId => {
 		if (!userId) {
 			message.error('Пожалуйста, войдите для просмотра деталей заказа')
@@ -64,13 +57,18 @@ const MyOrderList = () => {
 			setSelectedOrder(response.data)
 			setIsModalVisible(true)
 		} catch (error) {
-			message.error('Не удалось загрузить детали заказа')
+			if (error.response?.status === 404) {
+				message.error('Заказ не найден')
+				await fetchOrders()
+				setIsModalVisible(false)
+			} else {
+				message.error('Не удалось загрузить детали заказа')
+			}
 		} finally {
 			setLoading(false)
 		}
 	}
 
-	// Cancel an order
 	const cancelOrder = async orderId => {
 		if (!userId) {
 			message.error('Пожалуйста, войдите для отмены заказа')
@@ -80,7 +78,7 @@ const MyOrderList = () => {
 		try {
 			await axios.delete(`${API_BASE_URL}/${userId}/${orderId}`)
 			message.success('Заказ успешно отменен')
-			fetchOrders()
+			await fetchOrders()
 			setIsModalVisible(false)
 		} catch (error) {
 			message.error(error.response?.data?.error || 'Не удалось отменить заказ')
@@ -89,45 +87,91 @@ const MyOrderList = () => {
 		}
 	}
 
-	// Initiate payment process
-	const initiatePayment = async () => {
-		setIsPaymentModalVisible(true)
-		setPaymentStep(0)
+	const removeOrderItem = async (orderId, productId, sizeId) => {
+		if (!userId) {
+			message.error('Пожалуйста, войдите для удаления товара из заказа')
+			return
+		}
+		console.log(productId, sizeId, orderId, userId)
+		if (!productId || !sizeId) {
+			message.error('Неверные параметры товара')
+			return
+		}
+		setLoading(true)
+		try {
+			await axios.delete(
+				`${API_BASE_URL}/${userId}/${orderId}/items/${productId}/${sizeId}`
+			)
+			message.success('Товар удален из заказа')
+
+			// Обновляем данные после успешного удаления
+			const updatedResponse = await axios.get(
+				`${API_BASE_URL}/${userId}/${orderId}`
+			)
+			setSelectedOrder(updatedResponse.data)
+
+			// Также обновляем список заказов
+			await fetchOrders()
+		} catch (error) {
+			if (error.response?.status === 404) {
+				message.info('Заказ стал пустым и был удален')
+				await fetchOrders()
+				setIsModalVisible(false)
+			} else {
+				message.error(
+					error.response?.data?.error || 'Не удалось удалить товар из заказа'
+				)
+			}
+		} finally {
+			setLoading(false)
+		}
 	}
 
-	// Process payment
-	const processPayment = async () => {
+	const handleMouseMove = (e, item) => {
+		if (!item.image_paths?.length) return
+		const container = e.currentTarget
+		const rect = container.getBoundingClientRect()
+		const mouseX = e.clientX - rect.left
+		const sectionWidth = rect.width / item.image_paths.length
+		const sectionIndex = Math.floor(mouseX / sectionWidth)
+		const imageCount = item.image_paths.length
+		const effectiveIndex = Math.min(sectionIndex, imageCount - 1)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[item.product_id]: effectiveIndex,
+		}))
+	}
+
+	const handleMouseEnter = productId => {
+		setHoveredProduct(productId)
+	}
+
+	const handleMouseLeave = productId => {
+		setHoveredProduct(null)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[productId]: 0,
+		}))
+	}
+
+	const formatPaymentMethod = method => {
+		switch (method) {
+			case 'cash':
+				return <Tag color='green'>Наличные</Tag>
+			case 'card':
+				return <Tag color='blue'>Карта</Tag>
+			case 'online':
+				return <Tag color='orange'>Онлайн</Tag>
+			default:
+				return <Tag>Не указан</Tag>
+		}
+	}
+
+	const formatDate = date => {
 		try {
-			const values = await paymentForm.validateFields()
-			setPaymentStep(1)
-
-			// Simulate payment processing
-			setTimeout(async () => {
-				try {
-					await axios.post(
-						`${API_BASE_URL}/${userId}/${selectedOrder.order.id}/pay`,
-						{
-							payment_method: 'card',
-							card_last_four: values.cardNumber.slice(-4),
-							payment_status: 'completed',
-						}
-					)
-
-					setPaymentStep(2)
-					message.success('Оплата прошла успешно!')
-					fetchOrders()
-
-					setTimeout(() => {
-						setIsPaymentModalVisible(false)
-						setIsModalVisible(false)
-					}, 2000)
-				} catch (error) {
-					message.error('Ошибка при обработке платежа')
-					setPaymentStep(0)
-				}
-			}, 2000)
-		} catch (error) {
-			message.error('Пожалуйста, заполните все поля корректно')
+			return format(new Date(date), 'dd.MM.yyyy HH:mm')
+		} catch {
+			return date || '–'
 		}
 	}
 
@@ -145,38 +189,45 @@ const MyOrderList = () => {
 			title: 'Сумма',
 			dataIndex: 'total',
 			key: 'total',
-			render: total => `$${total.toFixed(2)}`,
+			render: total => `${total.toFixed(2)} BYN`,
+		},
+		{
+			title: 'Адрес',
+			key: 'address',
+			render: (_, record) => `${record.address}, ${record.city}`,
+		},
+		{
+			title: 'Способ оплаты',
+			dataIndex: 'payment_method',
+			key: 'payment_method',
+			render: method => formatPaymentMethod(method),
 		},
 		{
 			title: 'Статус',
-			dataIndex: 'payment_status',
-			key: 'payment_status',
+			dataIndex: 'status',
+			key: 'status',
 			render: status => {
-				let statusText = status
-				let className = ''
-				switch (status) {
-					case 'pending':
-						statusText = 'Ожидает оплаты'
-						className = 'text-gray-600'
-						break
-					case 'completed':
-						statusText = 'Оплачен'
-						className = 'text-black font-medium'
-						break
-					case 'refunded':
-						statusText = 'Возвращен'
-						className = 'text-gray-500 line-through'
-						break
-					default:
-						className = 'text-black'
+				const colorMap = {
+					pending: 'orange',
+					processing: 'blue',
+					completed: 'green',
+					cancelled: 'red',
 				}
-				return <span className={className}>{statusText}</span>
+				return <Tag color={colorMap[status] || 'default'}>{status || '—'}</Tag>
 			},
+		},
+
+		{
+			title: 'Примечания',
+			dataIndex: 'notes',
+			key: 'notes',
+			render: notes => notes || '–',
 		},
 		{
 			title: 'Дата создания',
 			dataIndex: 'created_at',
 			key: 'created_at',
+			render: created_at => formatDate(created_at),
 		},
 		{
 			title: 'Действия',
@@ -193,13 +244,13 @@ const MyOrderList = () => {
 	]
 
 	return (
-		<div>
+		<div className='min-h-screen bg-gray-100'>
 			<AsideBanner />
 			<Header />
 			<Section />
-			<div className='mx-[15%]'>
-				<div className='py-6 bg-white min-h-screen text-gray-900'>
-					<h1 className='text-2xl font-bold mb-6 text-black'>Мои заказы</h1>
+			<div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6'>
+				<div className='bg-white rounded-lg shadow-sm p-6'>
+					<h1 className='text-2xl font-bold mb-6 text-gray-900'>Мои заказы</h1>
 					<Spin spinning={loading}>
 						<Table
 							columns={columns}
@@ -210,7 +261,7 @@ const MyOrderList = () => {
 					</Spin>
 
 					<Modal
-						title='Детали заказа'
+						title={<span className='text-xl font-bold'>Детали заказа</span>}
 						open={isModalVisible}
 						onCancel={() => setIsModalVisible(false)}
 						footer={[
@@ -221,207 +272,200 @@ const MyOrderList = () => {
 							>
 								Закрыть
 							</Button>,
-							selectedOrder?.order.payment_status === 'pending' && (
+							selectedOrder?.order && (
 								<Button
-									key='pay'
-									onClick={initiatePayment}
-									className='bg-green-600 text-white hover:bg-green-500 border-none'
+									key='refund'
+									onClick={() => cancelOrder(selectedOrder.order.id)}
+									danger
 								>
-									Оплатить заказ
+									Отменить заказ
 								</Button>
 							),
-							selectedOrder?.order.payment_status !== 'completed' &&
-								selectedOrder?.order.payment_status !== 'refunded' && (
-									<Button
-										key='refund'
-										onClick={() => cancelOrder(selectedOrder.order.id)}
-										className='bg-black text-white hover:bg-gray-800 border-none'
-									>
-										Отменить заказ
-									</Button>
-								),
 						]}
-						className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-black [&_.ant-modal-footer]:border-gray-200'
+						className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-gray-900 [&_.ant-modal-footer]:border-gray-200'
 						width={800}
 					>
 						{selectedOrder && (
-							<div>
-								<Descriptions
-									title='Информация о заказе'
-									column={1}
-									className='[&_.ant-descriptions-item-label]:text-gray-900 [&_.ant-descriptions-item-content]:text-gray-800'
-								>
-									<Descriptions.Item label='Номер заказа'>
-										{selectedOrder.order.id}
-									</Descriptions.Item>
-									<Descriptions.Item label='Сумма'>
-										${selectedOrder.order.total.toFixed(2)}
-									</Descriptions.Item>
-									<Descriptions.Item label='Статус'>
-										{selectedOrder.order.payment_status === 'pending'
-											? 'Ожидает оплаты'
-											: selectedOrder.order.payment_status === 'completed'
-											? 'Оплачен'
-											: selectedOrder.order.payment_status === 'refunded'
-											? 'Возвращен'
-											: selectedOrder.order.payment_status}
-									</Descriptions.Item>
-									<Descriptions.Item label='Дата создания'>
-										{selectedOrder.order_date}
-									</Descriptions.Item>
-								</Descriptions>
+							<div className='space-y-6'>
+								<div className='bg-gray-50 p-4 rounded-lg'>
+									<h3 className='text-lg font-semibold mb-3'>
+										Информация о заказе
+									</h3>
+									<Descriptions column={1} className='custom-descriptions'>
+										<Descriptions.Item label='Номер заказа'>
+											<span className='font-medium'>
+												#{selectedOrder.order.id}
+											</span>
+										</Descriptions.Item>
+										<Descriptions.Item label='Сумма'>
+											<span className='font-medium'>
+												{selectedOrder.order.total.toFixed(2)} BYN
+											</span>
+										</Descriptions.Item>
+										<Descriptions.Item label='Адрес'>
+											{`${selectedOrder.order.address}, ${selectedOrder.order.city}`}
+										</Descriptions.Item>
+										<Descriptions.Item label='Способ оплаты'>
+											{formatPaymentMethod(selectedOrder.order.payment_method)}
+										</Descriptions.Item>
+										<Descriptions.Item label='Статус'>
+											<Tag
+												color={
+													{
+														pending: 'orange',
+														processing: 'blue',
+														completed: 'green',
+														cancelled: 'red',
+													}[selectedOrder.order.status] || 'default'
+												}
+											>
+												{selectedOrder.order.status || '—'}
+											</Tag>
+										</Descriptions.Item>
 
-								<Descriptions
-									title='Информация о пользователе'
-									column={1}
-									className='mt-4 [&_.ant-descriptions-item-label]:text-gray-900 [&_.ant-descriptions-item-content]:text-gray-800'
-								>
-									<Descriptions.Item label='Имя'>{`${selectedOrder.user.first_name} ${selectedOrder.user.last_name}`}</Descriptions.Item>
-									<Descriptions.Item label='Email'>
-										{selectedOrder.user.email}
-									</Descriptions.Item>
-									<Descriptions.Item label='Телефон'>
-										{selectedOrder.user.phone}
-									</Descriptions.Item>
-								</Descriptions>
+										<Descriptions.Item label='Примечания'>
+											{selectedOrder.order.notes || '–'}
+										</Descriptions.Item>
+										<Descriptions.Item label='Дата создания'>
+											{formatDate(selectedOrder.order_date)}
+										</Descriptions.Item>
+									</Descriptions>
+								</div>
 
-								<h3 className='text-lg font-semibold mt-6 mb-2 text-black'>
-									Товары
-								</h3>
-								<List
-									dataSource={selectedOrder.items}
-									renderItem={item => (
-										<List.Item className='bg-gray-50 p-4 rounded mb-2 border border-gray-200 flex'>
-											{item.photo_url && (
-												<Image
-													src={`${STATIC_BASE_URL}${item.photo_url}`}
-													alt={item.product_name}
-													preview={false}
-												/>
-											)}
-											<div className='text-gray-800'>
-												<p>
-													<strong>Товар:</strong> {item.product_name}
-												</p>
-												<p>
-													<strong>Размер:</strong> {item.size_value}
-												</p>
-												<p>
-													<strong>Количество:</strong> {item.quantity}
-												</p>
-												<p>
-													<strong>Цена:</strong> $
-													{item.price_at_purchase.toFixed(2)}
-												</p>
-											</div>
-										</List.Item>
-									)}
-								/>
+								<div className='bg-gray-50 p-4 rounded-lg'>
+									<h3 className='text-lg font-semibold mb-3'>
+										Информация о пользователе
+									</h3>
+									<Descriptions column={1} className='custom-descriptions'>
+										<Descriptions.Item label='Имя'>
+											{`${selectedOrder.user.first_name} ${selectedOrder.user.last_name}`}
+										</Descriptions.Item>
+										<Descriptions.Item label='Email'>
+											{selectedOrder.user.email}
+										</Descriptions.Item>
+										<Descriptions.Item label='Телефон'>
+											{selectedOrder.user.phone || '–'}
+										</Descriptions.Item>
+									</Descriptions>
+								</div>
+
+								<div>
+									<h3 className='text-lg font-semibold mb-3'>
+										Товары в заказе
+									</h3>
+									<List
+										dataSource={selectedOrder.items}
+										renderItem={item => {
+											const currentImageIndex =
+												hoverImageIndex[item.product_id] || 0
+											const currentImage =
+												item.image_paths?.[currentImageIndex] ||
+												item.photo_url ||
+												'https://placehold.co/80x120'
+
+											return (
+												<List.Item
+													className='bg-gray-50 p-4 rounded-lg mb-3 border border-gray-200 flex justify-between hover:bg-gray-100 transition-colors'
+													onMouseMove={e => handleMouseMove(e, item)}
+													onMouseEnter={() => handleMouseEnter(item.product_id)}
+													onMouseLeave={() => handleMouseLeave(item.product_id)}
+												>
+													<div className='flex items-center'>
+														<div
+															style={{
+																position: 'relative',
+																width: 80,
+																height: 120,
+															}}
+														>
+															{hoveredProduct === item.product_id &&
+																item.image_paths?.length > 1 && (
+																	<div
+																		style={{
+																			position: 'absolute',
+																			top: 4,
+																			left: '50%',
+																			transform: 'translateX(-50%)',
+																			display: 'flex',
+																			gap: 2,
+																			zIndex: 10,
+																		}}
+																	>
+																		{item.image_paths.map((_, index) => (
+																			<div
+																				key={index}
+																				style={{
+																					width: 20,
+																					height: 3,
+																					backgroundColor:
+																						index === currentImageIndex
+																							? '#000'
+																							: '#ccc',
+																				}}
+																			/>
+																		))}
+																	</div>
+																)}
+															<Image
+																src={`${STATIC_BASE_URL}${currentImage}`}
+																alt={item.product_name}
+																preview={false}
+																style={{
+																	width: '100%',
+																	height: '100%',
+																	objectFit: 'contain',
+																	transition: 'opacity 0.3s ease',
+																}}
+																onError={e => {
+																	e.currentTarget.src =
+																		'https://placehold.co/80x120'
+																	e.currentTarget.style = {
+																		objectFit: 'contain',
+																		padding: '8px',
+																		backgroundColor: '#f5f5f5',
+																	}
+																}}
+															/>
+														</div>
+														<div className='ml-4'>
+															<p className='font-medium text-gray-900'>
+																{item.product_name}
+															</p>
+															<p className='text-gray-600'>
+																Размер: {item.size_value}
+															</p>
+															<p className='text-gray-600'>
+																Количество: {item.quantity}
+															</p>
+															<p className='text-gray-600'>
+																Цена: {item.price_at_purchase.toFixed(2)} BYN
+															</p>
+														</div>
+													</div>
+													{selectedOrder.items.length > 1 && (
+														<Button
+															onClick={() =>
+																removeOrderItem(
+																	selectedOrder.order.id,
+																	item.product_id,
+																	item.size_id
+																)
+															}
+															danger
+														>
+															Удалить
+														</Button>
+													)}
+												</List.Item>
+											)
+										}}
+									/>
+								</div>
 							</div>
-						)}
-					</Modal>
-
-					{/* Payment Modal */}
-					<Modal
-						title='Оплата заказа'
-						open={isPaymentModalVisible}
-						onCancel={() => setIsPaymentModalVisible(false)}
-						footer={null}
-						width={600}
-						className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-black'
-					>
-						<Steps current={paymentStep} className='mb-6'>
-							<Step title='Данные карты' />
-							<Step title='Обработка' />
-							<Step title='Завершение' />
-						</Steps>
-
-						{paymentStep === 0 && (
-							<Card>
-								<Form form={paymentForm} layout='vertical'>
-									<Form.Item
-										name='cardNumber'
-										label='Номер карты'
-										rules={[
-											{
-												required: true,
-												message: 'Пожалуйста, введите номер карты',
-											},
-											{
-												pattern: /^\d{16}$/,
-												message: 'Номер карты должен содержать 16 цифр',
-											},
-										]}
-									>
-										<Input placeholder='1234 5678 9012 3456' maxLength={16} />
-									</Form.Item>
-
-									<div className='flex gap-4'>
-										<Form.Item
-											name='expiryDate'
-											label='Срок действия'
-											rules={[
-												{
-													required: true,
-													message: 'Пожалуйста, введите срок действия',
-												},
-												{
-													pattern: /^(0[1-9]|1[0-2])\/?([0-9]{2})$/,
-													message: 'Формат: MM/YY',
-												},
-											]}
-											className='flex-1'
-										>
-											<Input placeholder='MM/YY' />
-										</Form.Item>
-
-										<Form.Item
-											name='cvv'
-											label='CVV'
-											rules={[
-												{ required: true, message: 'Пожалуйста, введите CVV' },
-												{
-													pattern: /^\d{3}$/,
-													message: 'CVV должен содержать 3 цифры',
-												},
-											]}
-											className='flex-1'
-										>
-											<Input placeholder='123' maxLength={3} />
-										</Form.Item>
-									</div>
-
-									<Button
-										type='primary'
-										onClick={processPayment}
-										className='w-full bg-black text-white hover:bg-gray-800 border-none mt-4'
-									>
-										Оплатить ${selectedOrder?.order.total.toFixed(2)}
-									</Button>
-								</Form>
-							</Card>
-						)}
-
-						{paymentStep === 1 && (
-							<Card className='text-center py-8'>
-								<Spin size='large' />
-								<p className='mt-4'>Идет обработка платежа...</p>
-							</Card>
-						)}
-
-						{paymentStep === 2 && (
-							<Card className='text-center py-8'>
-								<div className='text-green-500 text-5xl mb-4'>✓</div>
-								<h3 className='text-xl font-bold mb-2'>
-									Оплата прошла успешно!
-								</h3>
-								<p>Ваш заказ #{selectedOrder?.order.id} успешно оплачен.</p>
-							</Card>
 						)}
 					</Modal>
 				</div>
 			</div>
-
 			<Footer />
 		</div>
 	)

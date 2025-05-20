@@ -43,8 +43,17 @@ const ShoppingCart = () => {
 		}
 	}
 
-	const updateQuantity = async (productId, newQuantity, sizeId) => {
+	const updateQuantity = async (
+		productId,
+		newQuantity,
+		sizeId,
+		availableQuantity
+	) => {
 		if (newQuantity < 1) return
+		if (newQuantity > availableQuantity) {
+			message.warning('Товара нет в наличии')
+			return
+		}
 
 		try {
 			await axios.put(
@@ -57,7 +66,6 @@ const ShoppingCart = () => {
 			await fetchCartItems()
 			message.success('Количество обновлено')
 		} catch (error) {
-			console.error('Error updating quantity:', error)
 			message.error('Не удалось обновить количество')
 		}
 	}
@@ -208,10 +216,16 @@ const ShoppingCart = () => {
 														updateQuantity(
 															item.product_id,
 															item.quantity + 1,
-															item.size_id
+															item.size_id,
+															item.available_quantity
 														)
 													}
-													className='bg-gray-200 text-black px-3 py-1 rounded-r hover:bg-gray-100'
+													className={`bg-gray-200 text-black px-3 py-1 rounded-r hover:bg-gray-100 ${
+														item.available_quantity === 0
+															? 'opacity-50 cursor-not-allowed'
+															: ''
+													}`}
+													disabled={item.available_quantity === 0}
 												>
 													+
 												</motion.button>

@@ -17,6 +17,19 @@ import (
 	"fmt"
 )
 
+type Size struct {
+	ID       int    `json:"id"`
+	Size     string `json:"size"`
+	Quantity int    `json:"quantity"`
+	Description string `json:"description"`
+}
+
+type BrandInfo struct {
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Website     string `json:"website"`
+}
 
 type ProductResponses struct {
 	ID           int      `json:"id"`
@@ -28,26 +41,12 @@ type ProductResponses struct {
 	SubCategory  string   `json:"sub_category"`
 	Gender       string   `json:"gender"`
 	Color        string   `json:"color"`
+	PrimaryImage string   `json:"primary_image"`
+	SKU          string   `json:"sku"`
+	Brand        BrandInfo `json:"brand"`
 	Sizes        []Size   `json:"sizes"`
 	Images       []string `json:"images"`
-	PrimaryImage string   `json:"primary_image"`
-	Brand        BrandInfo  `json:"brand"` 
 }
-
-type BrandInfo struct {
-	ID          int    `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Website     string `json:"website"`
-}
-
-type Size struct {
-	ID       int    `json:"id"`
-	Size     string `json:"size"`
-	Quantity int    `json:"quantity"`
-	Description string `json:"description"`
-}
-
 
 func GetProduct(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -57,197 +56,99 @@ func GetProduct(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
-			// Временная структура для основного запроса
-			var tempProduct struct {
-					ID           int
-					Name         string
-					Description  sql.NullString
-					Summary      sql.NullString
-					Price        float64
-					Category     sql.NullString
-					SubCategory  sql.NullString
-					Gender       string
-					Color        sql.NullString
-					PrimaryImage sql.NullString
-					SizeTypeID   sql.NullInt64
-					BrandID      sql.NullInt64
-			}
-
-			// Получаем основную информацию о товаре
+			// Основной запрос товара
+			var product ProductResponses
+			var brandID sql.NullInt64
+			var sizeTypeID sql.NullInt64
+			
 			err := db.QueryRow(`
 					SELECT 
-							p.id, 
-							p.name, 
-							p.description, 
-							p.summary,
-							p.price,
-							c.name as category,
-							sc.name as sub_category,
-							p.gender,
-							p.color,
-							pi.image_path as primary_image,
-							p.size_type_id,
-							p.brand_id
+							p.id, p.name, p.description, p.summary, p.price, p.sku,
+							c.name as category, sc.name as sub_category, p.gender, p.color,
+							pi.image_path as primary_image, p.size_type_id, p.brand_id
 					FROM product p
 					LEFT JOIN category c ON p.category_id = c.id
 					LEFT JOIN sub_category sc ON p.sub_category_id = sc.id
 					LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
 					WHERE p.id = $1`, productID).Scan(
-					&tempProduct.ID,
-					&tempProduct.Name,
-					&tempProduct.Description,
-					&tempProduct.Summary,
-					&tempProduct.Price,
-					&tempProduct.Category,
-					&tempProduct.SubCategory,
-					&tempProduct.Gender,
-					&tempProduct.Color,
-					&tempProduct.PrimaryImage,
-					&tempProduct.SizeTypeID,
-					&tempProduct.BrandID,
-			)
+					&product.ID, &product.Name, &product.Description, &product.Summary, 
+					&product.Price, &product.SKU, &product.Category, &product.SubCategory,
+					&product.Gender, &product.Color, &product.PrimaryImage, &sizeTypeID, &brandID)
 
 			if err != nil {
 					if err == sql.ErrNoRows {
 							c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
-							return
+					} else {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					}
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 					return
 			}
 
-			// Получаем информацию о бренде, если brand_id указан
-			var brand BrandInfo
-			if tempProduct.BrandID.Valid {
-					err = db.QueryRow(`
+			// Загрузка полной информации о бренде
+			if brandID.Valid {
+					db.QueryRow(`
 							SELECT id, name, description, website 
 							FROM brand 
-							WHERE id = $1`, tempProduct.BrandID.Int64).Scan(
-							&brand.ID,
-							&brand.Name,
-							&brand.Description,
-							&brand.Website,
-					)
-					if err != nil && err != sql.ErrNoRows {
-							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get brand info: " + err.Error()})
-							return
-					}
+							WHERE id = $1`, brandID.Int64).
+							Scan(&product.Brand.ID, &product.Brand.Name, 
+									 &product.Brand.Description, &product.Brand.Website)
 			}
 
-			// Создаем финальный объект продукта
-			product := ProductResponses{
-					ID:           tempProduct.ID,
-					Name:         tempProduct.Name,
-					Description:  tempProduct.Description.String,
-					Summary:      tempProduct.Summary.String,
-					Price:        tempProduct.Price,
-					Category:     tempProduct.Category.String,
-					SubCategory:  tempProduct.SubCategory.String,
-					Gender:       tempProduct.Gender,
-					Color:        tempProduct.Color.String,
-					PrimaryImage: tempProduct.PrimaryImage.String,
-					Brand:        brand,
-					Sizes:        []Size{},
-					Images:       []string{},
-			}
-
-			// Добавляем основное изображение в список изображений
+			// Загрузка изображений
 			if product.PrimaryImage != "" {
 					product.Images = append(product.Images, product.PrimaryImage)
 			}
-
-			// Получаем все изображения товара
-			rows, err := db.Query(`
-					SELECT image_path 
-					FROM product_images 
-					WHERE product_id = $1 AND (is_primary = false OR is_primary IS NULL) 
+			
+			rows, _ := db.Query(`
+					SELECT image_path FROM product_images 
+					WHERE product_id = $1 AND (is_primary = false OR is_primary IS NULL)
 					ORDER BY display_order`, productID)
-			if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-					return
-			}
-			defer rows.Close()
-
+			
 			for rows.Next() {
-					var imagePath string
-					if err := rows.Scan(&imagePath); err != nil {
-							continue
+					var img string
+					if rows.Scan(&img) == nil {
+							product.Images = append(product.Images, img)
 					}
-					product.Images = append(product.Images, imagePath)
 			}
+			rows.Close()
 
-			// Получаем все размеры товара с полной информацией
-			sizeRows, err := db.Query(`
-					SELECT 
-							s.id, 
-							s.value as size, 
-							ps.quantity,
-							st.name as size_type_name,
-							s.description as size_description
+			// Загрузка размеров
+			sizeRows, _ := db.Query(`
+					SELECT s.id, s.value, ps.quantity, 
+								 st.name as size_type, s.description
 					FROM product_sizes ps
 					JOIN sizes s ON ps.size_id = s.id
 					JOIN size_types st ON s.size_type_id = st.id
-					WHERE ps.product_id = $1
-					ORDER BY st.name, s.value`, productID)
-			if err != nil {
-					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-					return
-			}
-			defer sizeRows.Close()
-
+					WHERE ps.product_id = $1`, productID)
+			
 			for sizeRows.Next() {
 					var size Size
-					var sizeType string
-					var description string
-					if err := sizeRows.Scan(
-							&size.ID,
-							&size.Size,
-							&size.Quantity,
-							&sizeType,
-							&description,
-					); err != nil {
-							continue
-					}
-					size.Description = fmt.Sprintf("%s (%s)", description, sizeType)
-					product.Sizes = append(product.Sizes, size)
-			}
-
-			// Если у товара есть size_type_id, но нет размеров в product_sizes,
-			// получаем все размеры этого типа
-			if tempProduct.SizeTypeID.Valid && len(product.Sizes) == 0 {
-					allSizeRows, err := db.Query(`
-							SELECT 
-									s.id, 
-									s.value as size, 
-									0 as quantity,
-									st.name as size_type_name,
-									s.description as size_description
-							FROM sizes s
-							JOIN size_types st ON s.size_type_id = st.id
-							WHERE s.size_type_id = $1
-							ORDER BY s.value`, tempProduct.SizeTypeID.Int64)
-					if err != nil {
-							c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-							return
-					}
-					defer allSizeRows.Close()
-
-					for allSizeRows.Next() {
-							var size Size
-							var sizeType string
-							var description string
-							if err := allSizeRows.Scan(
-									&size.ID,
-									&size.Size,
-									&size.Quantity,
-									&sizeType,
-									&description,
-							); err != nil {
-									continue
-							}
-							size.Description = fmt.Sprintf("%s (%s)", description, sizeType)
+					var sizeType, sizeDesc string
+					if sizeRows.Scan(&size.ID, &size.Size, &size.Quantity, 
+													&sizeType, &sizeDesc) == nil {
+							size.Description = fmt.Sprintf("%s (%s)", sizeDesc, sizeType)
 							product.Sizes = append(product.Sizes, size)
 					}
+			}
+			sizeRows.Close()
+
+			// Если нет размеров, но есть тип размеров - загружаем все размеры этого типа
+			if len(product.Sizes) == 0 && sizeTypeID.Valid {
+					allSizeRows, _ := db.Query(`
+							SELECT s.id, s.value, st.name, s.description 
+							FROM sizes s
+							JOIN size_types st ON s.size_type_id = st.id
+							WHERE s.size_type_id = $1`, sizeTypeID.Int64)
+					
+					for allSizeRows.Next() {
+							var size Size
+							var sizeType, sizeDesc string
+							if allSizeRows.Scan(&size.ID, &size.Size, &sizeType, &sizeDesc) == nil {
+									size.Description = fmt.Sprintf("%s (%s)", sizeDesc, sizeType)
+									product.Sizes = append(product.Sizes, size)
+							}
+					}
+					allSizeRows.Close()
 			}
 
 			c.JSON(http.StatusOK, product)
@@ -259,162 +160,209 @@ func GetProduct(db *sql.DB) gin.HandlerFunc {
 
 
 func GetProducts(db *sql.DB) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // Получаем параметры пагинации
-        page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-        limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
-        offset := (page - 1) * limit
+	return func(c *gin.Context) {
+			// Получаем параметры пагинации
+			page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+			limit, _ := strconv.Atoi(c.DefaultQuery("limit", "12"))
+			offset := (page - 1) * limit
 
-        // Основной запрос к продуктам с размерами, всеми путями к изображениям и названием бренда
-        query := `
-            SELECT 
-                p.id, p.name, p.description, p.summary, 
-                p.price, p.sku, p.color, p.gender,
-                p.category_id, p.sub_category_id,
-                c.name as category_name,
-                sc.name as sub_category_name,
-                b.name as brand_name,
-                (
-                    SELECT json_agg(image_path)
-                    FROM (
-                        SELECT pi.image_path
-                        FROM product_images pi
-                        WHERE pi.product_id = p.id
-                        ORDER BY pi.display_order, pi.created_at
-                    ) sub
-                ) as image_paths,
-                (
-                    SELECT json_agg(
-                        json_build_object(
-                            'id', s.id,
-                            'value', s.value,
-                            'quantity', ps.quantity,
-                            'description', s.description
-                        )
-                    )
-                    FROM product_sizes ps
-                    JOIN sizes s ON ps.size_id = s.id
-                    WHERE ps.product_id = p.id
-                ) as sizes
-            FROM product p
-            LEFT JOIN category c ON p.category_id = c.id
-            LEFT JOIN sub_category sc ON p.sub_category_id = sc.id
-            LEFT JOIN brand b ON p.brand_id = b.id
-            ORDER BY p.created_at DESC
-            LIMIT $1 OFFSET $2
-        `
+			// Получаем параметры фильтрации
+			gender := c.Query("gender")
+			categoryName := c.Query("category_name") // Новый параметр для фильтрации по русскому названию категории
+			categoryID := c.Query("category_id")
+			subCategoryID := c.Query("sub_category_id")
 
-        rows, err := db.Query(query, limit, offset)
-        if err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{
-                "error":   "Database query error",
-                "details": err.Error(),
-            })
-            return
-        }
-        defer rows.Close()
+			// Основной запрос к продуктам
+			baseQuery := `
+					SELECT 
+							p.id, p.name, p.description, p.summary, 
+							p.price, p.sku, p.color, p.gender,
+							p.category_id, p.sub_category_id,
+							c.name as category_name,
+							sc.name as sub_category_name,
+							b.name as brand_name,
+							(
+									SELECT json_agg(image_path)
+									FROM (
+											SELECT pi.image_path
+											FROM product_images pi
+											WHERE pi.product_id = p.id
+											ORDER BY pi.display_order, pi.created_at
+									) sub
+							) as image_paths,
+							(
+									SELECT json_agg(
+											json_build_object(
+													'id', s.id,
+													'value', s.value,
+													'quantity', ps.quantity,
+													'description', s.description
+											)
+									)
+									FROM product_sizes ps
+									JOIN sizes s ON ps.size_id = s.id
+									WHERE ps.product_id = p.id
+							) as sizes
+					FROM product p
+					LEFT JOIN category c ON p.category_id = c.id
+					LEFT JOIN sub_category sc ON p.sub_category_id = sc.id
+					LEFT JOIN brand b ON p.brand_id = b.id
+			`
 
-        var products []gin.H
-        for rows.Next() {
-            var p struct {
-                ID              int
-                Name            string
-                Description     string
-                Summary         string
-                Price           float64
-                SKU             string
-                Color           string
-                Gender          string
-                CategoryID      int
-                SubCategoryID   int
-                CategoryName    sql.NullString
-                SubCategoryName sql.NullString
-                BrandName       sql.NullString // Добавлено поле для названия бренда
-                ImagePaths      []byte
-                Sizes           []byte
-            }
+			// Добавляем условия фильтрации
+			var whereClauses []string
+			var queryParams []interface{}
+			paramCount := 1
 
-            err := rows.Scan(
-                &p.ID, &p.Name, &p.Description, &p.Summary,
-                &p.Price, &p.SKU, &p.Color, &p.Gender,
-                &p.CategoryID, &p.SubCategoryID,
-                &p.CategoryName, &p.SubCategoryName,
-                &p.BrandName, // Сканируем название бренда
-                &p.ImagePaths, &p.Sizes,
-            )
-            if err != nil {
-                continue
-            }
+			if gender != "" {
+					whereClauses = append(whereClauses, fmt.Sprintf("p.gender = $%d", paramCount))
+					queryParams = append(queryParams, gender)
+					paramCount++
+			}
 
-            // Парсим JSON массив путей к изображениям
-            var imagePaths []string
-            if p.ImagePaths != nil {
-                err = json.Unmarshal(p.ImagePaths, &imagePaths)
-                if err != nil {
-                    continue
-                }
-            }
+			if categoryName != "" {
+					whereClauses = append(whereClauses, fmt.Sprintf("c.name ILIKE $%d", paramCount))
+					queryParams = append(queryParams, "%"+categoryName+"%")
+					paramCount++
+			}
 
-            // Парсим JSON массив размеров
-            var sizes []gin.H
-            if p.Sizes != nil {
-                err = json.Unmarshal(p.Sizes, &sizes)
-                if err != nil {
-                    continue
-                }
-            }
+			if categoryID != "" {
+					whereClauses = append(whereClauses, fmt.Sprintf("p.category_id = $%d", paramCount))
+					queryParams = append(queryParams, categoryID)
+					paramCount++
+			}
 
-            product := gin.H{
-                "id":              p.ID,
-                "name":            p.Name,
-                "description":     p.Description,
-                "summary":         p.Summary,
-                "price":           p.Price,
-                "sku":             p.SKU,
-                "color":           p.Color,
-                "gender":          p.Gender,
-                "category_id":     p.CategoryID,
-                "sub_category_id": p.SubCategoryID,
-                "category":        p.CategoryName.String,
-                "sub_category":    p.SubCategoryName.String,
-                "brand_name":      p.BrandName.String, // Добавляем название бренда
-                "image_paths":     imagePaths,
-                "sizes":           sizes,
-            }
+			if subCategoryID != "" {
+					whereClauses = append(whereClauses, fmt.Sprintf("p.sub_category_id = $%d", paramCount))
+					queryParams = append(queryParams, subCategoryID)
+					paramCount++
+			}
 
-            products = append(products, product)
-        }
+			// Собираем полный запрос
+			fullQuery := baseQuery
+			if len(whereClauses) > 0 {
+					fullQuery += " WHERE " + strings.Join(whereClauses, " AND ")
+			}
 
-        if err = rows.Err(); err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{
-                "error":   "Error processing results",
-                "details": err.Error(),
-            })
-            return
-        }
+			// Добавляем сортировку и пагинацию
+			fullQuery += " ORDER BY p.created_at DESC"
+			fullQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", paramCount, paramCount+1)
+			queryParams = append(queryParams, limit, offset)
 
-        // Подсчёт общего количества товаров
-        var total int
-        countQuery := "SELECT COUNT(*) FROM product"
-        err = db.QueryRow(countQuery).Scan(&total)
-        if err != nil {
-            c.JSON(http.StatusInternalServerError, gin.H{
-                "error":   "Count query error",
-                "details": err.Error(),
-            })
-            return
-        }
+			// Выполняем запрос
+			rows, err := db.Query(fullQuery, queryParams...)
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error":   "Database query error",
+							"details": err.Error(),
+					})
+					return
+			}
+			defer rows.Close()
 
-        c.JSON(http.StatusOK, gin.H{
-            "products": products,
-            "pagination": gin.H{
-                "total":       total,
-                "page":        page,
-                "limit":       limit,
-                "total_pages": int(math.Ceil(float64(total) / float64(limit))),
-            },
-        })
-    }
+			var products []gin.H
+			for rows.Next() {
+					var p struct {
+							ID              int
+							Name            string
+							Description     string
+							Summary         string
+							Price           float64
+							SKU             string
+							Color           string
+							Gender          string
+							CategoryID      int
+							SubCategoryID   int
+							CategoryName    sql.NullString
+							SubCategoryName sql.NullString
+							BrandName       sql.NullString
+							ImagePaths      []byte
+							Sizes           []byte
+					}
+
+					err := rows.Scan(
+							&p.ID, &p.Name, &p.Description, &p.Summary,
+							&p.Price, &p.SKU, &p.Color, &p.Gender,
+							&p.CategoryID, &p.SubCategoryID,
+							&p.CategoryName, &p.SubCategoryName,
+							&p.BrandName,
+							&p.ImagePaths, &p.Sizes,
+					)
+					if err != nil {
+							continue
+					}
+
+					var imagePaths []string
+					if p.ImagePaths != nil {
+							err = json.Unmarshal(p.ImagePaths, &imagePaths)
+							if err != nil {
+									continue
+							}
+					}
+
+					var sizes []gin.H
+					if p.Sizes != nil {
+							err = json.Unmarshal(p.Sizes, &sizes)
+							if err != nil {
+									continue
+							}
+					}
+
+					product := gin.H{
+							"id":              p.ID,
+							"name":            p.Name,
+							"description":     p.Description,
+							"summary":        p.Summary,
+							"price":          p.Price,
+							"sku":            p.SKU,
+							"color":          p.Color,
+							"gender":         p.Gender,
+							"category_id":     p.CategoryID,
+							"sub_category_id": p.SubCategoryID,
+							"category":       p.CategoryName.String,
+							"sub_category":   p.SubCategoryName.String,
+							"brand_name":     p.BrandName.String,
+							"image_paths":    imagePaths,
+							"sizes":          sizes,
+					}
+
+					products = append(products, product)
+			}
+
+			if err = rows.Err(); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error":   "Error processing results",
+							"details": err.Error(),
+					})
+					return
+			}
+
+			// Подсчёт общего количества товаров с учетом фильтров
+			countQuery := "SELECT COUNT(*) FROM product p LEFT JOIN category c ON p.category_id = c.id"
+			if len(whereClauses) > 0 {
+					countQuery += " WHERE " + strings.Join(whereClauses, " AND ")
+			}
+
+			var total int
+			err = db.QueryRow(countQuery, queryParams[:len(queryParams)-2]...).Scan(&total)
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error":   "Count query error",
+							"details": err.Error(),
+					})
+					return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+					"products": products,
+					"pagination": gin.H{
+							"total":       total,
+							"page":        page,
+							"limit":       limit,
+							"total_pages": int(math.Ceil(float64(total) / float64(limit))),
+					},
+			})
+	}
 }
 
 
@@ -685,6 +633,50 @@ func saveProductImage(file *multipart.FileHeader, sku string, index int) (string
 }
 
 
+func GetProductBySKU(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		sku := c.Param("sku")
+		
+		var product struct {
+			ID          int     `json:"id"`
+			Name        string  `json:"name"`
+			SKU         string  `json:"sku"`
+			Price       float64 `json:"price"`
+			Description string  `json:"description"`
+			// другие поля товара
+		}
+
+		err := db.QueryRow(`
+			SELECT id, name, sku, price, description 
+			FROM product 
+			WHERE sku = $1
+		`, sku).Scan(
+			&product.ID,
+			&product.Name,
+			&product.SKU,
+			&product.Price,
+			&product.Description,
+		)
+
+		if err != nil {
+			if err == sql.ErrNoRows {
+				c.JSON(http.StatusNotFound, gin.H{
+					"error": "Товар с таким SKU не найден",
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Ошибка при поиске товара",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, product)
+	}
+}
+
 // BrandUpdateProduct
 // BrandDeleteProduct
 // BrandGetProducts
+
+

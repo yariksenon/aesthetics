@@ -32,7 +32,6 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 			err = db.QueryRow("SELECT id FROM cart WHERE user_id = $1", userID).Scan(&cartID)
 			if err != nil {
 					if err == sql.ErrNoRows {
-							// Корзина не существует - возвращаем пустой список
 							c.JSON(http.StatusOK, gin.H{
 									"items": []CartItemResponse{},
 									"total": 0,
@@ -46,7 +45,7 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
-			// 2. Получаем товары в корзине с основным изображением и размером
+			// 2. Получаем товары в корзине с информацией о доступном количестве
 			rows, err := db.Query(`
 					SELECT 
 							ci.id,
@@ -56,11 +55,13 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 							ci.quantity,
 							COALESCE(pi.image_path, '') as image_path,
 							ci.size_id,
-							COALESCE(s.value, '') as size
+							COALESCE(s.value, '') as size,
+							COALESCE(ps.quantity, 0) as available_quantity
 					FROM cart_item ci
 					JOIN product p ON ci.product_id = p.id
 					LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
 					LEFT JOIN sizes s ON ci.size_id = s.id
+					LEFT JOIN product_sizes ps ON p.id = ps.product_id AND s.id = ps.size_id
 					WHERE ci.cart_id = $1`, cartID)
 			if err != nil {
 					c.JSON(http.StatusInternalServerError, gin.H{
@@ -73,9 +74,12 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 
 			var items []CartItemResponse
 			var total float64
+			var hasExceededItems bool
 
 			for rows.Next() {
 					var item CartItemResponse
+					var availableQuantity int
+					
 					err := rows.Scan(
 							&item.ID,
 							&item.ProductID,
@@ -85,6 +89,7 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 							&item.ImagePath,
 							&item.SizeID,
 							&item.Size,
+							&availableQuantity,
 					)
 					if err != nil {
 							c.JSON(http.StatusInternalServerError, gin.H{
@@ -93,6 +98,23 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 							})
 							return
 					}
+
+					// Проверяем доступное количество
+					if item.Quantity > availableQuantity {
+							item.Quantity = availableQuantity
+							hasExceededItems = true
+							
+							_, err = db.Exec("UPDATE cart_item SET quantity = $1 WHERE id = $2", 
+									availableQuantity, item.ID)
+							if err != nil {
+									c.JSON(http.StatusInternalServerError, gin.H{
+											"error": "Ошибка при обновлении количества товара",
+											"details": err.Error(),
+									})
+									return
+							}
+					}
+
 					items = append(items, item)
 					total += item.Price * float64(item.Quantity)
 			}
@@ -101,6 +123,15 @@ func GetCart(db *sql.DB) gin.HandlerFunc {
 					c.JSON(http.StatusInternalServerError, gin.H{
 							"error": "Ошибка при обработке результатов",
 							"details": err.Error(),
+					})
+					return
+			}
+
+			if hasExceededItems {
+					c.JSON(http.StatusOK, gin.H{
+							"items": items,
+							"total": total,
+							"warning": "Количество некоторых товаров было уменьшено до доступного количества",
 					})
 					return
 			}
@@ -265,6 +296,24 @@ func UpdateCartProduct(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
+			// Получаем актуальное количество товара в базе
+			var availableQuantity int
+			err = db.QueryRow("SELECT quantity FROM product_sizes WHERE product_id = $1 AND size_id = $2",
+					productID, itemReq.SizeID).Scan(&availableQuantity)
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get available quantity"})
+					return
+			}
+
+			// Проверяем, можно ли установить запрошенное количество
+			if itemReq.Quantity > availableQuantity {
+					c.JSON(http.StatusBadRequest, gin.H{
+							"error":   "Not enough stock available",
+							"max_qty": availableQuantity,
+					})
+					return
+			}
+
 			// Обновляем количество
 			result, err := db.Exec(
 					"UPDATE cart_item SET quantity = $1 WHERE cart_id = $2 AND product_id = $3 AND size_id = $4",
@@ -289,6 +338,7 @@ func UpdateCartProduct(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusOK, gin.H{"message": "Cart item updated"})
 	}
 }
+
 
 func ClearCart(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {

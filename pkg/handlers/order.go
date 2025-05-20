@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,10 @@ type OrderItem struct {
 }
 
 type OrderRequest struct {
-	UserID int `json:"user_id" uri:"userId" binding:"required"`
+	Address         string `json:"address"`
+	City           string `json:"city"`
+	Notes          string `json:"notes"`
+	PaymentProvider  string `json:"payment_provider"`
 }
 
 func PostOrder(db *sql.DB) gin.HandlerFunc {
@@ -43,6 +47,13 @@ func PostOrder(db *sql.DB) gin.HandlerFunc {
 		userID, err := strconv.Atoi(c.Param("userId"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+
+		// Парсим данные заказа
+		var orderReq OrderRequest
+		if err := c.ShouldBindJSON(&orderReq); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 			return
 		}
 
@@ -138,11 +149,17 @@ func PostOrder(db *sql.DB) gin.HandlerFunc {
 
 		// 3. Создаем заказ
 		var orderID int
+		// Проверяем, что выбран допустимый метод оплаты
+		if orderReq.PaymentProvider != "cash" && orderReq.PaymentProvider != "card" {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid payment method. Only 'cash' or 'card' allowed"})
+				return
+		}
+
 		err = tx.QueryRow(`
-			INSERT INTO orders (user_id, total, payment_provider, payment_status)
-			VALUES ($1, $2, 'online', 'pending')
-			RETURNING id
-		`, userID, totalAmount).Scan(&orderID)
+				INSERT INTO orders (user_id, total, payment_provider, address, city, notes)
+				VALUES ($1, $2, $3, $4, $5, $6)
+				RETURNING id
+		`, userID, totalAmount, orderReq.PaymentProvider, orderReq.Address, orderReq.City, orderReq.Notes).Scan(&orderID)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create order"})
@@ -205,13 +222,150 @@ func PostOrder(db *sql.DB) gin.HandlerFunc {
 }
 
 
+func CancelOrder(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Начинаем транзакцию
+		tx, err := db.Begin()
+		if err != nil {
+			log.Printf("Failed to start transaction: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+			return
+		}
+		defer func() {
+			if err != nil {
+				log.Printf("Rolling back transaction due to error: %v", err)
+				tx.Rollback()
+			}
+		}()
+
+		// Парсим параметры пути
+		userID, err := strconv.Atoi(c.Param("userId"))
+		if err != nil {
+			log.Printf("Invalid user ID: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+			return
+		}
+		orderID, err := strconv.Atoi(c.Param("orderId"))
+		if err != nil {
+			log.Printf("Invalid order ID: %v", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+			return
+		}
+
+		// Проверяем, что заказ существует и статус "pending"
+		var orderStatus string
+		err = tx.QueryRow(`SELECT status FROM orders WHERE id = $1 AND user_id = $2`, orderID, userID).Scan(&orderStatus)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				log.Printf("Order not found: orderID=%d, userID=%d", orderID, userID)
+				c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+			} else {
+				log.Printf("Database error when checking order status: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+			}
+			return
+		}
+		if orderStatus != "pending" {
+			log.Printf("Attempt to cancel non-pending order: orderID=%d, status=%s", orderID, orderStatus)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Only pending orders can be cancelled"})
+			return
+		}
+
+		// Получаем все позиции заказа для восстановления запасов
+		rows, err := tx.Query(`
+			SELECT product_id, size_id, quantity FROM order_item WHERE order_id = $1
+		`, orderID)
+		if err != nil {
+			log.Printf("Failed to get order items: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get order items"})
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var productID, sizeID, quantity int
+			if err := rows.Scan(&productID, &sizeID, &quantity); err != nil {
+				log.Printf("Failed to scan order item: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan order item"})
+				return
+			}
+
+			// Восстанавливаем запас товара на складе
+			var currentQty int
+err = tx.QueryRow(`
+    SELECT quantity FROM product_sizes 
+    WHERE product_id = $1 AND size_id = $2
+    FOR UPDATE`, productID, sizeID).Scan(&currentQty)
+
+if err != nil {
+    if errors.Is(err, sql.ErrNoRows) {
+        // Если записи нет, создаем новую
+        _, err = tx.Exec(`
+            INSERT INTO product_sizes (product_id, size_id, quantity)
+            VALUES ($1, $2, $3)`,
+            productID, sizeID, quantity)
+    } else {
+        log.Printf("Failed to get current quantity: productID=%d, sizeID=%d, error=%v", 
+            productID, sizeID, err)
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "error": fmt.Sprintf("Database error for product_id=%d, size_id=%d", 
+                productID, sizeID)})
+        return
+    }
+} else {
+    // Обновляем существующую запись
+    _, err = tx.Exec(`
+        UPDATE product_sizes
+        SET quantity = quantity + $1
+        WHERE product_id = $2 AND size_id = $3`,
+        quantity, productID, sizeID)
+}
+			if err != nil {
+				log.Printf("Failed to restore stock: productID=%d, sizeID=%d, error=%v", productID, sizeID, err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to restore stock for product_id=%d, size_id=%d", productID, sizeID)})
+				return
+			}
+		}
+
+		// Обновляем статус заказа на "cancelled"
+		_, err = tx.Exec(`
+			UPDATE orders
+			SET status = 'cancelled'
+			WHERE id = $1
+		`, orderID)
+		if err != nil {
+			log.Printf("Failed to update order status: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order status"})
+			return
+		}
+
+		// Фиксируем транзакцию
+		err = tx.Commit()
+		if err != nil {
+			log.Printf("Failed to commit transaction: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+			return
+		}
+
+		log.Printf("Order cancelled successfully: orderID=%d, userID=%d", orderID, userID)
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "Order cancelled successfully",
+			"order_id": orderID,
+		})
+	}
+}
+
 
 type Order struct {
-	ID            int     `json:"id"`
-	UserID        int     `json:"user_id"`
-	Total         float64 `json:"total"`
-	PaymentStatus string  `json:"payment_status"`
-	CreatedAt     string  `json:"created_at"`
+	ID             int       `json:"id"`
+	UserID         int       `json:"user_id"`
+	Total          float64   `json:"total"`
+	PaymentMethod  string    `json:"payment_method"`
+	Address        string    `json:"address"`
+	City           string    `json:"city"`
+	Notes          string    `json:"notes"`
+	CreatedAt      time.Time `json:"created_at"`
+	Status         string    `json:"status"`
 }
 
 type OrderItemDetail struct {
@@ -222,52 +376,59 @@ type OrderItemDetail struct {
 	PriceAtPurchase float64 `json:"price_at_purchase"`
 }
 
-// GetOrders returns a list of a user's orders
 func GetOrders(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, err := strconv.Atoi(c.Param("userId"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-			return
-		}
-
-		rows, err := db.Query(`
-			SELECT 
-				id, 
-				user_id, 
-				total, 
-				payment_status, 
-				created_at 
-			FROM orders 
-			WHERE user_id = $1 
-			ORDER BY created_at DESC
-		`, userID)
-		if err != nil {
-			log.Printf("Database error: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-			return
-		}
-		defer rows.Close()
-
-		var orders []Order
-		for rows.Next() {
-			var order Order
-			err := rows.Scan(
-				&order.ID,
-				&order.UserID,
-				&order.Total,
-				&order.PaymentStatus,
-				&order.CreatedAt,
-			)
+			userID, err := strconv.Atoi(c.Param("userId"))
 			if err != nil {
-				log.Printf("Failed to scan order: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan order"})
-				return
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+					return
 			}
-			orders = append(orders, order)
-		}
 
-		c.JSON(http.StatusOK, gin.H{"orders": orders})
+			rows, err := db.Query(`
+					SELECT 
+							id, 
+							user_id, 
+							total, 
+							payment_provider, 
+							address,
+							city,
+							notes,
+							created_at,
+							status 
+					FROM orders 
+					WHERE user_id = $1 
+					ORDER BY created_at DESC
+			`, userID)
+			if err != nil {
+					log.Printf("Database error: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+					return
+			}
+			defer rows.Close()
+
+			var orders []Order
+			for rows.Next() {
+					var order Order
+					err := rows.Scan(
+							&order.ID,
+							&order.UserID,
+							&order.Total,
+							&order.PaymentMethod,
+							&order.Address,
+							&order.City,
+							&order.Notes,
+							&order.CreatedAt,
+							&order.Status, // Добавьте это сканирование
+					)
+					if err != nil {
+							log.Printf("Failed to scan order: %v", err)
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan order"})
+							return
+					}
+					orders = append(orders, order)
+			}
+
+			c.JSON(http.StatusOK, gin.H{"orders": orders})
 	}
 }
 
@@ -288,22 +449,30 @@ func GetOrderDetails(db *sql.DB) gin.HandlerFunc {
 
 		// Fetch order info
 		var order Order
-		err = db.QueryRow(`
-			SELECT 
-				id, 
-				user_id, 
-				total, 
-				payment_status, 
-				created_at 
-			FROM orders 
-			WHERE id = $1 AND user_id = $2
-		`, orderID, userID).Scan(
-			&order.ID,
-			&order.UserID,
-			&order.Total,
-			&order.PaymentStatus,
-			&order.CreatedAt,
-		)
+        err = db.QueryRow(`
+            SELECT 
+                id, 
+                user_id, 
+                total, 
+                payment_provider,
+                address,
+                city,
+                notes,
+                created_at,
+                status 
+            FROM orders 
+            WHERE id = $1 AND user_id = $2
+        `, orderID, userID).Scan(
+            &order.ID,
+            &order.UserID,
+            &order.Total,
+            &order.PaymentMethod,
+            &order.Address,
+            &order.City,
+            &order.Notes,
+            &order.CreatedAt,
+            &order.Status, // Добавьте это сканирование
+        )
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
@@ -393,8 +562,14 @@ func GetOrderDetails(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-// CancelOrder cancels an order and returns items to stock
-func CancelOrder(db *sql.DB) gin.HandlerFunc {
+
+
+// CancelOrder cancels an order, returns items to stock, and deletes records
+
+
+
+// RemoveOrderItem removes a specific item from an order
+func RemoveOrderItem(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := strconv.Atoi(c.Param("userId"))
 		if err != nil {
@@ -405,6 +580,18 @@ func CancelOrder(db *sql.DB) gin.HandlerFunc {
 		orderID, err := strconv.Atoi(c.Param("orderId"))
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+			return
+		}
+
+		productID, err := strconv.Atoi(c.Param("productId"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+			return
+		}
+
+		sizeID, err := strconv.Atoi(c.Param("sizeId"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid size ID"})
 			return
 		}
 
@@ -421,77 +608,106 @@ func CancelOrder(db *sql.DB) gin.HandlerFunc {
 			}
 		}()
 
-		// Check order status
-		var paymentStatus string
+		// Check if order exists and belongs to user
+		var exists bool
 		err = tx.QueryRow(`
-			SELECT payment_status 
-			FROM orders 
-			WHERE id = $1 AND user_id = $2
-		`, orderID, userID).Scan(&paymentStatus)
+			SELECT EXISTS(
+				SELECT 1 FROM orders 
+				WHERE id = $1 AND user_id = $2
+			)
+		`, orderID, userID).Scan(&exists)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
-			} else {
-				log.Printf("Database error checking order status: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-			}
+			log.Printf("Database error checking order: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 			return
 		}
 
-		if paymentStatus == "completed" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot cancel already completed order"})
-			return
-		}
-		if paymentStatus == "refunded" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Order already cancelled"})
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
 			return
 		}
 
-		// Fetch order items to return to stock
-		rows, err := tx.Query(`
-			SELECT product_id, size_id, quantity 
+		// Check if the item exists in the order and get its quantity and price
+		var quantity int
+		var priceAtPurchase float64
+		err = tx.QueryRow(`
+			SELECT quantity, price_at_purchase
 			FROM order_item 
-			WHERE order_id = $1
-		`, orderID)
-		if err != nil {
-			log.Printf("Failed to get order items: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get order items"})
+			WHERE order_id = $1 AND product_id = $2 AND size_id = $3
+		`, orderID, productID, sizeID).Scan(&quantity, &priceAtPurchase)
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found in order"})
 			return
 		}
-		defer rows.Close()
-
-		for rows.Next() {
-			var productID, sizeID, quantity int
-			err := rows.Scan(&productID, &sizeID, &quantity)
-			if err != nil {
-				log.Printf("Failed to scan order item: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to scan order item"})
-				return
-			}
-
-			// Return items to stock
-			_, err = tx.Exec(`
-				UPDATE product_sizes 
-				SET quantity = quantity + $1 
-				WHERE product_id = $2 AND size_id = $3
-			`, quantity, productID, sizeID)
-			if err != nil {
-				log.Printf("Failed to return items to stock: %v", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to return items to stock"})
-				return
-			}
+		if err != nil {
+			log.Printf("Failed to get order item: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get order item"})
+			return
 		}
 
-		// Update order status
+		// Return item quantity to stock
+		_, err = tx.Exec(`
+			UPDATE product_sizes 
+			SET quantity = quantity + $1 
+			WHERE product_id = $2 AND size_id = $3
+		`, quantity, productID, sizeID)
+		if err != nil {
+			log.Printf("Failed to return item to stock: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to return item to stock"})
+			return
+		}
+
+		// Delete the item from order_item
+		_, err = tx.Exec(`
+			DELETE FROM order_item 
+			WHERE order_id = $1 AND product_id = $2 AND size_id = $3
+		`, orderID, productID, sizeID)
+		if err != nil {
+			log.Printf("Failed to delete order item: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete order item"})
+			return
+		}
+
+		// Update order total
 		_, err = tx.Exec(`
 			UPDATE orders 
-			SET payment_status = 'refunded' 
+			SET total = (
+				SELECT COALESCE(SUM(quantity * price_at_purchase), 0)
+				FROM order_item 
+				WHERE order_id = $1
+			)
 			WHERE id = $1
 		`, orderID)
 		if err != nil {
-			log.Printf("Failed to cancel order: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cancel order"})
+			log.Printf("Failed to update order total: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order total"})
 			return
+		}
+
+		// Check if order is empty
+		var itemCount int
+		err = tx.QueryRow(`
+			SELECT COUNT(*) 
+			FROM order_item 
+			WHERE order_id = $1
+		`, orderID).Scan(&itemCount)
+		if err != nil {
+			log.Printf("Failed to check order items: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check order items"})
+			return
+		}
+
+		// If order is empty, delete it
+		if itemCount == 0 {
+			_, err = tx.Exec(`
+				DELETE FROM orders 
+				WHERE id = $1
+			`, orderID)
+			if err != nil {
+				log.Printf("Failed to delete empty order: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete empty order"})
+				return
+			}
 		}
 
 		// Commit transaction
@@ -502,6 +718,6 @@ func CancelOrder(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Order cancelled successfully"})
+		c.JSON(http.StatusOK, gin.H{"message": "Item removed from order successfully"})
 	}
 }

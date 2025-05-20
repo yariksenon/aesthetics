@@ -129,7 +129,10 @@ CREATE TABLE IF NOT EXISTS orders (
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     total DECIMAL(10, 2) NOT NULL,
     payment_provider VARCHAR(100),
-    payment_status VARCHAR(50) CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')),
+    address VARCHAR(255),
+    city VARCHAR(100),
+    notes TEXT,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT NOW()
 );
 

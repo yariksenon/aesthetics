@@ -187,6 +187,8 @@ const AdminProductAdd = () => {
 							onError={message => showNotification('error', 'Ошибка', message)}
 						/>
 
+						<SizeQuantity form={form} />
+
 						<Color />
 						<SKU />
 						<Price />
@@ -199,8 +201,6 @@ const AdminProductAdd = () => {
 							handlePrimaryImageChange={handlePrimaryImageChange}
 							handleAltTextChange={handleAltTextChange}
 						/>
-
-						<SizeQuantity form={form} />
 
 						<Form.Item>
 							<Button

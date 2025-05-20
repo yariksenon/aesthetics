@@ -21,6 +21,7 @@ import {
 	Rate,
 	Avatar,
 	Divider,
+	Tooltip,
 } from 'antd'
 import {
 	ShoppingCartOutlined,
@@ -31,10 +32,10 @@ import {
 	InfoCircleOutlined,
 	UpOutlined,
 	DownOutlined,
+	CopyOutlined,
 } from '@ant-design/icons'
 
 const { Title, Text, Paragraph, Link } = Typography
-const { Panel } = Collapse
 const { TextArea } = Input
 
 const ProductAbout = () => {
@@ -264,6 +265,20 @@ const ProductAbout = () => {
 		}
 	}
 
+	const handleCopyArticle = () => {
+		if (product?.sku) {
+			navigator.clipboard
+				.writeText(product.sku)
+				.then(() => {
+					message.success('Артикул скопирован в буфер обмена')
+				})
+				.catch(err => {
+					console.error('Failed to copy article: ', err)
+					message.error('Не удалось скопировать артикул')
+				})
+		}
+	}
+
 	const getImageUrl = path => {
 		return path ? `http://localhost:8080/static/${path}` : ''
 	}
@@ -280,12 +295,10 @@ const ProductAbout = () => {
 							<Paragraph>{product.summary}</Paragraph>
 						</>
 					)}
-
 					<Title level={4}>Описание товара</Title>
 					<Paragraph>
 						{product?.description || 'Описание отсутствует'}
 					</Paragraph>
-
 					{product?.features && (
 						<>
 							<Title level={4}>Характеристики</Title>
@@ -311,7 +324,6 @@ const ProductAbout = () => {
 					<Paragraph>
 						Общее количество: {calculateTotalQuantity()} шт.
 					</Paragraph>
-
 					{product?.sizes?.length > 0 ? (
 						<List
 							dataSource={product.sizes}
@@ -380,9 +392,7 @@ const ProductAbout = () => {
 							</Button>
 						</Form.Item>
 					</Form>
-
 					<Divider />
-
 					<Title level={4}>Отзывы покупателей</Title>
 					{reviews.length === 0 ? (
 						<Paragraph>Отзывы отсутствуют</Paragraph>
@@ -404,9 +414,11 @@ const ProductAbout = () => {
 											<>
 												<Paragraph>{review.content}</Paragraph>
 												<Text type='secondary'>
-													{new Date(review.created_at).toLocaleDateString(
-														'ru-RU'
-													)}
+													{review.created_at
+														? new Date(review.created_at).toLocaleDateString(
+																'ru-RU'
+														  )
+														: 'Дата неизвестна'}
 												</Text>
 											</>
 										}
@@ -492,7 +504,6 @@ const ProductAbout = () => {
 										</div>
 									))}
 								</div>
-
 								{product.images.length > 2 && (
 									<div className='grid grid-cols-3 gap-4 w-full min-h-[300px]'>
 										{product.images.slice(2, 5).map((img, idx) => (
@@ -515,7 +526,6 @@ const ProductAbout = () => {
 										))}
 									</div>
 								)}
-
 								{product.images.length > 5 && (
 									<div className='mt-4 text-center w-full'>
 										<Text type='secondary'>
@@ -531,53 +541,56 @@ const ProductAbout = () => {
 						)}
 					</div>
 				</Col>
-
 				<Col xs={24} md={8} lg={8}>
 					<div className='space-y-6'>
-						<div>
-							{reviews.length > 0 && (
-								<div className='flex items-center'>
-									<Rate
-										disabled
-										allowHalf
-										value={parseFloat(calculateAverageRating())}
-										className='text-sm mr-2 text-black'
-									/>
-									<Text>{reviews.length} отзыва</Text>
-								</div>
-							)}
-
-							{product.brand?.name && (
-								<Title level={4} className='!mb-1 text-gray-600'>
-									{product.brand.name}
-								</Title>
-							)}
-
-							<Title level={2} className='!mb-2'>
-								{product.name}
-							</Title>
-
-							<div className='flex items-center space-x-4'>
-								<Tag color={calculateTotalQuantity() > 0 ? 'green' : 'red'}>
-									{calculateTotalQuantity() > 0
-										? `В наличии (${calculateTotalQuantity()} шт.)`
-										: 'Нет в наличии'}
-								</Tag>
+						{reviews.length > 0 && (
+							<div className='flex items-center'>
+								<Rate
+									disabled
+									allowHalf
+									value={parseFloat(calculateAverageRating())}
+									className='text-sm mr-2 text-black'
+								/>
+								<Text>{reviews.length} отзыва</Text>
 							</div>
+						)}
+						{product.brand?.name && (
+							<Title level={4} className='!mb-1 text-gray-600'>
+								{product.brand.name}
+							</Title>
+						)}
+						<Title level={2} className='!mb-2'>
+							{product.name}
+						</Title>
+						<div className='flex items-center space-x-4'>
+							<Tag color={calculateTotalQuantity() > 0 ? 'green' : 'red'}>
+								{calculateTotalQuantity() > 0
+									? `В наличии (${calculateTotalQuantity()} шт.)`
+									: 'Нет в наличии'}
+							</Tag>
 						</div>
-
+						{product.sku && (
+							<div className='mt-2 flex items-center'>
+								<Text>{product.sku}</Text>
+								<Tooltip title='Скопировать артикул'>
+									<Button
+										type='link'
+										icon={<CopyOutlined />}
+										onClick={handleCopyArticle}
+									/>
+								</Tooltip>
+							</div>
+						)}
 						<div className='bg-gray-50 p-4 rounded-lg'>
 							<Title level={3} className='!mb-0 !text-2xl'>
 								{product.price?.toLocaleString('ru-RU')} BYN
 							</Title>
-
 							{product.old_price && (
 								<Text delete type='secondary' className='ml-2'>
 									{product.old_price.toLocaleString('ru-RU')} BYN
 								</Text>
 							)}
 						</div>
-
 						{product.sizes?.length > 0 && (
 							<Collapse
 								bordered={false}
@@ -585,62 +598,64 @@ const ProductAbout = () => {
 									isActive ? <UpOutlined /> : <DownOutlined />
 								}
 								className='bg-white'
-							>
-								<Panel
-									header={
-										<Title level={4} className='!mb-0'>
-											Размеры
-										</Title>
-									}
-									key='sizes'
-									extra={
-										selectedSize && (
+								items={[
+									{
+										key: 'sizes',
+										label: (
+											<Title level={4} className='!mb-0'>
+												Размеры
+											</Title>
+										),
+										extra: selectedSize && (
 											<Text strong>Выбрано: {selectedSize.size}</Text>
-										)
-									}
-								>
-									<Button
-										type='link'
-										icon={<InfoCircleOutlined />}
-										className='!p-0 !h-auto'
-										onClick={() => setActiveTab('sizes')}
-									>
-										Таблица размеров
-									</Button>
-
-									<div className='grid grid-cols-4 gap-2 mt-4'>
-										{product.sizes.map(size => (
-											<Button
-												key={size.id}
-												shape='round'
-												type={
-													selectedSize?.id === size.id ? 'primary' : 'default'
-												}
-												disabled={size.quantity === 0}
-												onClick={e => {
-													e.stopPropagation()
-													setSelectedSize(size)
-												}}
-												className={`relative ${
-													size.quantity === 0 ? 'opacity-50' : ''
-												}`}
-											>
-												{size.size}
-												{selectedSize?.id === size.id && (
-													<CheckOutlined className='absolute -top-1 -right-1 text-xs bg-white text-green-500 rounded-full p-1' />
-												)}
-												{size.quantity === 0 && (
-													<span className='absolute -bottom-5 text-xs text-gray-500'>
-														Нет в наличии
-													</span>
-												)}
-											</Button>
-										))}
-									</div>
-								</Panel>
-							</Collapse>
+										),
+										children: (
+											<>
+												<Button
+													type='link'
+													icon={<InfoCircleOutlined />}
+													className='!p-0 !h-auto'
+													onClick={() => setActiveTab('sizes')}
+												>
+													Таблица размеров
+												</Button>
+												<div className='grid grid-cols-4 gap-2 mt-4'>
+													{product.sizes.map(size => (
+														<Button
+															key={size.id}
+															shape='round'
+															type={
+																selectedSize?.id === size.id
+																	? 'primary'
+																	: 'default'
+															}
+															disabled={size.quantity === 0}
+															onClick={e => {
+																e.stopPropagation()
+																setSelectedSize(size)
+															}}
+															className={`relative ${
+																size.quantity === 0 ? 'opacity-50' : ''
+															}`}
+														>
+															{size.size}
+															{selectedSize?.id === size.id && (
+																<CheckOutlined className='absolute -top-1 -right-1 text-xs bg-white text-green-500 rounded-full p-1' />
+															)}
+															{size.quantity === 0 && (
+																<span className='absolute -bottom-5 text-xs text-gray-500'>
+																	Нет в наличии
+																</span>
+															)}
+														</Button>
+													))}
+												</div>
+											</>
+										),
+									},
+								]}
+							/>
 						)}
-
 						<div className='flex flex-col space-y-3'>
 							<Button
 								type='primary'
@@ -658,7 +673,6 @@ const ProductAbout = () => {
 									? 'Добавить в корзину'
 									: 'Нет в наличии'}
 							</Button>
-
 							<div className='flex space-x-3'>
 								<Button
 									icon={
@@ -676,7 +690,6 @@ const ProductAbout = () => {
 										? 'В избранном'
 										: 'В избранное'}
 								</Button>
-
 								<Button
 									icon={<ShareAltOutlined />}
 									onClick={handleShare}
@@ -689,11 +702,9 @@ const ProductAbout = () => {
 					</div>
 				</Col>
 			</Row>
-
 			<div className='mt-12'>
 				<Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 			</div>
-
 			{product.images?.length > 0 && (
 				<Image.PreviewGroup
 					preview={{

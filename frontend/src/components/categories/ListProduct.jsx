@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Card, Button, Spin, Empty, message, Pagination } from 'antd'
 import { HeartOutlined, HeartFilled } from '@ant-design/icons'
 
 const ProductList = ({ filters = {} }) => {
-	const [products, setProducts] = useState([])
+	const [allProducts, setAllProducts] = useState([])
+	const [filteredProducts, setFilteredProducts] = useState([])
 	const [loading, setLoading] = useState(true)
+	const [reloadLoading, setReloadLoading] = useState(false)
 	const [pagination, setPagination] = useState({
 		total: 0,
 		current: 1,
@@ -16,25 +18,156 @@ const ProductList = ({ filters = {} }) => {
 	const [processingFavorites, setProcessingFavorites] = useState([])
 	const [hoverImageIndex, setHoverImageIndex] = useState({})
 	const [hoveredProduct, setHoveredProduct] = useState(null)
+	const prevCategoryRef = useRef(localStorage.getItem('category'))
+	const prevMenuItemRef = useRef(localStorage.getItem('activeMenuItem'))
+
 	const navigate = useNavigate()
 	const location = useLocation()
-
 	const userId = localStorage.getItem('userId')
 
-	const fetchProducts = async (current = 1, pageSize = 12) => {
+	const getActiveGender = menuItem => {
+		switch (menuItem) {
+			case 'children':
+				return 'kids'
+			case 'man':
+				return 'men'
+			case 'woman':
+				return 'women'
+			default:
+				return null
+		}
+	}
+
+	// Функция фильтрации товаров
+	const applyFilters = (products, filters) => {
+		let filtered = [...products]
+
+		// Фильтр по цвету
+		if (filters.colors?.length > 0) {
+			filtered = filtered.filter(product =>
+				filters.colors.includes(product.color?.toLowerCase())
+			)
+		}
+
+		// Фильтр по ценовому диапазону
+		if (filters.priceRange?.min || filters.priceRange?.max) {
+			filtered = filtered.filter(
+				product =>
+					product.price >= filters.priceRange.min &&
+					product.price <= filters.priceRange.max
+			)
+		}
+
+		// Фильтр по наличию
+		if (filters.availability) {
+			filtered = filtered.filter(product => {
+				if (filters.availability === 'in-stock') {
+					return product.sizes?.some(size => size.quantity > 0)
+				}
+				if (filters.availability === 'pre-order') {
+					return product.sizes?.every(size => size.quantity === 0)
+				}
+				return true
+			})
+		}
+
+		// Сортировка
+		if (filters.sortBy) {
+			filtered.sort((a, b) => {
+				if (filters.sortBy === 'price-asc') {
+					return a.price - b.price
+				}
+				if (filters.sortBy === 'price-desc') {
+					return b.price - a.price
+				}
+				return 0 // default
+			})
+		}
+
+		return filtered
+	}
+
+	// Применение фильтра по категории
+	const applyCategoryFilter = (productsList, category) => {
+		let filtered = [...productsList]
+
+		if (category && category !== 'undefined') {
+			filtered = filtered.filter(product =>
+				product.category.toLowerCase().includes(category.toLowerCase())
+			)
+		}
+
+		// Применяем фильтры из пропса
+		filtered = applyFilters(filtered, filters)
+
+		setFilteredProducts(filtered)
+		setPagination(prev => ({
+			...prev,
+			total: filtered.length,
+			current: 1,
+		}))
+	}
+
+	const checkLocalStorageChanges = () => {
+		const currentCategory = localStorage.getItem('category')
+		const currentMenuItem = localStorage.getItem('activeMenuItem')
+
+		if (currentCategory !== prevCategoryRef.current) {
+			prevCategoryRef.current = currentCategory
+			localStorage.setItem('isReloading', 'true')
+			applyCategoryFilter(allProducts, currentCategory)
+			window.location.reload()
+		}
+
+		if (currentMenuItem !== prevMenuItemRef.current) {
+			prevMenuItemRef.current = currentMenuItem
+			fetchProducts(1, pagination.pageSize, currentMenuItem)
+		}
+	}
+
+	const fetchProducts = async (
+		current = 1,
+		pageSize = 12,
+		menuItem = prevMenuItemRef.current
+	) => {
 		setLoading(true)
 		try {
 			let url = `http://localhost:8080/api/v1/products?page=${current}&limit=${pageSize}`
-			if (filters.category_id) url += `&category_id=${filters.category_id}`
-			if (filters.sub_category_id)
-				url += `&sub_category_id=${filters.sub_category_id}`
-			if (filters.gender) url += `&gender=${filters.gender}`
+
+			const activeGender = getActiveGender(menuItem)
+			if (activeGender) {
+				url += `&gender=${activeGender}`
+			}
+
+			const currentCategory = localStorage.getItem('category')
+			if (currentCategory && currentCategory !== 'undefined') {
+				url += `&category_name=${encodeURIComponent(currentCategory)}`
+			}
+
+			// Добавляем фильтры в запрос, если API их поддерживает
+			if (filters.colors?.length > 0) {
+				url += `&colors=${filters.colors.join(',')}`
+			}
+			if (filters.priceRange?.min) {
+				url += `&min_price=${filters.priceRange.min}`
+			}
+			if (filters.priceRange?.max) {
+				url += `&max_price=${filters.priceRange.max}`
+			}
+			if (filters.availability) {
+				url += `&availability=${filters.availability}`
+			}
+			if (filters.sortBy) {
+				url += `&sort_by=${filters.sortBy}`
+			}
 
 			const response = await fetch(url)
 			if (!response.ok) throw new Error('Не удалось загрузить товары')
 
 			const data = await response.json()
-			setProducts(data.products || [])
+			setAllProducts(data.products || [])
+			applyCategoryFilter(data.products || [], currentCategory)
+
 			setPagination({
 				total: data.pagination?.total || 0,
 				current: data.pagination?.page || 1,
@@ -45,6 +178,12 @@ const ProductList = ({ filters = {} }) => {
 			message.error(error.message)
 		} finally {
 			setLoading(false)
+			if (localStorage.getItem('isReloading') === 'true') {
+				setTimeout(() => {
+					localStorage.removeItem('isReloading')
+					setReloadLoading(false)
+				}, 500)
+			}
 		}
 	}
 
@@ -64,11 +203,34 @@ const ProductList = ({ filters = {} }) => {
 		}
 	}
 
+	const handlePageChange = (current, pageSize) => {
+		fetchProducts(current, pageSize)
+	}
+
 	useEffect(() => {
+		if (localStorage.getItem('isReloading') === 'true') {
+			setReloadLoading(true)
+		}
+
 		fetchProducts()
 		fetchFavorites()
-	}, [location.search, filters])
 
+		const handleStorageChange = e => {
+			if (e.key === 'category' || e.key === 'activeMenuItem') {
+				checkLocalStorageChanges()
+			}
+		}
+
+		window.addEventListener('storage', handleStorageChange)
+		const interval = setInterval(checkLocalStorageChanges, 500)
+
+		return () => {
+			window.removeEventListener('storage', handleStorageChange)
+			clearInterval(interval)
+		}
+	}, [location.search, filters]) // Добавляем filters в зависимости
+
+	// Остальной код (обработчики событий, рендер) остается без изменений
 	const handleFavoriteClick = async (productId, e) => {
 		e.stopPropagation()
 		if (!userId) {
@@ -97,10 +259,6 @@ const ProductList = ({ filters = {} }) => {
 		}
 	}
 
-	const handlePageChange = (current, pageSize) => {
-		fetchProducts(current, pageSize)
-	}
-
 	const handleMouseMove = (e, product) => {
 		const card = e.currentTarget
 		const rect = card.getBoundingClientRect()
@@ -127,6 +285,29 @@ const ProductList = ({ filters = {} }) => {
 		}))
 	}
 
+	// Рендер (без изменений)
+	if (reloadLoading) {
+		return (
+			<div
+				style={{
+					display: 'flex',
+					justifyContent: 'center',
+					alignItems: 'center',
+					height: '100vh',
+					backgroundColor: 'rgba(255, 255, 255, 0.8)',
+					position: 'fixed',
+					top: 0,
+					left: 0,
+					right: 0,
+					bottom: 0,
+					zIndex: 1000,
+				}}
+			>
+				<Spin size='large' tip='Обновление категории...' />
+			</div>
+		)
+	}
+
 	if (loading) {
 		return (
 			<div
@@ -138,21 +319,72 @@ const ProductList = ({ filters = {} }) => {
 		)
 	}
 
-	if (!products.length) {
+	if (!filteredProducts.length) {
+		const currentCategory = localStorage.getItem('category')
 		return (
-			<Empty
-				description={
-					<>
-						<p>Товары не найдены</p>
-						<p style={{ color: '#999' }}>
-							Попробуйте изменить параметры фильтрации
-						</p>
-						<Button type='primary' onClick={() => navigate(-1)}>
-							Вернуться назад
-						</Button>
-					</>
-				}
-			/>
+			<div
+				style={{
+					display: 'flex',
+					flexDirection: 'column',
+					alignItems: 'center',
+					justifyContent: 'center',
+					height: '60vh',
+					textAlign: 'center',
+					padding: '0 20px',
+				}}
+			>
+				<div style={{ marginBottom: 24 }}>
+					<svg
+						width='64'
+						height='64'
+						viewBox='0 0 24 24'
+						fill='none'
+						xmlns='http://www.w3.org/2000/svg'
+					>
+						<path
+							d='M4 7V5C4 4.44772 4.44772 4 5 4H19C19.5523 4 20 4.44772 20 5V7'
+							stroke='#888'
+							strokeWidth='2'
+							strokeLinecap='round'
+						/>
+						<path
+							d='M20 7V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V7'
+							stroke='#888'
+							strokeWidth='2'
+							strokeLinecap='round'
+						/>
+						<path
+							d='M9 12L11 14L15 10'
+							stroke='#888'
+							strokeWidth='2'
+							strokeLinecap='round'
+							strokeLinejoin='round'
+						/>
+					</svg>
+				</div>
+				<h3
+					style={{
+						fontSize: '20px',
+						fontWeight: 500,
+						color: '#222',
+						marginBottom: '8px',
+					}}
+				>
+					{currentCategory
+						? `В категории "${currentCategory}" пока нет товаров`
+						: 'Товары не найдены'}
+				</h3>
+				<p
+					style={{
+						fontSize: '16px',
+						color: '#888',
+						maxWidth: '400px',
+						lineHeight: '1.5',
+					}}
+				>
+					Попробуйте изменить параметры фильтрации или загляните к нам позже
+				</p>
+			</div>
 		)
 	}
 
@@ -165,13 +397,12 @@ const ProductList = ({ filters = {} }) => {
 					gap: 16,
 				}}
 			>
-				{products.map(product => {
+				{filteredProducts.map(product => {
 					const isFavorite = favorites.includes(product.id)
 					const isProcessing = processingFavorites.includes(product.id)
 					const currentImageIndex = hoverImageIndex[product.id] || 0
 					const currentImage =
 						product.image_paths?.[currentImageIndex] ||
-						product.primary_image ||
 						'https://placehold.co/600x900'
 
 					const availableSizes =

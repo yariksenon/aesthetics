@@ -1,174 +1,306 @@
-import React, { useState } from 'react';
-import firstProduct from '../../assets/home/ProductCards/ProductCards-1.svg';
-import secondProduct from '../../assets/home/ProductCards/ProductCards-2.svg';
-import thirdProduct from '../../assets/home/ProductCards/ProductCards-3.svg';
-import fourthProduct from '../../assets/home/ProductCards/ProductCards-4.svg';
-import fifthProduct from '../../assets/home/ProductCards/ProductCards-5.svg';
-import sixthProduct from '../../assets/home/ProductCards/ProductCards-6.svg';
-import heart from '../../assets/home/ProductCards/ProductCard-Heart.svg'
-import feelHeart from '../../assets/home/ProductCards/ProductCard-FeelHeart.svg'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Card, Button, Spin, Empty, message } from 'antd'
+import { HeartOutlined, HeartFilled } from '@ant-design/icons'
 
-const products = [
-  {
-    id: 1,
-    name: 'Classic Tee',
-    brand: 'Nike',
-    href: '#',
-    imageSrc: firstProduct,
-    imageAlt: "Front of men's Classic Tee in black.",
-    originalPrice: '275.99',
-    discountedPrice: '234.6',
-    discountPercentage: '-15%',
-  },
-  {
-    id: 2,
-    name: 'Sport Hoodie',
-    brand: 'Adidas',
-    href: '#',
-    imageSrc: secondProduct,
-    imageAlt: "Front of men's Sport Hoodie in gray.",
-    originalPrice: '350.00',
-    discountedPrice: '280.00',
-    discountPercentage: '-20%',
-  },
-  {
-    id: 3,
-    name: 'Casual Shirt',
-    brand: 'Puma',
-    href: '#',
-    imageSrc: thirdProduct,
-    imageAlt: "Front of men's Casual Shirt in blue.",
-    originalPrice: '200.00',
-    discountedPrice: null,
-    discountPercentage: null,
-  },
-  {
-    id: 4,
-    name: 'Running Shoes',
-    brand: 'Reebok',
-    href: '#',
-    imageSrc: fourthProduct,
-    imageAlt: "Pair of Running Shoes in white.",
-    originalPrice: '120.00',
-    discountedPrice: '100.00',
-    discountPercentage: '-17%',
-  },
-  {
-    id: 5,
-    name: 'Winter Jacket',
-    brand: 'TNF',
-    href: '#',
-    imageSrc: fifthProduct,
-    imageAlt: "Front of men's Winter Jacket in green.",
-    originalPrice: '450.00',
-    discountedPrice: '400.00',
-    discountPercentage: '-11%',
-  },
-  {
-    id: 6,
-    name: 'Denim Jeans',
-    brand: 'Levi\'s',
-    href: '#',
-    imageSrc: sixthProduct,
-    imageAlt: "Front of men's Denim Jeans in blue.",
-    originalPrice: '90.00',
-    discountedPrice: null,
-    discountPercentage: null,
-  },
-];
+const ProductCarts = ({ filters = {} }) => {
+	const [products, setProducts] = useState([])
+	const [loading, setLoading] = useState(true)
+	const [favorites, setFavorites] = useState([])
+	const [hoverImageIndex, setHoverImageIndex] = useState({})
+	const [hoveredProduct, setHoveredProduct] = useState(null)
+	const [activeMenuItem, setActiveMenuItem] = useState(
+		localStorage.getItem('activeMenuItem')
+	)
+	const navigate = useNavigate()
+	const userId = localStorage.getItem('userId')
 
+	// Слушаем изменения в localStorage
+	useEffect(() => {
+		const handleStorageChange = e => {
+			if (e.key === 'activeMenuItem') {
+				setActiveMenuItem(e.newValue)
+				fetchProducts(e.newValue) // Передаем новое значение
+			}
+		}
 
-function productCarts() {
-  const [hoveredProductId, setHoveredProductId] = useState(null);
-  const [hoveredHeartId, setHoveredHeartId] = useState(null);
+		window.addEventListener('storage', handleStorageChange)
+		return () => window.removeEventListener('storage', handleStorageChange)
+	}, [])
 
-  return (
-    <>
-      <div className="mt-[15%] lg:mt[10%] xl:mt-[7%]">
-        <div className="grid grid-cols-6 gap-2 overflow-hidden" style={{ maxWidth: '100%' }}>
-          {products.slice(0, 6).map((product) => (
-            <div
-              key={product.id}
-              className="relative group overflow-hidden hover:shadow-lg transition-shadow duration-300"
-              onMouseEnter={() => setHoveredProductId(product.id)}
-              onMouseLeave={() => setHoveredProductId(null)}
-            >
-              {/* Блок с изображением */}
-              <div className='relative overflow-hidden'>
-                <img
-                    alt={product.imageAlt}
-                    src={product.imageSrc}
-                    className="w-full object-cover transition-transform duration-300 transform group-hover:scale-110"
-                  />
+	// Также отслеживаем изменения в текущей вкладке
+	const checkLocalStorageChanges = () => {
+		const currentValue = localStorage.getItem('activeMenuItem')
+		if (currentValue !== activeMenuItem) {
+			setActiveMenuItem(currentValue)
+			fetchProducts(currentValue)
+		}
+	}
 
-                {/* Блок скидки */}
-                {product.discountPercentage && (
-                  <div className="absolute bottom-0 left-0 bg-red-600 px-1 text-white text-[5px] sm:text-xs sm:px-2 md:text-sm lg:text-base lg:px-3">
-                    {product.discountPercentage}
-                  </div>
-                )}
+	// Функция для преобразования activeMenuItem в gender-фильтр
+	const getGenderFilter = menuItem => {
+		switch (menuItem) {
+			case 'children':
+				return 'kids'
+			case 'man':
+				return 'men'
+			case 'woman':
+				return 'women'
+			default:
+				return null
+		}
+	}
 
-                {/* Затемнение при наведении */}
-                <a href="">
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"></div>
-                </a>
+	// Загрузка товаров с учетом фильтров
+	const fetchProducts = async (menuItem = activeMenuItem) => {
+		setLoading(true)
+		try {
+			let url = `http://localhost:8080/api/v1/products?limit=6`
 
-                 {/* Сердечко (появляется при наведении на карточку) */}
-                 {hoveredProductId === product.id && (
-                  <div
-                    className="absolute top-1 right-1 sm:top-2 sm:right-2 cursor-pointer"
-                    onMouseEnter={() => setHoveredHeartId(product.id)}
-                    onMouseLeave={() => setHoveredHeartId(null)}
-                  >
-                    <img
-                      src={hoveredHeartId === product.id ? feelHeart : heart}
-                      alt="heart"
-                      className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6"
-                    />
-                  </div>
-                )}
-              </div>
+			// Добавляем фильтр по полу
+			const genderFilter = getGenderFilter(menuItem)
+			if (genderFilter) {
+				url += `&gender=${genderFilter}`
+			}
 
+			// Добавляем дополнительные фильтры из props
+			if (filters.category_id) url += `&category_id=${filters.category_id}`
+			if (filters.sub_category_id)
+				url += `&sub_category_id=${filters.sub_category_id}`
 
-              {/* Блок с ценой и названием */}
-              <div className='flex justify-between mt-[3%] space-x-0'>
-                {product.discountedPrice ? (
-                  <>
-                    <p className='line-through text-gray-500 text-[6px] xs:text-[8px] sm:text-[9px] md:text-[10px] lg:text-[15px] xl:text-[18px]'>
-                      {product.originalPrice}
-                    </p>
-                    <p className='text-red-600 font-semibold text-[6px] xs:text-[8px] sm:text-[9px] md:text-[10px] lg:text-[15px] xl:text-[18px]'>
-                      {product.discountedPrice} р.
-                    </p>
-                  </>
-                ) : (
-                  <p className='text-gray-900 font-semibold text-[6px] xs:text-[8px] sm:text-[9px] md:text-[10px] lg:textp-[15px] xl:text-[18px]'>
-                    {product.originalPrice} р.
-                  </p>
-                )}
-              </div>
+			const response = await fetch(url)
+			if (!response.ok) throw new Error('Не удалось загрузить товары')
+			const data = await response.json()
+			setProducts(data.products || [])
+		} catch (error) {
+			message.error(error.message)
+		} finally {
+			setLoading(false)
+		}
+	}
 
-              <div className='mt-1 space-y-1'>
-                <p className='text-[5px] xs:text-[7px] sm:text-[8px] md:text-[9px] lg:text-[13px] xl:text-[15px] cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-300'>
-                  {product.brand}
-                </p>
-                <p className='text-[6px] xs:text-[8px] sm:text-[9px] md:text-[10px] lg:text[15px] xl:text-[18px] cursor-pointer text-gray-700 hover:text-gray-900 transition-colors duration-300'>
-                  {product.name}
-                </p>
-              </div>
+	// Загрузка избранного
+	const fetchFavorites = async () => {
+		if (!userId) return
+		try {
+			const response = await fetch(
+				`http://localhost:8080/api/v1/wishlist/${userId}`
+			)
+			if (!response.ok) throw new Error('Не удалось загрузить избранное')
+			const data = await response.json()
+			setFavorites(
+				Array.isArray(data?.items) ? data.items.map(item => item.id) : []
+			)
+		} catch (error) {
+			console.error('Ошибка загрузки избранного:', error.message)
+		}
+	}
 
-              {/* Кнопка "Купить" (появляется при наведении) */}
-              <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden 2xl:block">
-                <button className="bg-black text-white px-3 py-1 text-xs sm:text-sm rounded-full hover:bg-gray-800 transition-colors duration-300">
-                  В корзину
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </>
-  );
+	// Проверка перед действиями, требующими авторизации
+	const checkAuth = () => {
+		if (!userId) {
+			message.error('Для добавления в избранное необходимо войти в аккаунт')
+			navigate('/login')
+			return false
+		}
+		return true
+	}
+
+	// Обработка избранного
+	const handleFavoriteClick = async (productId, e) => {
+		e.stopPropagation()
+		if (!checkAuth()) return
+
+		try {
+			const isFavorite = favorites.includes(productId)
+			const url = `http://localhost:8080/api/v1/wishlist/${userId}/${productId}`
+			const method = isFavorite ? 'DELETE' : 'POST'
+
+			const response = await fetch(url, { method })
+			if (!response.ok) throw new Error('Ошибка при обновлении избранного')
+
+			setFavorites(prev =>
+				isFavorite ? prev.filter(id => id !== productId) : [...prev, productId]
+			)
+			message.success(
+				isFavorite ? 'Товар удалён из избранного' : 'Товар добавлен в избранное'
+			)
+		} catch (error) {
+			message.error(error.message)
+		}
+	}
+
+	// Обработка перемещения мыши для смены изображения
+	const handleMouseMove = (e, product) => {
+		const card = e.currentTarget
+		const rect = card.getBoundingClientRect()
+		const mouseX = e.clientX - rect.left
+		const sectionWidth = rect.width / product.image_paths.length
+		const sectionIndex = Math.floor(mouseX / sectionWidth)
+		const imageCount = product.image_paths?.length || 1
+		const effectiveIndex = Math.min(sectionIndex, imageCount - 1)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[product.id]: effectiveIndex,
+		}))
+	}
+
+	// Загрузка данных при монтировании и при изменении activeMenuItem
+	useEffect(() => {
+		fetchProducts()
+		fetchFavorites()
+
+		// Проверяем изменения каждые 500мс (на случай изменений в текущей вкладке)
+		const interval = setInterval(checkLocalStorageChanges, 500)
+		return () => clearInterval(interval)
+	}, [activeMenuItem])
+
+	if (loading) {
+		return (
+			<div
+				style={{ display: 'flex', justifyContent: 'center', margin: '60px 0' }}
+			>
+				<Spin size='large' />
+				<span style={{ marginLeft: 10 }}>Загрузка товаров...</span>
+			</div>
+		)
+	}
+
+	if (!products.length) {
+		return (
+			<Empty
+				description={`Товары не найдены для категории: ${
+					activeMenuItem || 'все'
+				}`}
+			/>
+		)
+	}
+
+	return (
+		<div
+			style={{
+				display: 'flex',
+				overflowX: 'auto',
+				marginTop: '7%',
+				gap: 16,
+				scrollbarWidth: 'none',
+				msOverflowStyle: 'none',
+			}}
+		>
+			<style>{'::-webkit-scrollbar { display: none; }'}</style>
+
+			{products.map(product => {
+				const isFavorite = favorites.includes(product.id)
+				const currentImageIndex = hoverImageIndex[product.id] || 0
+				const currentImage =
+					product.image_paths?.[currentImageIndex] ||
+					product.primary_image ||
+					'https://placehold.co/600x900'
+
+				return (
+					<div key={product.id} style={{ minWidth: 240, flexShrink: 0 }}>
+						<Card
+							hoverable
+							onClick={() => navigate(`/product/${product.id}`)}
+							bordered={false}
+							onMouseMove={e => handleMouseMove(e, product)}
+							onMouseEnter={() => handleMouseEnter(product.id)}
+							onMouseLeave={() => handleMouseLeave(product.id)}
+							style={{
+								transition: 'all 0.3s',
+								position: 'relative',
+								boxShadow: 'none',
+								width: 240,
+							}}
+							bodyStyle={{ padding: 0 }}
+							cover={
+								<div style={{ position: 'relative', paddingTop: '150%' }}>
+									{hoveredProduct === product.id &&
+										product.image_paths?.length > 1 && (
+											<div
+												style={{
+													position: 'absolute',
+													top: 8,
+													left: '50%',
+													transform: 'translateX(-50%)',
+													display: 'flex',
+													gap: 4,
+													zIndex: 10,
+												}}
+											>
+												{product.image_paths.map((_, index) => (
+													<div
+														key={index}
+														style={{
+															width: 30,
+															height: 4,
+															backgroundColor:
+																index === currentImageIndex ? '#000' : '#ccc',
+														}}
+													/>
+												))}
+											</div>
+										)}
+
+									<img
+										key={currentImage}
+										alt={product.name}
+										src={`http://localhost:8080/static/${currentImage}`}
+										style={{
+											position: 'absolute',
+											top: 0,
+											left: 0,
+											width: '100%',
+											height: '100%',
+											objectFit: 'contain',
+											transition: 'opacity 0.3s ease',
+										}}
+										onError={e => {
+											e.currentTarget.src = 'https://placehold.co/600x900'
+											e.currentTarget.style = {
+												objectFit: 'contain',
+												padding: '16px',
+												backgroundColor: '#f5f5f5',
+											}
+										}}
+									/>
+
+									<Button
+										icon={
+											isFavorite ? (
+												<HeartFilled style={{ color: '#ff4d4f' }} />
+											) : (
+												<HeartOutlined />
+											)
+										}
+										style={{
+											position: 'absolute',
+											top: 8,
+											right: 8,
+											border: 'none',
+										}}
+										onClick={e => handleFavoriteClick(product.id, e)}
+									/>
+								</div>
+							}
+						>
+							<div>
+								<div style={{ fontWeight: 'bold', fontSize: 16 }}>
+									{product.name}
+								</div>
+								<div style={{ fontSize: 14, color: '#666' }}>
+									{product.brand_name || 'Без бренда'}
+								</div>
+								<div style={{ fontWeight: 'bold', fontSize: 16, marginTop: 4 }}>
+									{product.price.toFixed(2)} BYN
+								</div>
+							</div>
+						</Card>
+					</div>
+				)
+			})}
+		</div>
+	)
 }
 
-export default productCarts;
+export default ProductCarts

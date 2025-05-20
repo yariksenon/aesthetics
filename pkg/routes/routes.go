@@ -40,9 +40,14 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		// Orders
 		v1.POST("/orders/:userId", handlers.PostOrder(db))
+
 		v1.GET("/orders/:userId", handlers.GetOrders(db))
 		v1.GET("/orders/:userId/:orderId", handlers.GetOrderDetails(db))
+
 		v1.DELETE("/orders/:userId/:orderId", handlers.CancelOrder(db))
+		
+		
+		v1.DELETE("/orders/:userId/:orderId/items/:productId/:sizeId", handlers.RemoveOrderItem(db))
 
 
 		// Profile
@@ -93,6 +98,9 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		// v1.PUT("/:id", handlers.BrandUpdateProduct(db))    // Обновление товара
 		// v1.DELETE("/:id", handlers.BrandDeleteProduct(db)) // Удаление товара
 
+		// Search
+		v1.GET("/products/sku/:sku", handlers.GetProductBySKU(db))
+		
 		
 		routesAdmin := v1.Group("/admin")
 		{

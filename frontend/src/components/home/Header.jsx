@@ -216,12 +216,6 @@ function Header() {
 		{ label: 'Женщинам', value: 'woman', isGender: true },
 		{ label: 'Мужчинам', value: 'man', isGender: true },
 		{ label: 'Детям', value: 'children', isGender: true },
-		{ label: 'Новинки', value: 'new', isGender: false },
-		{ label: 'Обувь', value: 'shoes', isGender: false },
-		{ label: 'Одежда', value: 'clothes', isGender: false },
-		{ label: 'Тренировка', value: 'training', isGender: false },
-		{ label: 'Красота', value: 'beauty', isGender: false },
-		{ label: 'Скидки %', value: 'discounts', isGender: false },
 	]
 
 	return (
