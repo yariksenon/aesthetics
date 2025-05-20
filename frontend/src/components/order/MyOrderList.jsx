@@ -9,14 +9,16 @@ import {
 	Spin,
 	Image,
 	Tag,
+	Tabs,
 } from 'antd'
 import axios from 'axios'
 import { format } from 'date-fns'
-
 import Header from '../home/Header'
 import AsideBanner from '../home/AsideBanner'
 import Section from '../home/Section'
 import Footer from '../home/Footer'
+
+const { TabPane } = Tabs
 
 const API_BASE_URL = 'http://localhost:8080/api/v1/orders'
 const STATIC_BASE_URL = 'http://localhost:8080/static/'
@@ -29,6 +31,15 @@ const MyOrderList = () => {
 	const [hoverImageIndex, setHoverImageIndex] = useState({})
 	const [hoveredProduct, setHoveredProduct] = useState(null)
 	const userId = localStorage.getItem('userId')
+
+	// Define status options with labels and colors
+	const statusOptions = [
+		{ value: 'оформлен', label: 'Оформлен', color: 'blue' },
+		{ value: 'в_пути', label: 'В пути', color: 'orange' },
+		{ value: 'прибыл', label: 'Прибыл', color: 'purple' },
+		{ value: 'завершено', label: 'Завершено', color: 'green' },
+		{ value: 'отменён', label: 'Отменён', color: 'red' },
+	]
 
 	const fetchOrders = async () => {
 		if (!userId) {
@@ -92,7 +103,6 @@ const MyOrderList = () => {
 			message.error('Пожалуйста, войдите для удаления товара из заказа')
 			return
 		}
-		console.log(productId, sizeId, orderId, userId)
 		if (!productId || !sizeId) {
 			message.error('Неверные параметры товара')
 			return
@@ -103,14 +113,10 @@ const MyOrderList = () => {
 				`${API_BASE_URL}/${userId}/${orderId}/items/${productId}/${sizeId}`
 			)
 			message.success('Товар удален из заказа')
-
-			// Обновляем данные после успешного удаления
 			const updatedResponse = await axios.get(
 				`${API_BASE_URL}/${userId}/${orderId}`
 			)
 			setSelectedOrder(updatedResponse.data)
-
-			// Также обновляем список заказов
 			await fetchOrders()
 		} catch (error) {
 			if (error.response?.status === 404) {
@@ -203,21 +209,6 @@ const MyOrderList = () => {
 			render: method => formatPaymentMethod(method),
 		},
 		{
-			title: 'Статус',
-			dataIndex: 'status',
-			key: 'status',
-			render: status => {
-				const colorMap = {
-					pending: 'orange',
-					processing: 'blue',
-					completed: 'green',
-					cancelled: 'red',
-				}
-				return <Tag color={colorMap[status] || 'default'}>{status || '—'}</Tag>
-			},
-		},
-
-		{
 			title: 'Примечания',
 			dataIndex: 'notes',
 			key: 'notes',
@@ -244,227 +235,239 @@ const MyOrderList = () => {
 	]
 
 	return (
-		<div className='min-h-screen bg-gray-100'>
+		<div>
 			<AsideBanner />
 			<Header />
 			<Section />
-			<div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6'>
-				<div className='bg-white rounded-lg shadow-sm p-6'>
-					<h1 className='text-2xl font-bold mb-6 text-gray-900'>Мои заказы</h1>
-					<Spin spinning={loading}>
-						<Table
-							columns={columns}
-							dataSource={orders}
-							rowKey='id'
-							className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
-						/>
-					</Spin>
+			<div className='mx-[15%]'>
+				<h1 className='text-3xl font-bold m-0'>Мои заказы</h1>
+				<Spin spinning={loading}>
+					<Tabs defaultActiveKey='all'>
+						<TabPane tab='Все' key='all'>
+							<Table
+								columns={columns}
+								dataSource={orders}
+								rowKey='id'
+								className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
+							/>
+						</TabPane>
+						{statusOptions.map(status => (
+							<TabPane tab={status.label} key={status.value}>
+								<Table
+									columns={columns}
+									dataSource={orders.filter(
+										order => order.status === status.value
+									)}
+									rowKey='id'
+									className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
+								/>
+							</TabPane>
+						))}
+					</Tabs>
+				</Spin>
 
-					<Modal
-						title={<span className='text-xl font-bold'>Детали заказа</span>}
-						open={isModalVisible}
-						onCancel={() => setIsModalVisible(false)}
-						footer={[
+				<Modal
+					title={<span className='text-xl font-bold'>Детали заказа</span>}
+					open={isModalVisible}
+					onCancel={() => setIsModalVisible(false)}
+					footer={[
+						<Button
+							key='cancel'
+							onClick={() => setIsModalVisible(false)}
+							className='bg-gray-200 text-gray-900 hover:bg-gray-300 border-none'
+						>
+							Закрыть
+						</Button>,
+						selectedOrder?.order && (
 							<Button
-								key='cancel'
-								onClick={() => setIsModalVisible(false)}
-								className='bg-gray-200 text-gray-900 hover:bg-gray-300 border-none'
+								key='refund'
+								onClick={() => cancelOrder(selectedOrder.order.id)}
+								danger
 							>
-								Закрыть
-							</Button>,
-							selectedOrder?.order && (
-								<Button
-									key='refund'
-									onClick={() => cancelOrder(selectedOrder.order.id)}
-									danger
-								>
-									Отменить заказ
-								</Button>
-							),
-						]}
-						className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-gray-900 [&_.ant-modal-footer]:border-gray-200'
-						width={800}
-					>
-						{selectedOrder && (
-							<div className='space-y-6'>
-								<div className='bg-gray-50 p-4 rounded-lg'>
-									<h3 className='text-lg font-semibold mb-3'>
-										Информация о заказе
-									</h3>
-									<Descriptions column={1} className='custom-descriptions'>
-										<Descriptions.Item label='Номер заказа'>
-											<span className='font-medium'>
-												#{selectedOrder.order.id}
-											</span>
-										</Descriptions.Item>
-										<Descriptions.Item label='Сумма'>
-											<span className='font-medium'>
-												{selectedOrder.order.total.toFixed(2)} BYN
-											</span>
-										</Descriptions.Item>
-										<Descriptions.Item label='Адрес'>
-											{`${selectedOrder.order.address}, ${selectedOrder.order.city}`}
-										</Descriptions.Item>
-										<Descriptions.Item label='Способ оплаты'>
-											{formatPaymentMethod(selectedOrder.order.payment_method)}
-										</Descriptions.Item>
-										<Descriptions.Item label='Статус'>
-											<Tag
-												color={
-													{
-														pending: 'orange',
-														processing: 'blue',
-														completed: 'green',
-														cancelled: 'red',
-													}[selectedOrder.order.status] || 'default'
-												}
-											>
-												{selectedOrder.order.status || '—'}
-											</Tag>
-										</Descriptions.Item>
-
-										<Descriptions.Item label='Примечания'>
-											{selectedOrder.order.notes || '–'}
-										</Descriptions.Item>
-										<Descriptions.Item label='Дата создания'>
-											{formatDate(selectedOrder.order_date)}
-										</Descriptions.Item>
-									</Descriptions>
-								</div>
-
-								<div className='bg-gray-50 p-4 rounded-lg'>
-									<h3 className='text-lg font-semibold mb-3'>
-										Информация о пользователе
-									</h3>
-									<Descriptions column={1} className='custom-descriptions'>
-										<Descriptions.Item label='Имя'>
-											{`${selectedOrder.user.first_name} ${selectedOrder.user.last_name}`}
-										</Descriptions.Item>
-										<Descriptions.Item label='Email'>
-											{selectedOrder.user.email}
-										</Descriptions.Item>
-										<Descriptions.Item label='Телефон'>
-											{selectedOrder.user.phone || '–'}
-										</Descriptions.Item>
-									</Descriptions>
-								</div>
-
-								<div>
-									<h3 className='text-lg font-semibold mb-3'>
-										Товары в заказе
-									</h3>
-									<List
-										dataSource={selectedOrder.items}
-										renderItem={item => {
-											const currentImageIndex =
-												hoverImageIndex[item.product_id] || 0
-											const currentImage =
-												item.image_paths?.[currentImageIndex] ||
-												item.photo_url ||
-												'https://placehold.co/80x120'
-
-											return (
-												<List.Item
-													className='bg-gray-50 p-4 rounded-lg mb-3 border border-gray-200 flex justify-between hover:bg-gray-100 transition-colors'
-													onMouseMove={e => handleMouseMove(e, item)}
-													onMouseEnter={() => handleMouseEnter(item.product_id)}
-													onMouseLeave={() => handleMouseLeave(item.product_id)}
-												>
-													<div className='flex items-center'>
-														<div
-															style={{
-																position: 'relative',
-																width: 80,
-																height: 120,
-															}}
-														>
-															{hoveredProduct === item.product_id &&
-																item.image_paths?.length > 1 && (
-																	<div
-																		style={{
-																			position: 'absolute',
-																			top: 4,
-																			left: '50%',
-																			transform: 'translateX(-50%)',
-																			display: 'flex',
-																			gap: 2,
-																			zIndex: 10,
-																		}}
-																	>
-																		{item.image_paths.map((_, index) => (
-																			<div
-																				key={index}
-																				style={{
-																					width: 20,
-																					height: 3,
-																					backgroundColor:
-																						index === currentImageIndex
-																							? '#000'
-																							: '#ccc',
-																				}}
-																			/>
-																		))}
-																	</div>
-																)}
-															<Image
-																src={`${STATIC_BASE_URL}${currentImage}`}
-																alt={item.product_name}
-																preview={false}
-																style={{
-																	width: '100%',
-																	height: '100%',
-																	objectFit: 'contain',
-																	transition: 'opacity 0.3s ease',
-																}}
-																onError={e => {
-																	e.currentTarget.src =
-																		'https://placehold.co/80x120'
-																	e.currentTarget.style = {
-																		objectFit: 'contain',
-																		padding: '8px',
-																		backgroundColor: '#f5f5f5',
-																	}
-																}}
-															/>
-														</div>
-														<div className='ml-4'>
-															<p className='font-medium text-gray-900'>
-																{item.product_name}
-															</p>
-															<p className='text-gray-600'>
-																Размер: {item.size_value}
-															</p>
-															<p className='text-gray-600'>
-																Количество: {item.quantity}
-															</p>
-															<p className='text-gray-600'>
-																Цена: {item.price_at_purchase.toFixed(2)} BYN
-															</p>
-														</div>
-													</div>
-													{selectedOrder.items.length > 1 && (
-														<Button
-															onClick={() =>
-																removeOrderItem(
-																	selectedOrder.order.id,
-																	item.product_id,
-																	item.size_id
-																)
-															}
-															danger
-														>
-															Удалить
-														</Button>
-													)}
-												</List.Item>
-											)
-										}}
-									/>
-								</div>
+								Отменить заказ
+							</Button>
+						),
+					]}
+					className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-gray-900 [&_.ant-modal-footer]:border-gray-200'
+					width={800}
+				>
+					{selectedOrder && (
+						<div className='space-y-6'>
+							<div className='bg-gray-50 p-4 rounded-lg'>
+								<h3 className='text-lg font-semibold mb-3'>
+									Информация о заказе
+								</h3>
+								<Descriptions column={1} className='custom-descriptions'>
+									<Descriptions.Item label='Номер заказа'>
+										<span className='font-medium'>
+											#{selectedOrder.order.id}
+										</span>
+									</Descriptions.Item>
+									<Descriptions.Item label='Сумма'>
+										<span className='font-medium'>
+											{selectedOrder.order.total.toFixed(2)} BYN
+										</span>
+									</Descriptions.Item>
+									<Descriptions.Item label='Адрес'>
+										{`${selectedOrder.order.address}, ${selectedOrder.order.city}`}
+									</Descriptions.Item>
+									<Descriptions.Item label='Способ оплаты'>
+										{formatPaymentMethod(selectedOrder.order.payment_method)}
+									</Descriptions.Item>
+									<Descriptions.Item label='Статус'>
+										<Tag
+											color={
+												statusOptions.find(
+													s => s.value === selectedOrder.order.status
+												)?.color || 'default'
+											}
+										>
+											{statusOptions.find(
+												s => s.value === selectedOrder.order.status
+											)?.label ||
+												selectedOrder.order.status ||
+												'—'}
+										</Tag>
+									</Descriptions.Item>
+									<Descriptions.Item label='Примечания'>
+										{selectedOrder.order.notes || '–'}
+									</Descriptions.Item>
+									<Descriptions.Item label='Дата создания'>
+										{formatDate(selectedOrder.order_date)}
+									</Descriptions.Item>
+								</Descriptions>
 							</div>
-						)}
-					</Modal>
-				</div>
+
+							<div className='bg-gray-50 p-4 rounded-lg'>
+								<h3 className='text-lg font-semibold mb-3'>
+									Информация о пользователе
+								</h3>
+								<Descriptions column={1} className='custom-descriptions'>
+									<Descriptions.Item label='Имя'>
+										{`${selectedOrder.user.first_name} ${selectedOrder.user.last_name}`}
+									</Descriptions.Item>
+									<Descriptions.Item label='Email'>
+										{selectedOrder.user.email}
+									</Descriptions.Item>
+									<Descriptions.Item label='Телефон'>
+										{selectedOrder.user.phone || '–'}
+									</Descriptions.Item>
+								</Descriptions>
+							</div>
+
+							<div>
+								<h3 className='text-lg font-semibold mb-3'>Товары в заказе</h3>
+								<List
+									dataSource={selectedOrder.items}
+									renderItem={item => {
+										const currentImageIndex =
+											hoverImageIndex[item.product_id] || 0
+										const currentImage =
+											item.image_paths?.[currentImageIndex] ||
+											item.photo_url ||
+											'https://placehold.co/80x120'
+
+										return (
+											<List.Item
+												className='bg-gray-50 p-4 rounded-lg mb-3 border border-gray-200 flex justify-between hover:bg-gray-100 transition-colors'
+												onMouseMove={e => handleMouseMove(e, item)}
+												onMouseEnter={() => handleMouseEnter(item.product_id)}
+												onMouseLeave={() => handleMouseLeave(item.product_id)}
+											>
+												<div className='flex items-center'>
+													<div
+														style={{
+															position: 'relative',
+															width: 80,
+															height: 120,
+														}}
+													>
+														{hoveredProduct === item.product_id &&
+															item.image_paths?.length > 1 && (
+																<div
+																	style={{
+																		position: 'absolute',
+																		top: 4,
+																		left: '50%',
+																		transform: 'translateX(-50%)',
+																		display: 'flex',
+																		gap: 2,
+																		zIndex: 10,
+																	}}
+																>
+																	{item.image_paths.map((_, index) => (
+																		<div
+																			key={index}
+																			style={{
+																				width: 20,
+																				height: 3,
+																				backgroundColor:
+																					index === currentImageIndex
+																						? '#000'
+																						: '#ccc',
+																			}}
+																		/>
+																	))}
+																</div>
+															)}
+														<Image
+															src={`${STATIC_BASE_URL}${currentImage}`}
+															alt={item.product_name}
+															preview={false}
+															style={{
+																width: '100%',
+																height: '100%',
+																objectFit: 'contain',
+																transition: 'opacity 0.3s ease',
+															}}
+															onError={e => {
+																e.currentTarget.src =
+																	'https://placehold.co/80x120'
+																e.currentTarget.style = {
+																	objectFit: 'contain',
+																	padding: '8px',
+																	backgroundColor: '#f5f5f5',
+																}
+															}}
+														/>
+													</div>
+													<div className='ml-4'>
+														<p className='font-medium text-gray-900'>
+															{item.product_name}
+														</p>
+														<p className='text-gray-600'>
+															Размер: {item.size_value}
+														</p>
+														<p className='text-gray-600'>
+															Количество: {item.quantity}
+														</p>
+														<p className='text-gray-600'>
+															Цена: {item.price_at_purchase.toFixed(2)} BYN
+														</p>
+													</div>
+												</div>
+												{selectedOrder.items.length > 1 && (
+													<Button
+														onClick={() =>
+															removeOrderItem(
+																selectedOrder.order.id,
+																item.product_id,
+																item.size_id
+															)
+														}
+														danger
+													>
+														Удалить
+													</Button>
+												)}
+											</List.Item>
+										)
+									}}
+								/>
+							</div>
+						</div>
+					)}
+				</Modal>
 			</div>
 			<Footer />
 		</div>

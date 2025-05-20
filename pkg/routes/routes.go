@@ -132,9 +132,9 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			product := routesAdmin.Group("/products")
 			{
 				product.GET("", admin.AdminGetProducts(db))          // Получение всех товаров
-				product.POST("", admin.AdminCreateProduct(db))       // Создание товара
-				product.PUT("/:id", admin.AdminUpdateProduct(db))    // Обновление товара
-				product.DELETE("/:id", admin.AdminDeleteProduct(db)) // Удаление товара
+				product.PUT("/:productId", admin.AdminUpdateProduct(db))    // Обновление товара
+				product.DELETE("/:productId", admin.AdminDeleteProduct(db)) // Удаление товара
+				// product.POST("", admin.AdminCreateProduct(db))       // Создание товара
 			}
 
 			reviews := routesAdmin.Group("/reviews")
@@ -147,6 +147,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			{
 				order.GET("/:userId", admin.GetOrders(db))
 				order.GET("/:userId/:orderId", admin.GetOrderDetails(db))
+				order.PUT("/:orderId/status", admin.UpdateOrderStatus(db, smtpClient))
 				order.DELETE("/:userId/:orderId", admin.CancelOrder(db))
 			}
 

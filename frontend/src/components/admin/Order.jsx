@@ -7,12 +7,14 @@ import {
 	List,
 	message,
 	Spin,
-	Steps,
-	Card,
+	Tag,
+	Select,
 } from 'antd'
 import axios from 'axios'
+import moment from 'moment'
+import 'moment/locale/ru'
 
-const { Step } = Steps
+const { Option } = Select
 
 const API_BASE_URL = 'http://localhost:8080/api/v1/admin/order'
 
@@ -21,9 +23,16 @@ const Order = () => {
 	const [loading, setLoading] = useState(false)
 	const [selectedOrder, setSelectedOrder] = useState(null)
 	const [isModalVisible, setIsModalVisible] = useState(false)
-	const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false)
-	const [paymentStep, setPaymentStep] = useState(0)
+	const [statusLoading, setStatusLoading] = useState(false)
 	const userId = localStorage.getItem('userId')
+
+	const statusOptions = [
+		{ value: 'оформлен', label: 'Оформлен', color: 'blue' },
+		{ value: 'в_пути', label: 'В пути', color: 'orange' },
+		{ value: 'прибыл', label: 'Прибыл', color: 'purple' },
+		{ value: 'завершено', label: 'Завершено', color: 'green' },
+		{ value: 'отменён', label: 'Отменён', color: 'red' },
+	]
 
 	// Загрузка заказов
 	const fetchOrders = async () => {
@@ -79,47 +88,52 @@ const Order = () => {
 		}
 	}
 
-	// Инициировать оплату
-	const initiatePayment = async orderId => {
-		setIsPaymentModalVisible(true)
-		setPaymentStep(1)
-
-		// Имитация процесса оплаты
-		setTimeout(() => {
-			setPaymentStep(2)
-			// Имитация успешной оплаты через 2 секунды
-			setTimeout(() => {
-				completePayment(orderId)
-			}, 2000)
-		}, 2000)
-	}
-
-	// Завершение оплаты (обновление статуса)
-	const completePayment = async orderId => {
+	// Изменение статуса заказа
+	const updateOrderStatus = async (orderId, newStatus) => {
+		setStatusLoading(true)
 		try {
-			const response = await axios.post(
-				`${API_BASE_URL}/${userId}/${orderId}/pay`,
-				{
-					payment_status: 'completed',
-					payment_method: 'card',
-				}
-			)
-			message.success('Оплата прошла успешно!')
-			setPaymentStep(3)
+			await axios.put(`${API_BASE_URL}/${orderId}/status`, {
+				status: newStatus,
+			})
+			message.success('Статус заказа успешно обновлен')
 			fetchOrders()
-			setTimeout(() => {
-				setIsPaymentModalVisible(false)
-				setIsModalVisible(false)
-			}, 1500)
+			// Обновляем статус в модальном окне, если оно открыто
+			if (selectedOrder && selectedOrder.order.id === orderId) {
+				setSelectedOrder({
+					...selectedOrder,
+					order: {
+						...selectedOrder.order,
+						status: newStatus,
+					},
+				})
+			}
 		} catch (error) {
-			message.error('Ошибка при обновлении статуса оплаты')
-			setPaymentStep(0)
+			message.error(
+				error.response?.data?.error || 'Не удалось обновить статус заказа'
+			)
+		} finally {
+			setStatusLoading(false)
 		}
 	}
 
 	useEffect(() => {
 		fetchOrders()
 	}, [userId])
+
+	const formatDate = dateString => {
+		return moment(dateString).locale('ru').format('LLL')
+	}
+
+	const getPaymentMethod = method => {
+		switch (method) {
+			case 'cash':
+				return 'Наличные'
+			case 'card':
+				return 'Карта'
+			default:
+				return method
+		}
+	}
 
 	const columns = [
 		{
@@ -131,40 +145,39 @@ const Order = () => {
 			title: 'Сумма',
 			dataIndex: 'total',
 			key: 'total',
-			render: total => `$${total.toFixed(2)}`,
+			render: total => `${total.toFixed(2)} BYN`,
+		},
+		{
+			title: 'Способ оплаты',
+			dataIndex: 'payment_provider',
+			key: 'payment_provider',
+			render: method => getPaymentMethod(method),
 		},
 		{
 			title: 'Статус',
-			dataIndex: 'payment_status',
-			key: 'payment_status',
-			render: status => {
-				let statusText = status
-				let color = 'default'
-				switch (status) {
-					case 'pending':
-						statusText = 'Ожидает оплаты'
-						color = 'orange'
-						break
-					case 'completed':
-						statusText = 'Оплачен'
-						color = 'green'
-						break
-					case 'refunded':
-						statusText = 'Возврат'
-						color = 'red'
-						break
-					case 'failed':
-						statusText = 'Ошибка оплаты'
-						color = 'red'
-						break
-				}
-				return <span style={{ color }}>{statusText}</span>
-			},
+			dataIndex: 'status',
+			key: 'status',
+			render: (status, record) => (
+				<Select
+					value={status}
+					style={{ width: 120 }}
+					onChange={value => updateOrderStatus(record.id, value)}
+					loading={statusLoading}
+					disabled={status === 'отменён' || status === 'завершено'}
+				>
+					{statusOptions.map(option => (
+						<Option key={option.value} value={option.value}>
+							<Tag color={option.color}>{option.label}</Tag>
+						</Option>
+					))}
+				</Select>
+			),
 		},
 		{
 			title: 'Дата создания',
 			dataIndex: 'created_at',
 			key: 'created_at',
+			render: date => formatDate(date),
 		},
 		{
 			title: 'Действия',
@@ -177,14 +190,6 @@ const Order = () => {
 					>
 						Подробнее
 					</Button>
-					{record.payment_status === 'pending' && (
-						<Button
-							onClick={() => initiatePayment(record.id)}
-							className='bg-green-600 text-white hover:bg-green-500 border-none'
-						>
-							Оплатить
-						</Button>
-					)}
 				</div>
 			),
 		},
@@ -192,7 +197,13 @@ const Order = () => {
 
 	return (
 		<div className='p-6 bg-white min-h-screen text-gray-800'>
-			<h1 className='text-2xl font-bold mb-6'>Заказы</h1>
+			<h1 className='text-2xl font-bold mb-6'>Управление заказами</h1>
+			<Button
+				onClick={() => window.history.back()}
+				className='mb-4 bg-gray-200 text-gray-800 hover:bg-gray-300 border-none'
+			>
+				Назад
+			</Button>
 			<Spin spinning={loading}>
 				<Table
 					columns={columns}
@@ -215,17 +226,8 @@ const Order = () => {
 					>
 						Закрыть
 					</Button>,
-					selectedOrder?.order.payment_status === 'pending' && (
-						<Button
-							key='pay'
-							onClick={() => initiatePayment(selectedOrder.order.id)}
-							className='bg-green-600 text-white hover:bg-green-500 border-none'
-						>
-							Оплатить заказ
-						</Button>
-					),
-					selectedOrder?.order.payment_status !== 'completed' &&
-						selectedOrder?.order.payment_status !== 'refunded' && (
+					selectedOrder?.order.status !== 'завершено' &&
+						selectedOrder?.order.status !== 'отменён' && (
 							<Button
 								key='refund'
 								onClick={() => cancelOrder(selectedOrder.order.id)}
@@ -250,19 +252,35 @@ const Order = () => {
 								{selectedOrder.order.id}
 							</Descriptions.Item>
 							<Descriptions.Item label='Сумма'>
-								${selectedOrder.order.total.toFixed(2)}
+								{selectedOrder.order.total.toFixed(2)} BYN
 							</Descriptions.Item>
 							<Descriptions.Item label='Статус'>
-								{selectedOrder.order.payment_status === 'pending'
-									? 'Ожидает оплаты'
-									: selectedOrder.order.payment_status === 'completed'
-									? 'Оплачен'
-									: selectedOrder.order.payment_status === 'refunded'
-									? 'Возврат'
-									: selectedOrder.order.payment_status}
+								<Select
+									value={selectedOrder.order.status}
+									style={{ width: 120 }}
+									onChange={value =>
+										updateOrderStatus(selectedOrder.order.id, value)
+									}
+									loading={statusLoading}
+								>
+									{statusOptions.map(option => (
+										<Option key={option.value} value={option.value}>
+											<Tag color={option.color}>{option.label}</Tag>
+										</Option>
+									))}
+								</Select>
 							</Descriptions.Item>
 							<Descriptions.Item label='Дата создания'>
-								{selectedOrder.order_date}
+								{formatDate(selectedOrder.order_date)}
+							</Descriptions.Item>
+							<Descriptions.Item label='Способ оплаты'>
+								{getPaymentMethod(selectedOrder.order.payment_provider)}
+							</Descriptions.Item>
+							<Descriptions.Item label='Адрес'>
+								{selectedOrder.order.address}, {selectedOrder.order.city}
+							</Descriptions.Item>
+							<Descriptions.Item label='Примечания'>
+								{selectedOrder.order.notes || 'Нет примечаний'}
 							</Descriptions.Item>
 						</Descriptions>
 
@@ -298,86 +316,14 @@ const Order = () => {
 											<strong>Количество:</strong> {item.quantity}
 										</p>
 										<p>
-											<strong>Цена:</strong> $
-											{item.price_at_purchase.toFixed(2)}
+											<strong>Цена:</strong> {item.price_at_purchase.toFixed(2)}{' '}
+											BYN
 										</p>
 									</div>
 								</List.Item>
 							)}
 						/>
 					</div>
-				)}
-			</Modal>
-
-			{/* Модальное окно оплаты */}
-			<Modal
-				title='Оплата заказа'
-				open={isPaymentModalVisible}
-				onCancel={() => setIsPaymentModalVisible(false)}
-				footer={null}
-				closable={paymentStep !== 2}
-				width={600}
-			>
-				<Steps current={paymentStep} className='mb-8'>
-					<Step title='Подготовка' />
-					<Step title='Оплата' />
-					<Step title='Завершение' />
-				</Steps>
-
-				{paymentStep === 0 && (
-					<Card>
-						<p>Подготовка к оплате...</p>
-					</Card>
-				)}
-
-				{paymentStep === 1 && (
-					<Card title='Введите данные карты'>
-						<div className='space-y-4'>
-							<div>
-								<label className='block mb-1'>Номер карты</label>
-								<input
-									type='text'
-									placeholder='1234 5678 9012 3456'
-									className='w-full p-2 border rounded'
-								/>
-							</div>
-							<div className='flex gap-4'>
-								<div className='flex-1'>
-									<label className='block mb-1'>Срок действия</label>
-									<input
-										type='text'
-										placeholder='MM/YY'
-										className='w-full p-2 border rounded'
-									/>
-								</div>
-								<div className='flex-1'>
-									<label className='block mb-1'>CVV</label>
-									<input
-										type='text'
-										placeholder='123'
-										className='w-full p-2 border rounded'
-									/>
-								</div>
-							</div>
-						</div>
-					</Card>
-				)}
-
-				{paymentStep === 2 && (
-					<Card>
-						<div className='text-center py-8'>
-							<Spin size='large' />
-							<p className='mt-4'>Идет обработка платежа...</p>
-						</div>
-					</Card>
-				)}
-
-				{paymentStep === 3 && (
-					<Card className='text-center'>
-						<div className='text-green-500 text-5xl mb-4'>✓</div>
-						<h3 className='text-xl font-bold mb-2'>Оплата прошла успешно!</h3>
-						<p>Ваш заказ # {selectedOrder?.order.id} успешно оплачен.</p>
-					</Card>
 				)}
 			</Modal>
 		</div>

@@ -10,7 +10,12 @@ import {
 	Space,
 	Modal,
 } from 'antd'
-import { CheckOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
+import {
+	CheckOutlined,
+	DeleteOutlined,
+	EyeOutlined,
+	ArrowLeftOutlined,
+} from '@ant-design/icons'
 
 const { Title } = Typography
 
@@ -44,16 +49,20 @@ const Review = () => {
 					`http://localhost:8080/api/v1/reviews/${product.id}`
 				)
 				if (!reviewsResponse.ok) continue
+
 				const productReviews = await reviewsResponse.json()
-				allReviews = [
-					...allReviews,
-					...productReviews
-						.filter(review => review.status === 'pending')
-						.map(review => ({
-							...review,
-							product_name: product.name,
-						})),
-				]
+				// Проверяем, что productReviews не null и является массивом
+				if (productReviews && Array.isArray(productReviews)) {
+					allReviews = [
+						...allReviews,
+						...productReviews
+							.filter(review => review.status === 'pending')
+							.map(review => ({
+								...review,
+								product_name: product.name,
+							})),
+					]
+				}
 			}
 
 			setReviews(allReviews)
@@ -73,20 +82,15 @@ const Review = () => {
 					method: 'PUT',
 					headers: {
 						'Content-Type': 'application/json',
-						// Добавьте если используете аутентификацию:
-						// 'Authorization': `Bearer ${token}`
 					},
 				}
 			)
 
-			// Сначала проверяем статус ответа
 			if (!response.ok) {
-				// Пробуем получить текст ошибки
 				const errorText = await response.text()
 				throw new Error(errorText || 'Не удалось одобрить отзыв')
 			}
 
-			// Пробуем распарсить JSON только если ответ OK
 			const data = await response.json()
 
 			setReviews(prev => prev.filter(review => review.id !== reviewId))
@@ -130,6 +134,10 @@ const Review = () => {
 		navigate(`/product/${productId}`)
 	}
 
+	const handleBack = () => {
+		navigate(-1) // Navigate to the previous page
+	}
+
 	const columns = [
 		{
 			title: 'ID',
@@ -170,7 +178,9 @@ const Review = () => {
 						textOverflow: 'ellipsis',
 					}}
 				>
-					{content.length > 100 ? `${content.slice(0, 100)}...` : content}
+					{content?.length > 100
+						? `${content.slice(0, 100)}...`
+						: content || '—'}
 				</div>
 			),
 		},
@@ -237,9 +247,16 @@ const Review = () => {
 
 	return (
 		<div className='container mx-auto px-4 py-8'>
-			<Title level={2} className='mb-6'>
-				Ожидающие отзывы
-			</Title>
+			<div className='flex items-center mb-6'>
+				<Button
+					icon={<ArrowLeftOutlined />}
+					onClick={handleBack}
+					className='mr-4'
+				>
+					Назад
+				</Button>
+				<Title level={2}>Ожидающие отзывы</Title>
+			</div>
 			{loading ? (
 				<div className='flex justify-center'>
 					<Spin size='large' />
@@ -249,7 +266,10 @@ const Review = () => {
 					columns={columns}
 					dataSource={reviews}
 					rowKey='id'
-					locale={{ emptyText: 'Нет ожидающих отзывов' }}
+					locale={{
+						emptyText:
+							reviews.length === 0 ? 'Нет ожидающих отзывов' : 'Нет данных',
+					}}
 					pagination={{ pageSize: 10 }}
 					scroll={{ x: true }}
 				/>
