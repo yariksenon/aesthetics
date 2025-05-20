@@ -10,6 +10,7 @@ import {
 	Image,
 	Tag,
 	Tabs,
+	Popconfirm,
 } from 'antd'
 import axios from 'axios'
 import { format } from 'date-fns'
@@ -18,21 +19,19 @@ import AsideBanner from '../home/AsideBanner'
 import Section from '../home/Section'
 import Footer from '../home/Footer'
 
-const { TabPane } = Tabs
-
 const API_BASE_URL = 'http://localhost:8080/api/v1/orders'
 const STATIC_BASE_URL = 'http://localhost:8080/static/'
 
 const MyOrderList = () => {
 	const [orders, setOrders] = useState([])
 	const [loading, setLoading] = useState(false)
+	const [statusLoading, setStatusLoading] = useState(false) // Added missing state
 	const [selectedOrder, setSelectedOrder] = useState(null)
 	const [isModalVisible, setIsModalVisible] = useState(false)
 	const [hoverImageIndex, setHoverImageIndex] = useState({})
 	const [hoveredProduct, setHoveredProduct] = useState(null)
 	const userId = localStorage.getItem('userId')
 
-	// Define status options with labels and colors
 	const statusOptions = [
 		{ value: 'оформлен', label: 'Оформлен', color: 'blue' },
 		{ value: 'в_пути', label: 'В пути', color: 'orange' },
@@ -80,56 +79,32 @@ const MyOrderList = () => {
 		}
 	}
 
-	const cancelOrder = async orderId => {
-		if (!userId) {
-			message.error('Пожалуйста, войдите для отмены заказа')
-			return
-		}
-		setLoading(true)
+	const updateOrderStatus = async orderId => {
+		setStatusLoading(true)
 		try {
-			await axios.delete(`${API_BASE_URL}/${userId}/${orderId}`)
-			message.success('Заказ успешно отменен')
-			await fetchOrders()
-			setIsModalVisible(false)
-		} catch (error) {
-			message.error(error.response?.data?.error || 'Не удалось отменить заказ')
-		} finally {
-			setLoading(false)
-		}
-	}
-
-	const removeOrderItem = async (orderId, productId, sizeId) => {
-		if (!userId) {
-			message.error('Пожалуйста, войдите для удаления товара из заказа')
-			return
-		}
-		if (!productId || !sizeId) {
-			message.error('Неверные параметры товара')
-			return
-		}
-		setLoading(true)
-		try {
-			await axios.delete(
-				`${API_BASE_URL}/${userId}/${orderId}/items/${productId}/${sizeId}`
+			await axios.put(
+				`http://localhost:8080/api/v1/admin/order/${orderId}/status`,
+				{
+					status: 'отменён', // Hardcoded to 'отменён'
+				}
 			)
-			message.success('Товар удален из заказа')
-			const updatedResponse = await axios.get(
-				`${API_BASE_URL}/${userId}/${orderId}`
-			)
-			setSelectedOrder(updatedResponse.data)
-			await fetchOrders()
-		} catch (error) {
-			if (error.response?.status === 404) {
-				message.info('Заказ стал пустым и был удален')
-				await fetchOrders()
-				setIsModalVisible(false)
-			} else {
-				message.error(
-					error.response?.data?.error || 'Не удалось удалить товар из заказа'
-				)
+			message.success('Статус заказа успешно обновлен')
+			fetchOrders()
+			if (selectedOrder && selectedOrder.order.id === orderId) {
+				setSelectedOrder({
+					...selectedOrder,
+					order: {
+						...selectedOrder.order,
+						status: 'отменён',
+					},
+				})
 			}
+		} catch (error) {
+			message.error(
+				error.response?.data?.error || 'Не удалось обновить статус заказа'
+			)
 		} finally {
-			setLoading(false)
+			setStatusLoading(false)
 		}
 	}
 
@@ -198,6 +173,19 @@ const MyOrderList = () => {
 			render: total => `${total.toFixed(2)} BYN`,
 		},
 		{
+			title: 'Статус',
+			dataIndex: 'status',
+			key: 'status',
+			render: status => {
+				const statusOption = statusOptions.find(s => s.value === status)
+				return (
+					<Tag color={statusOption?.color || 'default'}>
+						{statusOption?.label || status}
+					</Tag>
+				)
+			},
+		},
+		{
 			title: 'Адрес',
 			key: 'address',
 			render: (_, record) => `${record.address}, ${record.city}`,
@@ -209,12 +197,6 @@ const MyOrderList = () => {
 			render: method => formatPaymentMethod(method),
 		},
 		{
-			title: 'Примечания',
-			dataIndex: 'notes',
-			key: 'notes',
-			render: notes => notes || '–',
-		},
-		{
 			title: 'Дата создания',
 			dataIndex: 'created_at',
 			key: 'created_at',
@@ -224,12 +206,24 @@ const MyOrderList = () => {
 			title: 'Действия',
 			key: 'actions',
 			render: (_, record) => (
-				<Button
-					onClick={() => fetchOrderDetails(record.id)}
-					className='bg-black text-white hover:bg-gray-800 border-none'
-				>
-					Подробности
-				</Button>
+				<div className='flex gap-2'>
+					<Button onClick={() => fetchOrderDetails(record.id)}>
+						Подробности
+					</Button>
+					{record.status !== 'отменён' && (
+						<Popconfirm
+							title='Вы уверены, что хотите отменить заказ?'
+							onConfirm={() => {
+								setSelectedOrder({ order: record })
+								updateOrderStatus(record.id)
+							}}
+							okText='Да'
+							cancelText='Нет'
+						>
+							<Button danger>Отменить</Button>
+						</Popconfirm>
+					)}
+				</div>
 			),
 		},
 	]
@@ -242,28 +236,37 @@ const MyOrderList = () => {
 			<div className='mx-[15%]'>
 				<h1 className='text-3xl font-bold m-0'>Мои заказы</h1>
 				<Spin spinning={loading}>
-					<Tabs defaultActiveKey='all'>
-						<TabPane tab='Все' key='all'>
-							<Table
-								columns={columns}
-								dataSource={orders}
-								rowKey='id'
-								className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
-							/>
-						</TabPane>
-						{statusOptions.map(status => (
-							<TabPane tab={status.label} key={status.value}>
-								<Table
-									columns={columns}
-									dataSource={orders.filter(
-										order => order.status === status.value
-									)}
-									rowKey='id'
-									className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
-								/>
-							</TabPane>
-						))}
-					</Tabs>
+					<Tabs
+						defaultActiveKey='all'
+						items={[
+							{
+								key: 'all',
+								label: 'Все',
+								children: (
+									<Table
+										columns={columns}
+										dataSource={orders}
+										rowKey='id'
+										className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
+									/>
+								),
+							},
+							...statusOptions.map(status => ({
+								key: status.value,
+								label: status.label,
+								children: (
+									<Table
+										columns={columns}
+										dataSource={orders.filter(
+											order => order.status === status.value
+										)}
+										rowKey='id'
+										className='[&_.ant-table]:bg-white [&_.ant-table-thead>tr>th]:bg-gray-100 [&_.ant-table-thead>tr>th]:text-gray-900 [&_.ant-table-tbody>tr>td]:text-gray-800 [&_.ant-table-tbody>tr:hover>td]:bg-gray-50 [&_.ant-table-thead>tr>th]:border-gray-200 [&_.ant-table-tbody>tr>td]:border-gray-200'
+									/>
+								),
+							})),
+						]}
+					/>
 				</Spin>
 
 				<Modal
@@ -278,16 +281,8 @@ const MyOrderList = () => {
 						>
 							Закрыть
 						</Button>,
-						selectedOrder?.order && (
-							<Button
-								key='refund'
-								onClick={() => cancelOrder(selectedOrder.order.id)}
-								danger
-							>
-								Отменить заказ
-							</Button>
-						),
 					]}
+					styles={{ body: { background: 'white' } }}
 					className='[&_.ant-modal-content]:bg-white [&_.ant-modal-header]:bg-white [&_.ant-modal-title]:text-gray-900 [&_.ant-modal-footer]:border-gray-200'
 					width={800}
 				>
@@ -300,37 +295,39 @@ const MyOrderList = () => {
 								<Descriptions column={1} className='custom-descriptions'>
 									<Descriptions.Item label='Номер заказа'>
 										<span className='font-medium'>
-											#{selectedOrder.order.id}
+											#{selectedOrder.order?.id}
 										</span>
 									</Descriptions.Item>
 									<Descriptions.Item label='Сумма'>
 										<span className='font-medium'>
-											{selectedOrder.order.total.toFixed(2)} BYN
+											{selectedOrder.order?.total?.toFixed(2)} BYN
 										</span>
 									</Descriptions.Item>
 									<Descriptions.Item label='Адрес'>
-										{`${selectedOrder.order.address}, ${selectedOrder.order.city}`}
+										{`${selectedOrder.order?.address || ''}, ${
+											selectedOrder.order?.city || ''
+										}`}
 									</Descriptions.Item>
 									<Descriptions.Item label='Способ оплаты'>
-										{formatPaymentMethod(selectedOrder.order.payment_method)}
+										{formatPaymentMethod(selectedOrder.order?.payment_method)}
 									</Descriptions.Item>
 									<Descriptions.Item label='Статус'>
 										<Tag
 											color={
 												statusOptions.find(
-													s => s.value === selectedOrder.order.status
+													s => s.value === selectedOrder.order?.status
 												)?.color || 'default'
 											}
 										>
 											{statusOptions.find(
-												s => s.value === selectedOrder.order.status
+												s => s.value === selectedOrder.order?.status
 											)?.label ||
-												selectedOrder.order.status ||
+												selectedOrder.order?.status ||
 												'—'}
 										</Tag>
 									</Descriptions.Item>
 									<Descriptions.Item label='Примечания'>
-										{selectedOrder.order.notes || '–'}
+										{selectedOrder.order?.notes || '–'}
 									</Descriptions.Item>
 									<Descriptions.Item label='Дата создания'>
 										{formatDate(selectedOrder.order_date)}
@@ -344,13 +341,15 @@ const MyOrderList = () => {
 								</h3>
 								<Descriptions column={1} className='custom-descriptions'>
 									<Descriptions.Item label='Имя'>
-										{`${selectedOrder.user.first_name} ${selectedOrder.user.last_name}`}
+										{`${selectedOrder.user?.first_name || ''} ${
+											selectedOrder.user?.last_name || ''
+										}`}
 									</Descriptions.Item>
 									<Descriptions.Item label='Email'>
-										{selectedOrder.user.email}
+										{selectedOrder.user?.email || '–'}
 									</Descriptions.Item>
 									<Descriptions.Item label='Телефон'>
-										{selectedOrder.user.phone || '–'}
+										{selectedOrder.user?.phone || '–'}
 									</Descriptions.Item>
 								</Descriptions>
 							</div>
@@ -358,7 +357,7 @@ const MyOrderList = () => {
 							<div>
 								<h3 className='text-lg font-semibold mb-3'>Товары в заказе</h3>
 								<List
-									dataSource={selectedOrder.items}
+									dataSource={selectedOrder.items || []}
 									renderItem={item => {
 										const currentImageIndex =
 											hoverImageIndex[item.product_id] || 0
@@ -412,7 +411,7 @@ const MyOrderList = () => {
 															)}
 														<Image
 															src={`${STATIC_BASE_URL}${currentImage}`}
-															alt={item.product_name}
+															alt={item.product_name || 'Товар'}
 															preview={false}
 															style={{
 																width: '100%',
@@ -433,33 +432,20 @@ const MyOrderList = () => {
 													</div>
 													<div className='ml-4'>
 														<p className='font-medium text-gray-900'>
-															{item.product_name}
+															{item.product_name || '–'}
 														</p>
 														<p className='text-gray-600'>
-															Размер: {item.size_value}
+															Размер: {item.size_value || '–'}
 														</p>
 														<p className='text-gray-600'>
-															Количество: {item.quantity}
+															Количество: {item.quantity || 0}
 														</p>
 														<p className='text-gray-600'>
-															Цена: {item.price_at_purchase.toFixed(2)} BYN
+															Цена: {(item.price_at_purchase || 0).toFixed(2)}{' '}
+															BYN
 														</p>
 													</div>
 												</div>
-												{selectedOrder.items.length > 1 && (
-													<Button
-														onClick={() =>
-															removeOrderItem(
-																selectedOrder.order.id,
-																item.product_id,
-																item.size_id
-															)
-														}
-														danger
-													>
-														Удалить
-													</Button>
-												)}
 											</List.Item>
 										)
 									}}

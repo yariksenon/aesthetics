@@ -40,13 +40,13 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		// Orders
 		v1.POST("/orders/:userId", handlers.PostOrder(db))
-
 		v1.GET("/orders/:userId", handlers.GetOrders(db))
 		v1.GET("/orders/:userId/:orderId", handlers.GetOrderDetails(db))
+		v1.PUT("/:orderId/status", admin.UpdateOrderStatus(db, smtpClient))
 
-		v1.DELETE("/orders/:userId/:orderId", handlers.CancelOrder(db))
-		
-		
+		// v1.PUT("/orders/:userId/:orderId/cancel", handlers.CancelOrder(db))
+		// v1.PUT("/:orderId/status", admin.CancelOrder(db))
+
 		v1.DELETE("/orders/:userId/:orderId/items/:productId/:sizeId", handlers.RemoveOrderItem(db))
 
 
