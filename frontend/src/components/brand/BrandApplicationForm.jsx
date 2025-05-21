@@ -9,19 +9,48 @@ import {
 	Spin,
 	Alert,
 	Divider,
+	Tabs,
 } from 'antd'
 import {
 	MailOutlined,
 	GlobalOutlined,
 	IdcardOutlined,
 	CheckCircleOutlined,
-	CloseCircleOutlined,
+	BarChartOutlined,
+	ShoppingOutlined,
+	PlusCircleOutlined,
 } from '@ant-design/icons'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import AddForm from '../admin/product/AdminProductAdd'
+import StatisticsDashboard from './StatisticsDashboard'
+import BrandProductsForm from './BrandProductsForm'
 
 const { TextArea } = Input
 const { Title, Paragraph } = Typography
+const { TabPane } = Tabs
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+	state = { hasError: false, error: null }
+
+	static getDerivedStateFromError(error) {
+		return { hasError: true, error }
+	}
+
+	render() {
+		if (this.state.hasError) {
+			return (
+				<Alert
+					message='Компонент не загрузился'
+					description={this.state.error?.message || 'Неизвестная ошибка'}
+					type='error'
+					showIcon
+				/>
+			)
+		}
+		return this.props.children
+	}
+}
 
 const BrandApplicationForm = () => {
 	const [form] = Form.useForm()
@@ -31,20 +60,24 @@ const BrandApplicationForm = () => {
 	const [submissionData, setSubmissionData] = useState(null)
 	const [error, setError] = useState(null)
 	const [userId, setUserId] = useState(null)
+	const [activeTab, setActiveTab] = useState('statistics')
 
 	useEffect(() => {
-		const storedUserId = parseInt(localStorage.getItem('userId'))
-		setUserId(storedUserId)
+		const storedUserId = localStorage.getItem('userId')
+		const parsedUserId = storedUserId ? parseInt(storedUserId, 10) : null
+
+		if (!storedUserId || isNaN(parsedUserId)) {
+			setError('Пользователь не авторизован или ID пользователя недействителен')
+			setCheckingSubmission(false)
+			return
+		}
+
+		setUserId(parsedUserId)
 
 		const checkExistingApplication = async () => {
-			if (!storedUserId || isNaN(storedUserId)) {
-				setCheckingSubmission(false)
-				return
-			}
-
 			try {
 				const response = await fetch(
-					`http://localhost:8080/api/v1/check-brand-application?userId=${storedUserId}`
+					`http://localhost:8080/api/v1/check-brand-application?userId=${parsedUserId}`
 				)
 
 				if (!response.ok) {
@@ -91,7 +124,6 @@ const BrandApplicationForm = () => {
 				submissionData?.id &&
 				submissionData?.status === 'rejected'
 			) {
-				// Повторная отправка отклоненной заявки
 				response = await fetch(
 					`http://localhost:8080/api/v1/brand/${submissionData.id}/resubmit`,
 					{
@@ -103,7 +135,6 @@ const BrandApplicationForm = () => {
 					}
 				)
 			} else if (!alreadySubmitted) {
-				// Новая заявка
 				response = await fetch('http://localhost:8080/api/v1/be-brand', {
 					method: 'POST',
 					headers: {
@@ -161,11 +192,24 @@ const BrandApplicationForm = () => {
 		)
 	}
 
+	if (error && (!userId || isNaN(userId))) {
+		return (
+			<div className='w-full min-h-screen flex items-center justify-center'>
+				<Alert
+					message='Ошибка'
+					description='Пользователь не авторизован. Пожалуйста, войдите в систему.'
+					type='error'
+					showIcon
+				/>
+			</div>
+		)
+	}
+
 	if (alreadySubmitted && submissionData?.status !== 'rejected') {
 		if (submissionData?.status === 'approved') {
 			return (
 				<div className='w-full min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8'>
-					<div className='max-w-2xl mx-auto'>
+					<div className=''>
 						<Card className='text-center'>
 							<CheckCircleOutlined
 								style={{ fontSize: '48px', color: '#52c41a' }}
@@ -175,10 +219,65 @@ const BrandApplicationForm = () => {
 							</Title>
 							<Paragraph className='mt-4'>
 								Поздравляем! Ваш бренд <strong>{submissionData?.name}</strong>{' '}
-								успешно одобрен. Теперь вы можете добавлять продукты.
+								успешно одобрен. Теперь вы можете управлять продуктами и
+								просматривать статистику.
 							</Paragraph>
+
 							<Divider className='my-6' />
-							<AddForm />
+
+							<Tabs
+								activeKey={activeTab}
+								onChange={setActiveTab}
+								tabPosition='top'
+								size='large'
+								className='brand-tabs'
+							>
+								<TabPane
+									tab={
+										<span>
+											<BarChartOutlined />
+											Статистика
+										</span>
+									}
+									key='statistics'
+								>
+									<ErrorBoundary>
+										<StatisticsDashboard />
+									</ErrorBoundary>
+								</TabPane>
+
+								<TabPane
+									tab={
+										<span>
+											<ShoppingOutlined />
+											Товары бренда
+										</span>
+									}
+									key='products'
+								>
+									<ErrorBoundary>
+										<BrandProductsForm />
+									</ErrorBoundary>
+								</TabPane>
+
+								<TabPane
+									tab={
+										<span>
+											<PlusCircleOutlined />
+											Добавить товар
+										</span>
+									}
+									key='add-product'
+								>
+									<ErrorBoundary>
+										<AddForm
+											onProductAdded={() =>
+												window.dispatchEvent(new Event('refreshProducts'))
+											}
+										/>
+									</ErrorBoundary>
+								</TabPane>
+							</Tabs>
 						</Card>
 					</div>
 				</div>
@@ -265,14 +364,8 @@ const BrandApplicationForm = () => {
 					name='name'
 					label='Название бренда'
 					rules={[
-						{
-							required: true,
-							message: 'Пожалуйста, введите название бренда',
-						},
-						{
-							max: 255,
-							message: 'Название не должно превышать 255 символов',
-						},
+						{ required: true, message: 'Пожалуйста, введите название бренда' },
+						{ max: 255, message: 'Название не должно превышать 255 символов' },
 					]}
 				>
 					<Input
@@ -322,10 +415,7 @@ const BrandApplicationForm = () => {
 					name='description'
 					label='Описание бренда'
 					rules={[
-						{
-							required: true,
-							message: 'Пожалуйста, введите описание бренда',
-						},
+						{ required: true, message: 'Пожалуйста, введите описание бренда' },
 						{
 							min: 50,
 							message: 'Описание должно содержать не менее 50 символов',

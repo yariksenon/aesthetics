@@ -49,12 +49,11 @@ CREATE TABLE IF NOT EXISTS brand (
     email VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     website VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+    status VARCHAR(50) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP
 );
 
--- 6. Теперь создаём таблицу товаров (зависит от category, sub_category, size_types)
 CREATE TABLE IF NOT EXISTS product (
     id SERIAL PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -83,7 +82,6 @@ CREATE TABLE IF NOT EXISTS product_images (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 7. Остальные таблицы с зависимостями
 CREATE TABLE IF NOT EXISTS product_sizes (
     product_id INTEGER REFERENCES product(id) ON DELETE CASCADE,
     size_id INTEGER REFERENCES sizes(id) ON DELETE CASCADE,

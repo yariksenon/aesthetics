@@ -88,6 +88,10 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.POST("/be-brand", handlers.PostBrand(db))
 		v1.GET("/check-brand-application", handlers.CheckBrandApplication(db))
 		v1.PUT("/brand/:id/resubmit", handlers.ResubmitBrand(db))
+		//NEW
+		v1.GET("/my-product/:brandId", handlers.GetBrandProduct(db))
+		v1.DELETE("/products/:id", handlers.DeleteProduct(db))
+		v1.GET("/statistics/:brandId", handlers.GetSalesStatistics(db))
 
 		// Products
 		v1.GET("/products", handlers.GetProducts(db))
@@ -161,7 +165,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 					brand.PUT("/:id/approve", admin.AdminApproveBrand(db, smtpClient))
 					brand.PUT("/:id/reject", admin.AdminRejectBrand(db, smtpClient))
-					// brand.PUT("/:id/resubmit", admin.AdminResubmitBrand(db))
 					
 					brand.DELETE("/:id", admin.AdminDeleteBrand(db))
 			}
