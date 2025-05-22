@@ -1,6 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import Arrow from '../../assets/category/accordion/DownArrow.svg'
+
+const translateCategoryToEnglish = categoryName => {
+	const translations = {
+		Новинки: 'new',
+		Обувь: 'shoes',
+		Одежда: 'clothes',
+		Тренировки: 'training',
+		Красота: 'beauty',
+		Скидки: 'discounts',
+		Хоккей: 'hockey',
+		Теннис: 'tennis',
+		Регби: 'rugby',
+		Баскетбол: 'basketball',
+		Бег: 'running',
+		Бренд: 'brand',
+		Лыжи: 'skiing',
+		Волейбол: 'volleyball',
+		Зал: 'gym',
+		Дайвинг: 'diving',
+		Футбол: 'football',
+		Зима: 'winter',
+		Лето: 'summer',
+		Весна: 'spring',
+		Осень: 'autumn',
+	}
+	return translations[categoryName] || categoryName.toLowerCase()
+}
 
 const Accordion = () => {
 	const [openIndexes, setOpenIndexes] = useState([])
@@ -9,20 +37,26 @@ const Accordion = () => {
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
 	const contentRefs = useRef([])
+	const navigate = useNavigate()
+	const { category: urlCategory } = useParams()
+
+	const [selectedCategory, setSelectedCategory] = useState(
+		localStorage.getItem('category') || ''
+	)
+	const [selectedSubCategory, setSelectedSubCategory] = useState(
+		localStorage.getItem('subCategory') || ''
+	)
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				const [categoriesRes, subCategoriesRes] = await Promise.all([
-					axios.get('http://localhost:8080/api/v1/gender/category/'),
+					axios.get('http://localhost:8080/api/v1/categories'),
 					axios.get('http://localhost:8080/api/v1/subcategory'),
 				])
-
-				// Обрабатываем категории
-				const validCategories = (categoriesRes.data?.category || []).filter(
+				const validCategories = (categoriesRes.data?.categories || []).filter(
 					cat => cat?.id && cat?.name?.trim()
 				)
-
 				setCategories(validCategories)
 				setSubCategories(subCategoriesRes.data || [])
 			} catch (err) {
@@ -32,11 +66,9 @@ const Accordion = () => {
 				setLoading(false)
 			}
 		}
-
 		fetchData()
 	}, [])
 
-	// Группируем подкатегории по category_id
 	const getSubCategoriesByCategory = categoryId => {
 		return subCategories.filter(subCat => subCat.category_id === categoryId)
 	}
@@ -47,6 +79,30 @@ const Accordion = () => {
 		)
 	}
 
+	const handleCategoryClick = (categoryName, index) => {
+		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+		const translatedCategory = translateCategoryToEnglish(categoryName)
+		setSelectedCategory(categoryName)
+		setSelectedSubCategory('')
+		localStorage.setItem('category', categoryName)
+		localStorage.removeItem('subCategory')
+		navigate(`/${activeMenuItem}/${translatedCategory}`)
+
+		if (!openIndexes.includes(index)) {
+			toggleAccordion(index)
+		}
+	}
+
+	const handleSubCategoryClick = (subCategoryName, categoryName) => {
+		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+		const translatedCategory = translateCategoryToEnglish(categoryName)
+		setSelectedSubCategory(subCategoryName)
+		setSelectedCategory(categoryName)
+		localStorage.setItem('subCategory', subCategoryName)
+		localStorage.setItem('category', categoryName)
+		navigate(`/${activeMenuItem}/${translatedCategory}`)
+	}
+
 	if (loading)
 		return <div className='py-4 text-center'>Загрузка категорий...</div>
 	if (error) return <div className='py-4 text-center text-red-500'>{error}</div>
@@ -55,33 +111,60 @@ const Accordion = () => {
 
 	return (
 		<div className='mr-5'>
-			<ul>
+			<ul className='space-y-2'>
+				{' '}
+				{/* Добавлен отступ между категориями */}
 				{categories.slice(0, 8).map((category, index) => {
 					const categorySubs = getSubCategoriesByCategory(category.id)
+					const isCategorySelected = selectedCategory === category.name
 
 					return (
 						<li key={category.id} className='py-1'>
-							<button
-								onClick={() => toggleAccordion(index)}
-								className='w-full text-left focus:outline-none flex justify-between items-center'
-								aria-expanded={openIndexes.includes(index)}
-								aria-controls={`category-${category.id}-content`}
+							<div
+								className={`flex justify-between items-center px-3 py-2 ${
+									isCategorySelected
+										? 'bg-black rounded-md'
+										: 'hover:bg-gray-100'
+								}`}
 							>
-								<span className='text-lg py-1 font-semibold'>
-									{category.name || 'Без названия'}
-								</span>
+								<button
+									onClick={() => handleCategoryClick(category.name, index)}
+									className={`text-left focus:outline-none flex-grow ${
+										isCategorySelected ? 'text-white' : 'text-black'
+									}`}
+								>
+									<div className='flex items-center'>
+										<span className='text-lg font-semibold'>
+											{category.name || 'Без названия'}
+										</span>
+										<span
+											className={`text-sm mx-2 ${
+												isCategorySelected ? 'text-white' : 'text-gray-500'
+											}`}
+										>
+											{category.product_count}
+										</span>
+									</div>
+								</button>
 								{categorySubs.length > 0 && (
-									<img
-										src={Arrow}
-										alt={
-											openIndexes.includes(index) ? 'Свернуть' : 'Развернуть'
-										}
-										className={`h-6 w-6 transition-transform duration-300 ${
-											openIndexes.includes(index) ? 'rotate-180' : 'rotate-0'
-										}`}
-									/>
+									<button
+										onClick={() => toggleAccordion(index)}
+										className='focus:outline-none'
+										aria-expanded={openIndexes.includes(index)}
+										aria-controls={`category-${category.id}-content`}
+									>
+										<img
+											src={Arrow}
+											alt={
+												openIndexes.includes(index) ? 'Свернуть' : 'Развернуть'
+											}
+											className={`h-6 w-6 transition-transform duration-300 ${
+												openIndexes.includes(index) ? 'rotate-180' : 'rotate-0'
+											} ${isCategorySelected ? 'invert' : ''}`}
+										/>
+									</button>
 								)}
-							</button>
+							</div>
 							<div
 								id={`category-${category.id}-content`}
 								ref={el => (contentRefs.current[index] = el)}
@@ -92,19 +175,50 @@ const Accordion = () => {
 									overflow: 'hidden',
 									transition: 'max-height 0.3s ease-out',
 								}}
-								className='mt-2'
 								aria-hidden={!openIndexes.includes(index)}
 							>
 								{categorySubs.length > 0 ? (
-									categorySubs.map(subCategory => (
-										<div key={subCategory.id} className='py-2'>
-											<span className='text-md cursor-pointer text-gray-600 hover:text-stone-900'>
-												{subCategory.name || 'Без названия'}
-											</span>
-										</div>
-									))
+									<ul className='pl-6 py-1 space-y-1'>
+										{categorySubs.map(subCategory => {
+											const isSubCategorySelected =
+												selectedSubCategory === subCategory.name &&
+												selectedCategory === category.name
+
+											return (
+												<li key={subCategory.id} className='py-1'>
+													<div
+														className={`flex items-center cursor-pointer hover:text-gray-700 relative px-3 py-1 rounded ${
+															isSubCategorySelected
+																? 'font-semibold bg-gray-200'
+																: 'hover:bg-gray-100'
+														}`}
+														onClick={() =>
+															handleSubCategoryClick(
+																subCategory.name,
+																category.name
+															)
+														}
+													>
+														<div className='flex-grow min-w-0'>
+															<span className='text-sm break-words'>
+																{subCategory.name || 'Без названия'}
+															</span>
+														</div>
+														<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
+															{subCategory.product_count || 0}
+														</span>
+														{isSubCategorySelected && (
+															<div className='ml-2 w-2 h-2 bg-black rounded-full flex-shrink-0'></div>
+														)}
+													</div>
+												</li>
+											)
+										})}
+									</ul>
 								) : (
-									<div className='py-2 text-gray-400'>Нет подкатегорий</div>
+									<div className='py-2 text-gray-400 pl-6'>
+										Нет подкатегорий
+									</div>
 								)}
 							</div>
 						</li>

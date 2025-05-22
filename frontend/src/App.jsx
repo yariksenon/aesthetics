@@ -41,6 +41,7 @@ import AdminSubCategories from './components/admin/SubCategories'
 import AdminReview from './components/admin/Review'
 import AdminOrder from './components/admin/Order'
 import AdminBrand from './components/admin/Brand'
+import AdminNewsletter from './components/admin/Newsletter'
 
 function GenderRoute() {
 	const { gender } = useParams()
@@ -66,7 +67,6 @@ const routes = [
 	{ path: '/:gender', component: GenderRoute },
 	{ path: '/:gender/:category', component: CategoryRoute },
 	{ path: '/:gender/:category/:subcategory', component: SubCategory },
-	{ path: '/:gender/:category/:subcategory/:productid', component: Product },
 	{ path: '/product/:id', component: Product },
 	{ path: '/checkout', component: Checkout },
 	{ path: '/profile', component: Profile },
@@ -107,6 +107,11 @@ const adminRoutes = [
 	{ path: '/admin/carts', component: SubCategory, protected: true },
 	{ path: '/admin/review', component: AdminReview, protected: true },
 	{ path: '/admin/seller_request', component: AdminBrand, protected: true },
+	{
+		path: '/admin/newsletter',
+		component: AdminNewsletter,
+		protected: true,
+	},
 ]
 
 export default function App() {

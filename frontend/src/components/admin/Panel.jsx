@@ -11,6 +11,7 @@ import {
 	FaCommentDots,
 	FaMoneyBillAlt,
 	FaCheckCircle,
+	FaEnvelope,
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import headerLogo from '../../assets/home/Header/Logo.svg'
@@ -50,6 +51,12 @@ const buttons = [
 		path: '/admin/seller_request',
 		label: 'Заявки продавцов',
 		icon: <FaCheckCircle className='mr-2' />,
+		fullWidth: true,
+	},
+	{
+		path: '/admin/newsletter',
+		label: 'Отправить письмо',
+		icon: <FaEnvelope className='mr-2' />,
 		fullWidth: true,
 	},
 ]

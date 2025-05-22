@@ -18,7 +18,9 @@ const ProductList = ({ filters = {} }) => {
 	const [processingFavorites, setProcessingFavorites] = useState([])
 	const [hoverImageIndex, setHoverImageIndex] = useState({})
 	const [hoveredProduct, setHoveredProduct] = useState(null)
+
 	const prevCategoryRef = useRef(localStorage.getItem('category'))
+	const prevSubCategoryRef = useRef(localStorage.getItem('subCategory'))
 	const prevMenuItemRef = useRef(localStorage.getItem('activeMenuItem'))
 
 	const navigate = useNavigate()
@@ -41,6 +43,15 @@ const ProductList = ({ filters = {} }) => {
 	// Функция фильтрации товаров
 	const applyFilters = (products, filters) => {
 		let filtered = [...products]
+
+		// Фильтр по подкатегории
+		if (filters.subCategory) {
+			filtered = filtered.filter(product =>
+				product.sub_category
+					?.toLowerCase()
+					.includes(filters.subCategory.toLowerCase())
+			)
+		}
 
 		// Фильтр по цвету
 		if (filters.colors?.length > 0) {
@@ -87,18 +98,32 @@ const ProductList = ({ filters = {} }) => {
 		return filtered
 	}
 
-	// Применение фильтра по категории
-	const applyCategoryFilter = (productsList, category) => {
+	// Применение фильтра по категории и подкатегории
+	const applyCategoryFilter = productsList => {
+		const currentCategory = localStorage.getItem('category')
+		const currentSubCategory = localStorage.getItem('subCategory')
+
 		let filtered = [...productsList]
 
-		if (category && category !== 'undefined') {
+		if (currentCategory && currentCategory !== 'undefined') {
 			filtered = filtered.filter(product =>
-				product.category.toLowerCase().includes(category.toLowerCase())
+				product.category?.toLowerCase().includes(currentCategory.toLowerCase())
+			)
+		}
+
+		if (currentSubCategory && currentSubCategory !== 'undefined') {
+			filtered = filtered.filter(product =>
+				product.sub_category
+					?.toLowerCase()
+					.includes(currentSubCategory.toLowerCase())
 			)
 		}
 
 		// Применяем фильтры из пропса
-		filtered = applyFilters(filtered, filters)
+		filtered = applyFilters(filtered, {
+			...filters,
+			subCategory: currentSubCategory,
+		})
 
 		setFilteredProducts(filtered)
 		setPagination(prev => ({
@@ -110,13 +135,19 @@ const ProductList = ({ filters = {} }) => {
 
 	const checkLocalStorageChanges = () => {
 		const currentCategory = localStorage.getItem('category')
+		const currentSubCategory = localStorage.getItem('subCategory')
 		const currentMenuItem = localStorage.getItem('activeMenuItem')
 
-		if (currentCategory !== prevCategoryRef.current) {
+		if (
+			currentCategory !== prevCategoryRef.current ||
+			currentSubCategory !== prevSubCategoryRef.current
+		) {
 			prevCategoryRef.current = currentCategory
+			prevSubCategoryRef.current = currentSubCategory
 			localStorage.setItem('isReloading', 'true')
-			applyCategoryFilter(allProducts, currentCategory)
-			window.location.reload()
+			applyCategoryFilter(allProducts)
+			// window.location.reload()
+			fetchProducts(1, pagination.pageSize)
 		}
 
 		if (currentMenuItem !== prevMenuItemRef.current) {
@@ -144,6 +175,11 @@ const ProductList = ({ filters = {} }) => {
 				url += `&category_name=${encodeURIComponent(currentCategory)}`
 			}
 
+			const currentSubCategory = localStorage.getItem('subCategory')
+			if (currentSubCategory && currentSubCategory !== 'undefined') {
+				url += `&sub_category_name=${encodeURIComponent(currentSubCategory)}`
+			}
+
 			// Добавляем фильтры в запрос, если API их поддерживает
 			if (filters.colors?.length > 0) {
 				url += `&colors=${filters.colors.join(',')}`
@@ -166,7 +202,7 @@ const ProductList = ({ filters = {} }) => {
 
 			const data = await response.json()
 			setAllProducts(data.products || [])
-			applyCategoryFilter(data.products || [], currentCategory)
+			applyCategoryFilter(data.products || [])
 
 			setPagination({
 				total: data.pagination?.total || 0,
@@ -216,7 +252,11 @@ const ProductList = ({ filters = {} }) => {
 		fetchFavorites()
 
 		const handleStorageChange = e => {
-			if (e.key === 'category' || e.key === 'activeMenuItem') {
+			if (
+				e.key === 'category' ||
+				e.key === 'subCategory' ||
+				e.key === 'activeMenuItem'
+			) {
 				checkLocalStorageChanges()
 			}
 		}
@@ -228,9 +268,8 @@ const ProductList = ({ filters = {} }) => {
 			window.removeEventListener('storage', handleStorageChange)
 			clearInterval(interval)
 		}
-	}, [location.search, filters]) // Добавляем filters в зависимости
+	}, [location.search, filters])
 
-	// Остальной код (обработчики событий, рендер) остается без изменений
 	const handleFavoriteClick = async (productId, e) => {
 		e.stopPropagation()
 		if (!userId) {
@@ -285,7 +324,6 @@ const ProductList = ({ filters = {} }) => {
 		}))
 	}
 
-	// Рендер (без изменений)
 	if (reloadLoading) {
 		return (
 			<div
@@ -321,6 +359,8 @@ const ProductList = ({ filters = {} }) => {
 
 	if (!filteredProducts.length) {
 		const currentCategory = localStorage.getItem('category')
+		const currentSubCategory = localStorage.getItem('subCategory')
+
 		return (
 			<div
 				style={{
@@ -370,7 +410,9 @@ const ProductList = ({ filters = {} }) => {
 						marginBottom: '8px',
 					}}
 				>
-					{currentCategory
+					{currentSubCategory
+						? `В подкатегории "${currentSubCategory}" пока нет товаров`
+						: currentCategory
 						? `В категории "${currentCategory}" пока нет товаров`
 						: 'Товары не найдены'}
 				</h3>

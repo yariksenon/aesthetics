@@ -76,10 +76,15 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
     v1.GET("/wishlist/:userId/:productId", handlers.RemoveFromWishlist(db))
 
 		// Email
-		v1.POST("/subscribe", handlers.HandleEmail(smtpClient))
+		// v1.POST("/subscribe", handlers.HandleEmail(db, smtpClient))
+		// v1.GET("/subscribe/:userId", handlers.CheckSubscribe(db))
+		v1.POST("/subscribe", handlers.HandleEmail(db, smtpClient))
+		v1.POST("/unsubscribe", handlers.HandleUnsubscribe(db))
+		v1.GET("/subscribe/check/:email", handlers.CheckSubscribeByEmail(db))
 
 
 		v1.GET("/categories", handlers.GetCategories(db))
+		
 		v1.GET("/sub-categories", handlers.GetSubCategories(db))
 	
 		v1.GET("/size-types", handlers.GetSizeTypes(db))
@@ -167,6 +172,11 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 					brand.PUT("/:id/reject", admin.AdminRejectBrand(db, smtpClient))
 					
 					brand.DELETE("/:id", admin.AdminDeleteBrand(db))
+			}
+
+			newsletter := routesAdmin.Group("/newsletter")
+			{
+				newsletter.POST("", admin.SendNewsletter(db, smtpClient))
 			}
 		}
 	}

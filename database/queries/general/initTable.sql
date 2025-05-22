@@ -1,4 +1,3 @@
--- 1. Сначала создаём таблицы без внешних ключей
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     first_name VARCHAR(100),
@@ -12,28 +11,24 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 2. Создаём таблицу категорий (должна быть создана перед product)
 CREATE TABLE IF NOT EXISTS category (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     gender VARCHAR(20)
 );
 
--- 3. Создаём таблицу подкатегорий (зависит от category)
 CREATE TABLE IF NOT EXISTS sub_category (
     id SERIAL PRIMARY KEY,
     category_id INTEGER REFERENCES category(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL
 );
 
--- 4. Создаём таблицу типов размеров (должна быть перед sizes и product)
 CREATE TABLE IF NOT EXISTS size_types (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL UNIQUE,
     description TEXT
 );
 
--- 5. Создаём таблицу размеров
 CREATE TABLE IF NOT EXISTS sizes (
     id SERIAL PRIMARY KEY,
     size_type_id INTEGER REFERENCES size_types(id) ON DELETE CASCADE,
