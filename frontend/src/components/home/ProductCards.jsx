@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, Button, Spin, Empty, message } from 'antd'
+import { Card, Button, Spin, Empty, message, Tag } from 'antd'
 import { HeartOutlined, HeartFilled } from '@ant-design/icons'
 
 const ProductCarts = ({ filters = {} }) => {
@@ -15,12 +15,17 @@ const ProductCarts = ({ filters = {} }) => {
 	const navigate = useNavigate()
 	const userId = localStorage.getItem('userId')
 
+	// Функция проверки наличия товара
+	const isProductAvailable = product => {
+		return product.sizes?.some(size => size.quantity > 0)
+	}
+
 	// Слушаем изменения в localStorage
 	useEffect(() => {
 		const handleStorageChange = e => {
 			if (e.key === 'activeMenuItem') {
 				setActiveMenuItem(e.newValue)
-				fetchProducts(e.newValue) // Передаем новое значение
+				fetchProducts(e.newValue)
 			}
 		}
 
@@ -99,8 +104,7 @@ const ProductCarts = ({ filters = {} }) => {
 	// Проверка перед действиями, требующими авторизации
 	const checkAuth = () => {
 		if (!userId) {
-			message.error('Для добавления в избранное необходимо войти в аккаунт')
-			navigate('/login')
+			message.warning('Для добавления в избранное необходимо войти в аккаунт')
 			return false
 		}
 		return true
@@ -142,6 +146,18 @@ const ProductCarts = ({ filters = {} }) => {
 		setHoverImageIndex(prev => ({
 			...prev,
 			[product.id]: effectiveIndex,
+		}))
+	}
+
+	const handleMouseEnter = productId => {
+		setHoveredProduct(productId)
+	}
+
+	const handleMouseLeave = productId => {
+		setHoveredProduct(null)
+		setHoverImageIndex(prev => ({
+			...prev,
+			[productId]: 0,
 		}))
 	}
 
@@ -196,12 +212,13 @@ const ProductCarts = ({ filters = {} }) => {
 					product.image_paths?.[currentImageIndex] ||
 					product.primary_image ||
 					'https://placehold.co/600x900'
+				const isAvailable = isProductAvailable(product)
 
 				return (
 					<div key={product.id} style={{ minWidth: 240, flexShrink: 0 }}>
 						<Card
 							hoverable
-							onClick={() => navigate(`/product/${product.id}`)}
+							onClick={() => isAvailable && navigate(`/product/${product.id}`)}
 							bordered={false}
 							onMouseMove={e => handleMouseMove(e, product)}
 							onMouseEnter={() => handleMouseEnter(product.id)}
@@ -211,10 +228,44 @@ const ProductCarts = ({ filters = {} }) => {
 								position: 'relative',
 								boxShadow: 'none',
 								width: 240,
+								cursor: isAvailable ? 'pointer' : 'default',
+								opacity: isAvailable ? 1 : 0.7,
 							}}
 							bodyStyle={{ padding: 0 }}
 							cover={
 								<div style={{ position: 'relative', paddingTop: '150%' }}>
+									{!isAvailable && (
+										<div
+											style={{
+												position: 'absolute',
+												top: 0,
+												left: 0,
+												right: 0,
+												bottom: 0,
+												backgroundColor: 'rgba(255, 255, 255, 0.7)',
+												zIndex: 2,
+												display: 'flex',
+												justifyContent: 'center',
+												alignItems: 'center',
+											}}
+										>
+											<Tag
+												color='red'
+												style={{
+													position: 'absolute',
+													top: '50%',
+													left: '50%',
+													transform: 'translate(-50%, -50%)',
+													fontSize: 14,
+													padding: '4px 12px',
+													zIndex: 3,
+												}}
+											>
+												Нет в наличии
+											</Tag>
+										</div>
+									)}
+
 									{hoveredProduct === product.id &&
 										product.image_paths?.length > 1 && (
 											<div
@@ -254,6 +305,7 @@ const ProductCarts = ({ filters = {} }) => {
 											height: '100%',
 											objectFit: 'contain',
 											transition: 'opacity 0.3s ease',
+											filter: isAvailable ? 'none' : 'grayscale(80%)',
 										}}
 										onError={e => {
 											e.currentTarget.src = 'https://placehold.co/600x900'
@@ -278,6 +330,7 @@ const ProductCarts = ({ filters = {} }) => {
 											top: 8,
 											right: 8,
 											border: 'none',
+											zIndex: 3,
 										}}
 										onClick={e => handleFavoriteClick(product.id, e)}
 									/>

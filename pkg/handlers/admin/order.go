@@ -29,14 +29,13 @@ type OrderItemDetail struct {
 	PriceAtPurchase float64 `json:"price_at_purchase"`
 }
 
-// GetOrders returns a list of user's orders
 func GetOrders(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, err := strconv.Atoi(c.Param("userId"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-			return
-		}
+		// userID, err := strconv.Atoi(c.Param("userId"))
+		// if err != nil {
+		// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		// 	return
+		// }
 
 		rows, err := db.Query(`
 			SELECT 
@@ -49,10 +48,9 @@ func GetOrders(db *sql.DB) gin.HandlerFunc {
 				notes,
 				status,
 				created_at 
-			FROM orders 
-			WHERE user_id = $1 
+			FROM orders
 			ORDER BY created_at DESC
-		`, userID)
+		`)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -88,11 +86,6 @@ func GetOrders(db *sql.DB) gin.HandlerFunc {
 // GetOrderDetails returns details of a specific order
 func GetOrderDetails(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID, err := strconv.Atoi(c.Param("userId"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-			return
-		}
 
 		orderID, err := strconv.Atoi(c.Param("orderId"))
 		if err != nil {
@@ -114,8 +107,8 @@ func GetOrderDetails(db *sql.DB) gin.HandlerFunc {
 				status,
 				created_at 
 			FROM orders 
-			WHERE id = $1 AND user_id = $2
-		`, orderID, userID).Scan(
+			WHERE id = $1
+		`, orderID).Scan(
 			&order.ID,
 			&order.UserID,
 			&order.Total,
@@ -182,8 +175,7 @@ func GetOrderDetails(db *sql.DB) gin.HandlerFunc {
 		err = db.QueryRow(`
 			SELECT first_name, last_name, email, phone 
 			FROM users 
-			WHERE id = $1
-		`, userID).Scan(
+		`).Scan(
 			&user.FirstName,
 			&user.LastName,
 			&user.Email,
@@ -314,78 +306,99 @@ func CancelOrder(db *sql.DB) gin.HandlerFunc {
 
 // Структура запроса для изменения статуса заказа
 type UpdateOrderStatusRequest struct {
-	Status string `json:"status" binding:"required,oneof=оформлен в_пути прибыл завершено отменён"`
+	Status string `json:"status" binding:"required,oneof=оформлен в_пути прибыл завершено завершено_частично отменён"`
 }
 
 // Обработчик изменения статуса заказа
 func UpdateOrderStatus(db *sql.DB, smtpClient *smtp.SMTPClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Получаем ID заказа из URL
-		orderID, err := strconv.Atoi(c.Param("orderId"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
-			return
-		}
-
-		// Парсим тело запроса
-		var req UpdateOrderStatusRequest
-		if err := c.BindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// Получаем информацию о заказе и пользователе
-		var currentStatus string
-		var userEmail, userName string
-		err = db.QueryRow(`
-			SELECT o.status, u.email, u.first_name 
-			FROM orders o
-			JOIN users u ON o.user_id = u.id
-			WHERE o.id = $1
-		`, orderID).Scan(&currentStatus, &userEmail, &userName)
-
-		if err != nil {
-			if err == sql.ErrNoRows {
-				c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+			// Получаем ID заказа из URL
+			orderID, err := strconv.Atoi(c.Param("orderId"))
+			if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный ID заказа"})
+					return
 			}
-			return
-		}
 
-		// Обновляем статус заказа
-		_, err = db.Exec(`
-			UPDATE orders 
-			SET status = $1 
-			WHERE id = $2
-		`, req.Status, orderID)
+			// Парсим тело запроса
+			var req UpdateOrderStatusRequest
+			if err := c.BindJSON(&req); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+					return
+			}
 
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении статуса заказа"})
-			return
-		}
-
-		// Если статус изменился на "прибыл", отправляем email
-		if req.Status == "прибыл" && currentStatus != "прибыл" && smtpClient != nil {
-			subject := "Ваш заказ прибыл!"
-			body := "Уважаемый " + userName + ",\n\n" +
-				"Ваш заказ #" + strconv.Itoa(orderID) + " прибыл и ожидает вас.\n\n" +
-				"С уважением,\nКоманда Aesthetics"
-
-			// Отправляем email
-			err := smtpClient.SendMail(
-				"aesthetics.team.contacts@gmail.com",
-				userEmail,
-				subject,
-				body,
-			)
+			// Получаем информацию о заказе и пользователе
+			var currentStatus string
+			var userEmail, userName string
+			err = db.QueryRow(`
+					SELECT o.status, u.email, u.first_name 
+					FROM orders o
+					JOIN users u ON o.user_id = u.id
+					WHERE o.id = $1
+			`, orderID).Scan(&currentStatus, &userEmail, &userName)
 
 			if err != nil {
-				log.Printf("Ошибка при отправке письма: %v", err)
-				// Не возвращаем ошибку, так как статус заказа уже обновлен
+					if err == sql.ErrNoRows {
+							c.JSON(http.StatusNotFound, gin.H{"error": "Заказ не найден"})
+					} else {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных"})
+					}
+					return
 			}
-		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Статус заказа успешно обновлен"})
+			// Обновляем статус заказа
+			_, err = db.Exec(`
+					UPDATE orders 
+					SET status = $1 
+					WHERE id = $2
+			`, req.Status, orderID)
+
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении статуса заказа"})
+					return
+			}
+
+			// Отправляем email при изменении статуса на "прибыл" или "завершено_частично"
+			if smtpClient != nil && currentStatus != req.Status {
+					if req.Status == "прибыл" {
+							subject := "Ваш заказ прибыл!"
+							body := "Уважаемый " + userName + ",\n\n" +
+									"Ваш заказ #" + strconv.Itoa(orderID) + " прибыл и ожидает вас.\n\n" +
+									"С уважением,\nКоманда Aesthetics"
+
+							// Отправляем email
+							err := smtpClient.SendMail(
+									"aesthetics.team.contacts@gmail.com",
+									userEmail,
+									subject,
+									body,
+							)
+
+							if err != nil {
+									log.Printf("Ошибка при отправке письма для статуса 'прибыл': %v", err)
+									// Не возвращаем ошибку, так как статус заказа уже обновлен
+							}
+					} else if req.Status == "завершено_частично" {
+							subject := "Ваш заказ частично завершен"
+							body := "Уважаемый " + userName + ",\n\n" +
+									"Ваш заказ #" + strconv.Itoa(orderID) + " был частично завершен. Некоторые товары могут быть недоставлены.\n" +
+									"Пожалуйста, свяжитесь с нами для уточнения деталей.\n\n" +
+									"С уважением,\nКоманда Aesthetics"
+
+							// Отправляем email
+							err := smtpClient.SendMail(
+									"aesthetics.team.contacts@gmail.com",
+									userEmail,
+									subject,
+									body,
+							)
+
+							if err != nil {
+									log.Printf("Ошибка при отправке письма для статуса 'завершено_частично': %v", err)
+									// Не возвращаем ошибку, так как статус заказа уже обновлен
+							}
+					}
+			}
+
+			c.JSON(http.StatusOK, gin.H{"message": "Статус заказа успешно обновлен"})
 	}
 }

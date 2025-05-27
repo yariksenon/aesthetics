@@ -7,11 +7,10 @@ import {
 	FaList,
 	FaStream,
 	FaShoppingBag,
-	FaChartBar,
 	FaCommentDots,
-	FaMoneyBillAlt,
-	FaCheckCircle,
 	FaEnvelope,
+	FaTruck,
+	FaBuilding,
 } from 'react-icons/fa'
 import { Link } from 'react-router-dom'
 import headerLogo from '../../assets/home/Header/Logo.svg'
@@ -49,22 +48,33 @@ const buttons = [
 	},
 	{
 		path: '/admin/seller_request',
-		label: 'Заявки продавцов',
-		icon: <FaCheckCircle className='mr-2' />,
-		fullWidth: true,
+		label: 'Бренды',
+		icon: <FaBuilding className='mr-2' />,
 	},
 	{
 		path: '/admin/newsletter',
 		label: 'Отправить письмо',
 		icon: <FaEnvelope className='mr-2' />,
-		fullWidth: true,
+	},
+	{
+		path: '/admin/courier',
+		label: 'Курьеры',
+		icon: <FaTruck className='mr-2' />,
 	},
 ]
 
 const Panel = () => {
 	const navigate = useNavigate()
-	const [searchTerm, setSearchTerm] = useState('')
-	const [stats, setStats] = useState({ users: 0, products: 0, orders: 0 })
+	const [stats, setStats] = useState({
+		brands: 0,
+		categories: 0,
+		couriers: 0,
+		orders: 0,
+		products: 0,
+		reviews: 0,
+		subcategories: 0,
+		users: 0,
+	})
 
 	useEffect(() => {
 		document.title = 'Admin Panel'
@@ -80,10 +90,6 @@ const Panel = () => {
 		}
 	}
 
-	const filteredButtons = buttons.filter(button =>
-		button.label.toLowerCase().includes(searchTerm.toLowerCase())
-	)
-
 	return (
 		<div className='min-h-screen bg-white text-black p-8'>
 			<div className='flex justify-center items-center'>
@@ -96,15 +102,7 @@ const Panel = () => {
 				Управление всеми аспектами приложения
 			</p>
 
-			<input
-				type='text'
-				placeholder='Поиск раздела...'
-				value={searchTerm}
-				onChange={e => setSearchTerm(e.target.value)}
-				className='block w-full max-w-lg mx-auto mt-6 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent'
-			/>
-
-			<div className='grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mt-8'>
+			<div className='grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto mt-8'>
 				{[
 					{
 						label: 'Пользователи',
@@ -121,22 +119,47 @@ const Panel = () => {
 						value: stats.orders,
 						icon: <FaShoppingBag className='text-2xl' />,
 					},
+					{
+						label: 'Бренды',
+						value: stats.brands,
+						icon: <FaBuilding className='text-2xl' />,
+					},
+					{
+						label: 'Категории',
+						value: stats.categories,
+						icon: <FaList className='text-2xl' />,
+					},
+					{
+						label: 'Подкатегории',
+						value: stats.subcategories,
+						icon: <FaStream className='text-2xl' />,
+					},
+					{
+						label: 'Отзывы',
+						value: stats.reviews,
+						icon: <FaCommentDots className='text-2xl' />,
+					},
+					{
+						label: 'Курьеры',
+						value: stats.couriers,
+						icon: <FaTruck className='text-2xl' />,
+					},
 				].map((stat, index) => (
 					<div
 						key={index}
-						className='bg-gray-100 p-6 rounded-lg shadow-md flex items-center space-x-4'
+						className='bg-gray-100 p-6 rounded-lg shadow-md flex flex-col items-center '
 					>
-						{stat.icon}
-						<div>
-							<p className='text-2xl font-bold'>{stat.value}</p>
-							<p className='text-gray-600'>{stat.label}</p>
+						<p className='text-2xl font-bold text-center'>{stat.value}</p>{' '}
+						<div className='flex w-full justify-center space-x-2'>
+							{stat.icon}
+							<p className='text-gray-600'>{stat.label}</p>{' '}
 						</div>
 					</div>
 				))}
 			</div>
 
 			<div className='grid mt-10 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto'>
-				{filteredButtons.map((button, index) => (
+				{buttons.map((button, index) => (
 					<button
 						key={index}
 						onClick={() => navigate(button.path)}
@@ -148,6 +171,13 @@ const Panel = () => {
 						<span className='text-xl font-semibold'>{button.label}</span>
 					</button>
 				))}
+			</div>
+
+			<div className='mt-12 text-center text-gray-500 text-sm'>
+				<p>
+					© {new Date().getFullYear()} Административная панель. Все права
+					защищены.
+				</p>
 			</div>
 		</div>
 	)

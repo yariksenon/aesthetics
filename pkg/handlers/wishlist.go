@@ -12,7 +12,7 @@ type ProductResponse struct {
 	ID        int     `json:"id"`
 	Name      string  `json:"name"`
 	Price     float64 `json:"price"`
-	ImagePath string  `json:"image_path"` // Изменили на обычную string
+	ImagePath string  `json:"image_path"`
 }
 
 func GetWishlist(db *sql.DB) gin.HandlerFunc {
@@ -115,7 +115,7 @@ func AddToWishlist(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Product added to wishlist"})
+		c.JSON(http.StatusOK, gin.H{"message": "Продукт добавлен в избранное"})
 	}
 }
 
@@ -155,7 +155,7 @@ func RemoveFromWishlist(db *sql.DB) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
-			"message": "Product removed from wishlist",
+			"message": "Продукт удалён с избарнного",
 		})
 	}
 }

@@ -109,7 +109,34 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 		// Search
 		v1.GET("/products/sku/:sku", handlers.GetProductBySKU(db))
+
+
+
+		v1.POST("/be-courier", handlers.PostCourier(db))
+		v1.GET("/check-courier-application", handlers.CheckCourierApplication(db))
+		v1.PUT("/courier/:id/resubmit", handlers.ResubmitCourier(db))
 		
+		// Получение списка доступных заказов для курьера (по городу)
+		v1.GET("/courier/available-orders", handlers.GetAvailableOrders(db))
+		v1.PUT("/courier/accept/:order_id", handlers.AcceptOrder(db))
+		v1.PUT("/courier/orders/:order_id/status", handlers.UpdateOrderStatus(db, smtpClient))
+		
+
+
+			// Принятие заказа курьером
+			// v1.POST("/courier/accept-order/:order_id", handlers.AcceptOrder(db))
+
+			// // Получение списка текущих заказов курьера
+			// v1.GET("/courier/my-orders", handlers.GetCourierOrders(db))
+
+			// // Изменение статуса заказа
+			
+
+			// v1.PUT("/courier/order/:order_id/accept", handlers.UpdateOrderStatus(db))
+			
+
+			// // Получение статистики курьера
+			// v1.GET("/courier/stats", handlers.GetCourierStats(db))
 		
 		routesAdmin := v1.Group("/admin")
 		{
@@ -154,8 +181,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 
 			order := routesAdmin.Group("/order")
 			{
-				order.GET("/:userId", admin.GetOrders(db))
-				order.GET("/:userId/:orderId", admin.GetOrderDetails(db))
+				order.GET("", admin.GetOrders(db))
+				order.GET("/:orderId", admin.GetOrderDetails(db))
 				order.PUT("/:orderId/status", admin.UpdateOrderStatus(db, smtpClient))
 				order.DELETE("/:userId/:orderId", admin.CancelOrder(db))
 			}
@@ -172,6 +199,18 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 					brand.PUT("/:id/reject", admin.AdminRejectBrand(db, smtpClient))
 					
 					brand.DELETE("/:id", admin.AdminDeleteBrand(db))
+			}
+
+			courier := routesAdmin.Group("/courier")
+			{
+					courier.GET("", admin.AdminGetAllCouriers(db))
+					courier.GET("/approved", admin.AdminGetApprovedCouriers(db))
+					courier.GET("/pending", admin.AdminGetPendingCouriers(db))
+					courier.GET("/:id", admin.AdminGetCourierByID(db))
+					courier.PUT("/:id/approve", admin.AdminApproveCourier(db, smtpClient))
+					courier.PUT("/:id/reject", admin.AdminRejectCourier(db, smtpClient))
+					courier.DELETE("/:id", admin.AdminDeleteCourier(db))
+					courier.PUT("/:id/resubmit", admin.AdminResubmitCourier(db))
 			}
 
 			newsletter := routesAdmin.Group("/newsletter")

@@ -72,15 +72,22 @@ const ShoppingCart = () => {
 
 	const clearCart = async () => {
 		try {
-			await axios.delete(`http://localhost:8080/api/v1/cart/${userId}/clear`)
-			setCartItems([]) // Ensure state is cleared
-			setTotal(0) // Reset total
-			await fetchCartItems() // Refresh cart to confirm
-			message.success('Корзина очищена')
+			const response = await axios.delete(
+				`http://localhost:8080/api/v1/cart/${userId}/clear`
+			)
+			setCartItems([])
+			setTotal(0)
+			// Получаем сообщение из ответа сервера
+			const serverMessage = response.data?.message || 'Корзина очищена'
+			message.success(serverMessage)
+			window.location.reload()
 		} catch (error) {
 			console.error('Error clearing cart:', error)
-			message.error('Не удалось очистить корзину')
-			setCartItems([]) // Fallback to clear state on error
+			// Получаем сообщение об ошибке из ответа сервера, если есть
+			const errorMessage =
+				error.response?.data?.message || 'Не удалось очистить корзину'
+			message.error(errorMessage)
+			setCartItems([])
 			setTotal(0)
 		}
 	}

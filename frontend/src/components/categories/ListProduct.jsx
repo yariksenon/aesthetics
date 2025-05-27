@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Card, Button, Spin, Empty, message, Pagination } from 'antd'
+import { Card, Button, Spin, Empty, message, Pagination, Tag } from 'antd'
 import { HeartOutlined, HeartFilled } from '@ant-design/icons'
 
 const ProductList = ({ filters = {} }) => {
@@ -40,6 +40,11 @@ const ProductList = ({ filters = {} }) => {
 		}
 	}
 
+	// Функция проверки наличия товара
+	const isProductAvailable = product => {
+		return product.sizes?.some(size => size.quantity > 0)
+	}
+
 	// Функция фильтрации товаров
 	const applyFilters = (products, filters) => {
 		let filtered = [...products]
@@ -73,10 +78,10 @@ const ProductList = ({ filters = {} }) => {
 		if (filters.availability) {
 			filtered = filtered.filter(product => {
 				if (filters.availability === 'in-stock') {
-					return product.sizes?.some(size => size.quantity > 0)
+					return isProductAvailable(product)
 				}
 				if (filters.availability === 'pre-order') {
-					return product.sizes?.every(size => size.quantity === 0)
+					return !isProductAvailable(product)
 				}
 				return true
 			})
@@ -146,7 +151,6 @@ const ProductList = ({ filters = {} }) => {
 			prevSubCategoryRef.current = currentSubCategory
 			localStorage.setItem('isReloading', 'true')
 			applyCategoryFilter(allProducts)
-			// window.location.reload()
 			fetchProducts(1, pagination.pageSize)
 		}
 
@@ -273,8 +277,7 @@ const ProductList = ({ filters = {} }) => {
 	const handleFavoriteClick = async (productId, e) => {
 		e.stopPropagation()
 		if (!userId) {
-			message.error('Войдите в аккаунт, чтобы добавлять товары в избранное')
-			navigate('/login')
+			message.warning('Войдите в аккаунт, чтобы добавлять товары в избранное')
 			return
 		}
 
@@ -449,12 +452,13 @@ const ProductList = ({ filters = {} }) => {
 
 					const availableSizes =
 						product.sizes?.filter(size => size.quantity > 0) || []
+					const isAvailable = isProductAvailable(product)
 
 					return (
 						<Card
 							key={product.id}
 							hoverable
-							onClick={() => navigate(`/product/${product.id}`)}
+							onClick={() => isAvailable && navigate(`/product/${product.id}`)}
 							bordered={false}
 							onMouseMove={e => handleMouseMove(e, product)}
 							onMouseEnter={() => handleMouseEnter(product.id)}
@@ -463,6 +467,8 @@ const ProductList = ({ filters = {} }) => {
 								transition: 'all 0.3s',
 								position: 'relative',
 								boxShadow: 'none',
+								cursor: isAvailable ? 'pointer' : 'default',
+								opacity: isAvailable ? 1 : 0.7,
 							}}
 							bodyStyle={{
 								padding: 0,
@@ -476,6 +482,38 @@ const ProductList = ({ filters = {} }) => {
 										overflow: 'hidden',
 									}}
 								>
+									{!isAvailable && (
+										<div
+											style={{
+												position: 'absolute',
+												top: 0,
+												left: 0,
+												right: 0,
+												bottom: 0,
+												backgroundColor: 'rgba(255, 255, 255, 0.7)',
+												zIndex: 2,
+												display: 'flex',
+												justifyContent: 'center',
+												alignItems: 'center',
+											}}
+										>
+											<Tag
+												color='red'
+												style={{
+													position: 'absolute',
+													top: '50%',
+													left: '50%',
+													transform: 'translate(-50%, -50%)',
+													fontSize: 14,
+													padding: '4px 12px',
+													zIndex: 3,
+												}}
+											>
+												Нет в наличии
+											</Tag>
+										</div>
+									)}
+
 									{hoveredProduct === product.id &&
 										product.image_paths?.length > 1 && (
 											<div
@@ -515,6 +553,7 @@ const ProductList = ({ filters = {} }) => {
 											height: '100%',
 											objectFit: 'contain',
 											transition: 'opacity 0.3s ease',
+											filter: isAvailable ? 'none' : 'grayscale(80%)',
 										}}
 										onError={e => {
 											e.currentTarget.src = 'https://placehold.co/600x900'
@@ -540,6 +579,7 @@ const ProductList = ({ filters = {} }) => {
 											top: 8,
 											right: 8,
 											border: 'none',
+											zIndex: 3,
 										}}
 										onClick={e => handleFavoriteClick(product.id, e)}
 									/>
@@ -564,7 +604,9 @@ const ProductList = ({ filters = {} }) => {
 										gap: 8,
 										flexWrap: 'wrap',
 										visibility:
-											hoveredProduct === product.id ? 'visible' : 'hidden',
+											hoveredProduct === product.id && isAvailable
+												? 'visible'
+												: 'hidden',
 									}}
 								>
 									{availableSizes.map(size => (

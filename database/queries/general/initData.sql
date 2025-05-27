@@ -1,3 +1,22 @@
+-- Вставка данных в таблицу пользователей
+INSERT INTO users (first_name, last_name, username, email, subscription, password, phone, role, created_at) VALUES
+('admin', 'admin', 'admin', 'admin@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+12025550173', 'admin', CURRENT_TIMESTAMP),
+('Ярослав', 'Зубарь', 'Александрович', 'yariksen.exe@gmail.com', TRUE, '$2a$10$cSN7IYyE2Bz3VuBlBf.CE.4GWulypkZzc3A8KRgsJ4iU7csOqilK6', '+442079460958', 'customer', CURRENT_TIMESTAMP),
+('brand', 'brand', 'brand', 'brand@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+14165550841', 'brand', CURRENT_TIMESTAMP),
+('courier', 'courier', 'courier', 'courier@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+61298765432', 'courier', CURRENT_TIMESTAMP)
+ON CONFLICT (username) DO NOTHING;
+
+
+
+INSERT INTO brand (id, user_id, name, email, description, website, status, created_at, updated_at) VALUES
+(1, 3, 'Adidas', 'adidas@gmail.com', 'Adidas — мировой лидер в спортивной одежде и обуви, объединяющий стиль, технологии и комфорт.', 'https://www.adidas.com/us', 'approved', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO courier (id, user_id, name, phone, email, transport, experience, city, status, created_at, updated_at) VALUES
+(1, 4, 'Дубравский Александр Анатольевич', '+375297729459', 'dubravskiy@gmail.com', 'bicycle', 10, 'Гродно', 'approved', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+
 -- Вставка данных в таблицу категорий
 INSERT INTO category(id, name) VALUES
 (1, 'Новинки'),
@@ -24,20 +43,6 @@ INSERT INTO category(id, name) VALUES
 ON CONFLICT (id) DO UPDATE SET
 name = EXCLUDED.name;
 
--- Вставка данных в таблицу пользователей
-INSERT INTO users (first_name, last_name, username, email, subscription, password, phone, role, created_at) VALUES
-('admin', 'admin', 'admin', 'yariksen.exe@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+12025550173', 'admin', CURRENT_TIMESTAMP),
-('user', 'user', 'user', 'user@gmail.com', TRUE, '$2a$10$cSN7IYyE2Bz3VuBlBf.CE.4GWulypkZzc3A8KRgsJ4iU7csOqilK6', '+442079460958', 'customer', CURRENT_TIMESTAMP),
-('manager', 'manager', 'manager', 'manager@gmail.com', TRUE, '$2a$10$BPYxANhtbSmj5sWKxJyFLu/VNAy/R.zq6t4iJx1SrGXTPX/gFp.Qy', '+14165550841', 'manager', CURRENT_TIMESTAMP),
-('John', 'Doe', 'john_doe', 'john.doe@gmail.com', TRUE, '$2a$10$daFW5TDt6nT1sDWpLOb1O.Z5Yfo5p43vLgAAGQzLDU1VHRAckuau6', '+61298765432', 'customer', CURRENT_TIMESTAMP),
-('Jane', 'Smith', 'jane_smith', 'jane.smith@gmail.com', FALSE, '$2a$10$pDLvFn/aYYBE.VtXzTCeJevWjAWy.ppBcksDieeG3Jk3o5e.d0VHO', '+49301234567', 'customer', CURRENT_TIMESTAMP),
-('Alice', 'Johnson', 'alice_j', 'alice.j@gmail.com', TRUE, '$2a$10$YpXm4NYBIaQuzJO3zQ4uN.Vl4cNENKlA9FgjfwSLUFJCJuvk/EqLS', '+74232497777', 'customer', CURRENT_TIMESTAMP),
-('Bob', 'Brown', 'bob_brown', 'bob.brown@gmail.com', FALSE, '$2a$10$OVHTJRTPq2thilBRPhiaFuu36DG9/.2cywRzqkvyunNzaBqqX0q96', '+81312345678', 'customer', CURRENT_TIMESTAMP),
-('Charlie', 'Davis', 'charlie_d', 'charlie.d@gmail.com', TRUE, '$2a$10$u/u0JtO5r.WMTF3WIPhbV.qozWBn34ZJC.bJ05EhkGXO1.06fPmMe', '+375291325538', 'customer', CURRENT_TIMESTAMP),
-('Eva', 'Green', 'eva_g', 'eva.g@gmail.com', FALSE, '$2a$10$pxYV88cI44P4FY8UIH.w2uWUaOfbXmrPSqoSgQLA6diorwPTXS0Se', '+912212345678', 'customer', CURRENT_TIMESTAMP),
-('Frank', 'White', 'frank_w', 'frank.w@gmail.com', TRUE, '$2a$10$NC7Rxf9gTP8a8.YDbcgOv.BYgHZiOSIP0kk3.r5YvsZeXQRcsApR.', '+27111234567', 'customer', CURRENT_TIMESTAMP),
-('Grace', 'Black', 'grace_b', 'grace.b@gmail.com', FALSE, '$2a$10$Gf0rHeqHkQ.yYY8WDssOjOIVaTvZjm2gQTT5OimEZSObn87lHiySK', '+390612345678', 'customer', CURRENT_TIMESTAMP)
-ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO sub_category (id, category_id, name) VALUES
 (1, 1, 'Новая коллекция'),
@@ -240,3 +245,4 @@ INSERT INTO sizes (id, size_type_id, value, description) VALUES
 (48, 9, '41-43', 'Размер обуви 41-43'),
 (49, 9, '44-46', 'Размер обуви 44-46')
 ON CONFLICT (id) DO NOTHING;
+

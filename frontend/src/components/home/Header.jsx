@@ -105,6 +105,7 @@ function Header() {
 	const dropdownRef = useRef(null)
 	const navigate = useNavigate()
 	const { gender } = useParams()
+	const isAdmin = userData?.role === 'admin'
 
 	// Получаем userId из localStorage
 	const userId = localStorage.getItem('userId')
@@ -165,6 +166,7 @@ function Header() {
 	const handleLogout = useCallback(() => {
 		localStorage.removeItem('authToken')
 		localStorage.removeItem('userData')
+		localStorage.removeItem('userId') // Добавляем удаление userId
 		setIsAuthenticated(false)
 		setUserData(null)
 		setIsDropdownOpen(false)
@@ -317,6 +319,24 @@ function Header() {
 								>
 									Бренд
 								</Link>
+
+								<Link
+									to='/courier'
+									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+									onClick={() => setIsDropdownOpen(false)}
+								>
+									Курьер
+								</Link>
+
+								{isAdmin && (
+									<Link
+										to='/admin'
+										className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
+										onClick={() => setIsDropdownOpen(false)}
+									>
+										Админ
+									</Link>
+								)}
 
 								<div className='border-t border-gray-200 my-1'></div>
 								<button

@@ -173,7 +173,7 @@ function Rules() {
 						>
 							<Title level={3} className='mb-6'>
 								<TeamOutlined className='mr-2' />
-								Для производителей спортивных товаров
+								Для брендов спортивных товаров
 							</Title>
 							<Divider />
 							<motion.div whileHover={{ scale: 1.01 }}>
@@ -205,7 +205,7 @@ function Rules() {
 						>
 							<Title level={3} className='mb-6'>
 								<CommentOutlined className='mr-2' />
-								Правила спортивного сообщества
+								Правила оставления отзывов
 							</Title>
 							<Divider />
 							<motion.div whileHover={{ scale: 1.01 }}>
@@ -218,6 +218,69 @@ function Rules() {
 										renderItem={item => (
 											<List.Item>
 												<CheckCircleOutlined className='text-green-500 mr-2' />
+												{item}
+											</List.Item>
+										)}
+									/>
+								</Card>
+							</motion.div>
+						</motion.section>
+
+						{/* Правила для курьеров */}
+						<motion.section
+							className='mb-12'
+							whileInView={{ opacity: 1, y: 0 }}
+							initial={{ opacity: 0, y: 20 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5, delay: 0.3 }}
+						>
+							<Title level={3} className='mb-6'>
+								<SafetyOutlined className='mr-2' />
+								Правила для курьеров
+							</Title>
+							<Divider />
+							<motion.div whileHover={{ scale: 1.01 }}>
+								<Card>
+									<Paragraph className='mb-4'>
+										Для наших курьеров мы установили следующие правила и
+										требования:
+									</Paragraph>
+									<List
+										dataSource={[
+											'Обязательно наличие опрятного внешнего вида и фирменной атрибутики',
+											'При себе необходимо иметь терминал для безналичной оплаты',
+											'Курьер обязан позвонить клиенту за 15-30 минут до доставки',
+											'Соблюдать временной интервал доставки (не более 2 часов ожидания)',
+											'При доставке с примеркой - предоставить клиенту до 15 минут на примерку',
+											'Принимать оплату наличными или картой, выдать чек',
+											'Соблюдать правила хранения и транспортировки спортивного инвентаря',
+											'В случае форс-мажора незамедлительно сообщать в службу поддержки',
+											'Запрещено вскрывать упаковки или повреждать товар',
+											'При возврате товара проверить его целостность и комплектацию',
+										]}
+										renderItem={item => (
+											<List.Item>
+												<CheckCircleOutlined className='text-green-500 mr-2' />
+												{item}
+											</List.Item>
+										)}
+									/>
+									<Divider />
+									<Title level={5} className='mt-4'>
+										<TrophyOutlined className='mr-2' />
+										Преимущества работы курьером у нас:
+									</Title>
+									<List
+										dataSource={[
+											'Гибкий график работы',
+											'Бонусы за положительные отзывы клиентов',
+											'Премии за рекордное количество доставок',
+											'Возможность карьерного роста в логистическом отделе',
+											'Компенсация мобильной связи и транспорта',
+										]}
+										renderItem={item => (
+											<List.Item>
+												<StarOutlined className='text-yellow-500 mr-2' />
 												{item}
 											</List.Item>
 										)}

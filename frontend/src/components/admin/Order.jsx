@@ -27,6 +27,7 @@ const Order = () => {
 	const userId = localStorage.getItem('userId')
 
 	const statusOptions = [
+		{ value: 'ожидает', label: 'Ожидает', color: 'cyan' },
 		{ value: 'оформлен', label: 'Оформлен', color: 'blue' },
 		{ value: 'в_пути', label: 'В пути', color: 'orange' },
 		{ value: 'прибыл', label: 'Прибыл', color: 'purple' },
@@ -36,13 +37,9 @@ const Order = () => {
 
 	// Загрузка заказов
 	const fetchOrders = async () => {
-		if (!userId) {
-			message.error('ID пользователя не найден в localStorage')
-			return
-		}
 		setLoading(true)
 		try {
-			const response = await axios.get(`${API_BASE_URL}/${userId}`)
+			const response = await axios.get(`${API_BASE_URL}`)
 			setOrders(response.data.orders)
 		} catch (error) {
 			message.error('Не удалось загрузить заказы')
@@ -59,7 +56,7 @@ const Order = () => {
 		}
 		setLoading(true)
 		try {
-			const response = await axios.get(`${API_BASE_URL}/${userId}/${orderId}`)
+			const response = await axios.get(`${API_BASE_URL}/${orderId}`)
 			setSelectedOrder(response.data)
 			setIsModalVisible(true)
 		} catch (error) {

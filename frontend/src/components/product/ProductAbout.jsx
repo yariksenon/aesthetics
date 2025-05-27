@@ -133,6 +133,13 @@ const ProductAbout = () => {
 
 	const handleAddToCart = async e => {
 		e.stopPropagation()
+		const userId = localStorage.getItem('userId')
+
+		if (!userId) {
+			message.warning('Сперва зайдите или зарегистрируйтесь')
+			return
+		}
+
 		if (!product) return
 
 		if (product.sizes?.length > 0 && !selectedSize) {
@@ -189,8 +196,7 @@ const ProductAbout = () => {
 		if (!product) return
 
 		if (!userId) {
-			message.error('Войдите в систему, чтобы добавлять товары в избранное')
-			navigate('/login')
+			message.warning('Войдите в систему, чтобы добавлять товары в избранное')
 			return
 		}
 
@@ -220,8 +226,7 @@ const ProductAbout = () => {
 
 	const handleReviewSubmit = async values => {
 		if (!userId) {
-			message.error('Войдите в систему, чтобы оставить отзыв')
-			navigate('/login')
+			message.warning('Войдите в систему, чтобы оставить отзыв')
 			return
 		}
 

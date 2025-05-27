@@ -9,53 +9,27 @@ import {
 	Spin,
 	Alert,
 	Divider,
-	Tabs,
+	Select,
 	Checkbox,
 	Modal,
 } from 'antd'
 import {
+	UserOutlined,
+	PhoneOutlined,
 	MailOutlined,
-	GlobalOutlined,
-	IdcardOutlined,
+	CarOutlined,
+	EnvironmentOutlined,
 	CheckCircleOutlined,
-	BarChartOutlined,
-	ShoppingOutlined,
-	PlusCircleOutlined,
 	FileTextOutlined,
 } from '@ant-design/icons'
 import { motion } from 'framer-motion'
-import AddForm from '../admin/product/AdminProductAdd'
-import StatisticsDashboard from './StatisticsDashboard'
-import BrandProductsForm from './BrandProductsForm'
+import { useNavigate } from 'react-router-dom'
+import CourierOrders from './CourierOrders'
 
-const { TextArea } = Input
-const { Title, Paragraph } = Typography
-const { TabPane } = Tabs
+const { Option } = Select
+const { Title, Paragraph, Link } = Typography
 
-// Error Boundary Component
-class ErrorBoundary extends React.Component {
-	state = { hasError: false, error: null }
-
-	static getDerivedStateFromError(error) {
-		return { hasError: true, error }
-	}
-
-	render() {
-		if (this.state.hasError) {
-			return (
-				<Alert
-					message='Компонент не загрузился'
-					description={this.state.error?.message || 'Неизвестная ошибка'}
-					type='error'
-					showIcon
-				/>
-			)
-		}
-		return this.props.children
-	}
-}
-
-const BrandApplicationForm = () => {
+const CourierApplicationForm = () => {
 	const [form] = Form.useForm()
 	const [loading, setLoading] = useState(false)
 	const [checkingSubmission, setCheckingSubmission] = useState(true)
@@ -63,9 +37,16 @@ const BrandApplicationForm = () => {
 	const [submissionData, setSubmissionData] = useState(null)
 	const [error, setError] = useState(null)
 	const [userId, setUserId] = useState(null)
-	const [activeTab, setActiveTab] = useState('statistics')
 	const [rulesChecked, setRulesChecked] = useState(false)
 	const [rulesModalVisible, setRulesModalVisible] = useState(false)
+	const navigate = useNavigate()
+
+	const transportOptions = [
+		{ value: 'foot', label: 'Пешком' },
+		{ value: 'bicycle', label: 'Велосипед' },
+		{ value: 'motorcycle', label: 'Мотоцикл' },
+		{ value: 'car', label: 'Автомобиль' },
+	]
 
 	useEffect(() => {
 		const storedUserId = localStorage.getItem('userId')
@@ -82,7 +63,7 @@ const BrandApplicationForm = () => {
 		const checkExistingApplication = async () => {
 			try {
 				const response = await fetch(
-					`http://localhost:8080/api/v1/check-brand-application?userId=${parsedUserId}`
+					`http://localhost:8080/api/v1/check-courier-application?userId=${parsedUserId}`
 				)
 
 				if (!response.ok) {
@@ -93,13 +74,15 @@ const BrandApplicationForm = () => {
 
 				if (data.exists) {
 					setAlreadySubmitted(true)
-					setSubmissionData(data.brand || { status: 'pending' })
-					if (data.brand?.status === 'rejected') {
+					setSubmissionData(data.courier || { status: 'pending' })
+					if (data.courier?.status === 'rejected') {
 						form.setFieldsValue({
-							name: data.brand.name,
-							email: data.brand.email,
-							website: data.brand.website,
-							description: data.brand.description,
+							name: data.courier.name,
+							phone: data.courier.phone,
+							email: data.courier.email,
+							transport: data.courier.transport,
+							experience: data.courier.experience,
+							city: data.courier.city,
 						})
 					}
 				}
@@ -139,6 +122,12 @@ const BrandApplicationForm = () => {
 		setLoading(true)
 		setError(null)
 
+		const transformedValues = {
+			...values,
+			experience: parseInt(values.experience, 10),
+			userId: userId,
+		}
+
 		try {
 			let response
 			if (
@@ -147,25 +136,22 @@ const BrandApplicationForm = () => {
 				submissionData?.status === 'rejected'
 			) {
 				response = await fetch(
-					`http://localhost:8080/api/v1/brand/${submissionData.id}/resubmit`,
+					`http://localhost:8080/api/v1/courier/${submissionData.id}/resubmit`,
 					{
 						method: 'PUT',
 						headers: {
 							'Content-Type': 'application/json',
 						},
-						body: JSON.stringify(values),
+						body: JSON.stringify(transformedValues),
 					}
 				)
 			} else if (!alreadySubmitted) {
-				response = await fetch('http://localhost:8080/api/v1/be-brand', {
+				response = await fetch('http://localhost:8080/api/v1/be-courier', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({
-						...values,
-						userId: userId,
-					}),
+					body: JSON.stringify(transformedValues),
 				})
 			} else {
 				throw new Error(
@@ -181,8 +167,8 @@ const BrandApplicationForm = () => {
 			const data = await response.json()
 			setAlreadySubmitted(true)
 			setSubmissionData({
-				...values,
-				id: data.brand?.id || submissionData?.id,
+				...transformedValues,
+				id: data.courier?.id || submissionData?.id,
 				status: 'pending',
 				date: new Date().toISOString(),
 			})
@@ -227,85 +213,12 @@ const BrandApplicationForm = () => {
 		)
 	}
 
+	// Если заявка одобрена - показываем панель управления заказами
+	if (alreadySubmitted && submissionData?.status === 'approved') {
+		return <CourierOrders />
+	}
+
 	if (alreadySubmitted && submissionData?.status !== 'rejected') {
-		if (submissionData?.status === 'approved') {
-			return (
-				<div className='w-full min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8'>
-					<div className=''>
-						<Card className='text-center'>
-							<CheckCircleOutlined
-								style={{ fontSize: '48px', color: '#52c41a' }}
-							/>
-							<Title level={3} className='mt-4'>
-								Ваш бренд одобрен!
-							</Title>
-							<Paragraph className='mt-4'>
-								Поздравляем! Ваш бренд <strong>{submissionData?.name}</strong>{' '}
-								успешно одобрен. Теперь вы можете управлять продуктами и
-								просматривать статистику.
-							</Paragraph>
-
-							<Divider className='my-6' />
-
-							<Tabs
-								activeKey={activeTab}
-								onChange={setActiveTab}
-								tabPosition='top'
-								size='large'
-								className='brand-tabs'
-							>
-								<TabPane
-									tab={
-										<span>
-											<BarChartOutlined />
-											Статистика
-										</span>
-									}
-									key='statistics'
-								>
-									<ErrorBoundary>
-										<StatisticsDashboard />
-									</ErrorBoundary>
-								</TabPane>
-
-								<TabPane
-									tab={
-										<span>
-											<ShoppingOutlined />
-											Товары бренда
-										</span>
-									}
-									key='products'
-								>
-									<ErrorBoundary>
-										<BrandProductsForm />
-									</ErrorBoundary>
-								</TabPane>
-
-								<TabPane
-									tab={
-										<span>
-											<PlusCircleOutlined />
-											Добавить товар
-										</span>
-									}
-									key='add-product'
-								>
-									<ErrorBoundary>
-										<AddForm
-											onProductAdded={() =>
-												window.dispatchEvent(new Event('refreshProducts'))
-											}
-										/>
-									</ErrorBoundary>
-								</TabPane>
-							</Tabs>
-						</Card>
-					</div>
-				</div>
-			)
-		}
-
 		return (
 			<div className='w-full min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8'>
 				<div className='max-w-2xl mx-auto'>
@@ -317,8 +230,7 @@ const BrandApplicationForm = () => {
 							Ваша заявка отправлена
 						</Title>
 						<Paragraph className='mt-4'>
-							Вы уже подали заявку на создание бренда:{' '}
-							<strong>{submissionData?.name}</strong>
+							Вы уже подали заявку на курьерство.
 						</Paragraph>
 						<Paragraph>
 							<strong>Статус:</strong> На рассмотрении
@@ -327,10 +239,11 @@ const BrandApplicationForm = () => {
 							<strong>Дата подачи:</strong>{' '}
 							{submissionData?.date
 								? new Date(submissionData.date).toLocaleDateString('ru-RU')
-								: 'Неизвестно'}
+								: new Date().toLocaleDateString('ru-RU')}
 						</Paragraph>
 						<Paragraph type='secondary' className='mt-4'>
-							Мы свяжемся с вами по email: {submissionData?.email}
+							Мы свяжемся с вами по email:{' '}
+							{submissionData?.email || submissionData?.phone}
 						</Paragraph>
 					</Card>
 				</div>
@@ -350,7 +263,7 @@ const BrandApplicationForm = () => {
 					<h1 className='text-3xl font-bold m-0'>
 						{submissionData?.status === 'rejected'
 							? 'Редактировать заявку'
-							: 'Стать брендом'}
+							: 'Стать курьером'}
 					</h1>
 				</div>
 			</motion.div>
@@ -384,15 +297,34 @@ const BrandApplicationForm = () => {
 			>
 				<Form.Item
 					name='name'
-					label='Название бренда'
+					label='ФИО'
 					rules={[
-						{ required: true, message: 'Пожалуйста, введите название бренда' },
-						{ max: 255, message: 'Название не должно превышать 255 символов' },
+						{ required: true, message: 'Пожалуйста, введите ваше ФИО' },
+						{ max: 255, message: 'ФИО не должно превышать 255 символов' },
 					]}
 				>
 					<Input
-						prefix={<IdcardOutlined className='text-gray-400' />}
-						placeholder='Введите название бренда'
+						prefix={<UserOutlined className='text-gray-400' />}
+						placeholder='Введите ваше ФИО'
+						className='py-2'
+						size='large'
+					/>
+				</Form.Item>
+
+				<Form.Item
+					name='phone'
+					label='Телефон'
+					rules={[
+						{ required: true, message: 'Пожалуйста, введите номер телефона' },
+						{
+							pattern: /^[\d\s\-()+]+$/,
+							message: 'Введите корректный номер телефона',
+						},
+					]}
+				>
+					<Input
+						prefix={<PhoneOutlined className='text-gray-400' />}
+						placeholder='Введите номер телефона'
 						className='py-2'
 						size='large'
 					/>
@@ -401,10 +333,7 @@ const BrandApplicationForm = () => {
 				<Form.Item
 					name='email'
 					label='Электронная почта'
-					rules={[
-						{ required: true, message: 'Пожалуйста, введите email' },
-						{ type: 'email', message: 'Введите корректный email' },
-					]}
+					rules={[{ type: 'email', message: 'Введите корректный email' }]}
 				>
 					<Input
 						prefix={<MailOutlined className='text-gray-400' />}
@@ -415,38 +344,55 @@ const BrandApplicationForm = () => {
 				</Form.Item>
 
 				<Form.Item
-					name='website'
-					label='Веб-сайт (необязательно)'
+					name='transport'
+					label='Тип транспорта'
 					rules={[
+						{ required: true, message: 'Пожалуйста, выберите тип транспорта' },
+					]}
+				>
+					<Select
+						placeholder='Выберите тип транспорта'
+						size='large'
+						suffixIcon={<CarOutlined className='text-gray-400' />}
+					>
+						{transportOptions.map(option => (
+							<Option key={option.value} value={option.value}>
+								{option.label}
+							</Option>
+						))}
+					</Select>
+				</Form.Item>
+
+				<Form.Item
+					name='experience'
+					label='Опыт работы (лет)'
+					rules={[
+						{ required: true, message: 'Пожалуйста, укажите ваш опыт' },
 						{
-							type: 'url',
-							message:
-								'Введите корректный URL (начинается с http:// или https://)',
+							type: 'number',
+							min: 0,
+							max: 50,
+							message: 'Введите число от 0 до 50',
+							transform: value => Number(value),
 						},
 					]}
 				>
 					<Input
-						prefix={<GlobalOutlined className='text-gray-400' />}
-						placeholder='https://example.com'
+						type='number'
+						placeholder='Укажите ваш опыт работы курьером в годах'
 						className='py-2'
 						size='large'
 					/>
 				</Form.Item>
 
 				<Form.Item
-					name='description'
-					label='Описание бренда'
-					rules={[
-						{ required: true, message: 'Пожалуйста, введите описание бренда' },
-						{
-							min: 50,
-							message: 'Описание должно содержать не менее 50 символов',
-						},
-					]}
+					name='city'
+					label='Город'
+					rules={[{ required: true, message: 'Пожалуйста, укажите город' }]}
 				>
-					<TextArea
-						rows={6}
-						placeholder='Расскажите о вашем бренде, его ценностях и уникальности...'
+					<Input
+						prefix={<EnvironmentOutlined className='text-gray-400' />}
+						placeholder='Введите город работы'
 						className='py-2'
 						size='large'
 					/>
@@ -465,7 +411,7 @@ const BrandApplicationForm = () => {
 								icon={<FileTextOutlined />}
 								className='p-0'
 							>
-								правилами работы с брендами
+								правилами работы курьера
 							</Button>
 						</Checkbox>
 					</div>
@@ -488,7 +434,7 @@ const BrandApplicationForm = () => {
 			</Form>
 
 			<Modal
-				title='Правила работы с брендами'
+				title='Правила работы курьера'
 				visible={rulesModalVisible}
 				onOk={handleRulesOk}
 				onCancel={handleRulesCancel}
@@ -513,52 +459,63 @@ const BrandApplicationForm = () => {
 					<Paragraph>
 						<strong>1. Общие положения</strong>
 						<br />
-						Бренд обязан соблюдать правила платформы и обеспечивать
-						достоверность информации о товарах.
+						Курьер обязан соблюдать правила доставки и обеспечивать сохранность
+						товаров.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>2. Требования к товарам</strong>
+						<strong>2. Внешний вид</strong>
 						<br />
-						Все товары должны иметь четкие фотографии и точные описания.
+						Обязательно наличие опрятного внешнего вида и фирменной атрибутики.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>3. Ответственность</strong>
+						<strong>3. Оборудование</strong>
 						<br />
-						Бренд несет ответственность за соответствие товаров заявленным
-						характеристикам.
+						При себе необходимо иметь терминал для безналичной оплаты.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>4. Комиссия</strong>
+						<strong>4. Коммуникация</strong>
 						<br />
-						Платформа берет комиссию 10% с каждой успешной продажи.
+						Курьер обязан позвонить клиенту за 15-30 минут до доставки.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>5. Оплата</strong>
+						<strong>5. Временные интервалы</strong>
 						<br />
-						Выплаты брендам производятся 2 раза в месяц (10 и 25 числа).
+						Соблюдать временной интервал доставки (не более 2 часов ожидания).
 					</Paragraph>
 
 					<Paragraph>
-						<strong>6. Возвраты</strong>
+						<strong>6. Примерка</strong>
 						<br />
-						Бренд обязан принимать возвраты в соответствии с политикой
-						платформы.
+						При доставке с примеркой - предоставить клиенту до 15 минут на
+						примерку.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>7. Контент</strong>
+						<strong>7. Оплата</strong>
 						<br />
-						Запрещается размещение незаконного или оскорбительного контента.
+						Принимать оплату наличными или картой, выдать чек.
 					</Paragraph>
 
 					<Paragraph>
-						<strong>8. Нарушения</strong>
+						<strong>8. Транспортировка</strong>
 						<br />
-						За нарушения правил возможна блокировка аккаунта бренда.
+						Соблюдать правила хранения и транспортировки спортивного инвентаря.
+					</Paragraph>
+
+					<Paragraph>
+						<strong>9. Форс-мажор</strong>
+						<br />В случае форс-мажора незамедлительно сообщать в службу
+						поддержки.
+					</Paragraph>
+
+					<Paragraph>
+						<strong>10. Возвраты</strong>
+						<br />
+						При возврате товара проверить его целостность и комплектацию.
 					</Paragraph>
 				</div>
 			</Modal>
@@ -566,4 +523,4 @@ const BrandApplicationForm = () => {
 	)
 }
 
-export default BrandApplicationForm
+export default CourierApplicationForm

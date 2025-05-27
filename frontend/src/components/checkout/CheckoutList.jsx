@@ -239,10 +239,8 @@ const CheckoutPage = () => {
 	}
 
 	return (
-		<div style={{ maxWidth: 1200, margin: '0 auto', padding: 16 }}>
-			<Title level={2} style={{ marginBottom: 24 }}>
-				Оформление заказа
-			</Title>
+		<div>
+			<Title level={2}>Оформление заказа</Title>
 
 			<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
 				<Form form={form} onFinish={handleSubmit} layout='vertical'>
@@ -372,7 +370,14 @@ const CheckoutPage = () => {
 					<div style={{ maxHeight: 400, overflowY: 'auto' }}>
 						{cartItems.map(item => (
 							<div key={item.id} style={{ marginBottom: 16 }}>
-								<Space>
+								<Space
+									style={{
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'space-between',
+										width: '100%',
+									}}
+								>
 									<Image
 										width={80}
 										height={80}
@@ -385,16 +390,14 @@ const CheckoutPage = () => {
 										alt={item.name}
 										style={{ objectFit: 'cover' }}
 									/>
-									<div>
+									<div style={{ flex: 1 }}>
 										<Text strong>{item.name}</Text>
 										<br />
 										<Text type='secondary'>Количество: {item.quantity}</Text>
 									</div>
-									<div style={{ marginLeft: 'auto' }}>
-										<Text strong>
-											{(item.price * item.quantity).toFixed(2)} руб.
-										</Text>
-									</div>
+									<Text strong>
+										{(item.price * item.quantity).toFixed(2)} руб.
+									</Text>
 								</Space>
 								<Divider style={{ margin: '12px 0' }} />
 							</div>

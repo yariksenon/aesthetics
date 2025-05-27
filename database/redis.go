@@ -11,8 +11,8 @@ var ctx = context.Background()
 func NewRedisClient(addr, password string, db int) *redis.Client {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: password, // no password set
-		DB:       db,       // use default DB
+		Password: password, 
+		DB:       db,       
 	})
 
 	// Проверка подключения

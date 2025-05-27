@@ -26,6 +26,8 @@ import Favorites from './components/favorites/Favorites'
 import Checkout from './components/checkout/Checkout'
 import MyOrder from './components/order/MyOrderList'
 import Brand from './components/brand/Brand'
+import Courier from './components/courier/Courier'
+import About from './components/home/About'
 
 // Админские компоненты
 import AdminPanel from './components/admin/Panel'
@@ -42,6 +44,7 @@ import AdminReview from './components/admin/Review'
 import AdminOrder from './components/admin/Order'
 import AdminBrand from './components/admin/Brand'
 import AdminNewsletter from './components/admin/Newsletter'
+import AdminCourier from './components/admin/Courier'
 
 function GenderRoute() {
 	const { gender } = useParams()
@@ -72,6 +75,8 @@ const routes = [
 	{ path: '/profile', component: Profile },
 	{ path: '/my-order', component: MyOrder },
 	{ path: '/brand', component: Brand },
+	{ path: '/courier', component: Courier },
+	{ path: '/about', component: About },
 ]
 
 // Конфигурация админских маршрутов
@@ -110,6 +115,11 @@ const adminRoutes = [
 	{
 		path: '/admin/newsletter',
 		component: AdminNewsletter,
+		protected: true,
+	},
+	{
+		path: '/admin/courier',
+		component: AdminCourier,
 		protected: true,
 	},
 ]

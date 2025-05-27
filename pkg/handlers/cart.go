@@ -251,7 +251,7 @@ func AddCartProduct(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
-			c.JSON(http.StatusOK, gin.H{"message": "Product added to cart"})
+			c.JSON(http.StatusOK, gin.H{"message": "Продукт добавлен в корзину"})
 	}
 }
 
@@ -335,7 +335,7 @@ func UpdateCartProduct(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
-			c.JSON(http.StatusOK, gin.H{"message": "Cart item updated"})
+			c.JSON(http.StatusOK, gin.H{"message": "Корзина обновлена"})
 	}
 }
 
@@ -367,6 +367,6 @@ func ClearCart(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"message": "Cart cleared"})
+		c.JSON(http.StatusOK, gin.H{"message": "Корзина очищена"})
 	}
 }

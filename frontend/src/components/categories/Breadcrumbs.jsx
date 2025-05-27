@@ -29,13 +29,17 @@ const translations = {
 const genderTranslations = {
 	man: 'мужчинам',
 	woman: 'женщинам',
-	childern: 'детям',
+	children: 'детям',
 }
 
 const Breadcrumbs = () => {
 	const { gender, category } = useParams()
 	const translatedGender = genderTranslations[gender] || gender
 	const translatedCategory = translations[category] || category
+
+	// Получаем подкатегорию из localStorage
+	const subCategory = localStorage.getItem('subCategory')
+	const translatedSubCategory = subCategory ? subCategory.toLowerCase() : ''
 
 	return (
 		<section aria-label='Хлебные крошки'>
@@ -59,6 +63,15 @@ const Breadcrumbs = () => {
 						>
 							{translatedCategory}
 						</Link>
+					</>
+				)}
+
+				{subCategory && (
+					<>
+						<img src={slash} alt='Slash' className='mx-1 h-4 md:h-5' />
+						<span className='hover:text-stone-900'>
+							{translatedSubCategory}
+						</span>
 					</>
 				)}
 			</div>

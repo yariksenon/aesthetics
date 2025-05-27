@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     subscription BOOLEAN DEFAULT FALSE,
     password VARCHAR(255) NOT NULL,
     phone VARCHAR(20),
-    role VARCHAR(50) DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'seller', 'manager')),
+    role VARCHAR(50) DEFAULT 'customer' CHECK (role IN ('customer', 'admin', 'brand', 'courier')),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS brand (
     email VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
     website VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'ожидает',
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP
 );
@@ -84,16 +84,6 @@ CREATE TABLE IF NOT EXISTS product_sizes (
     PRIMARY KEY (product_id, size_id)
 );
 
-CREATE TABLE IF NOT EXISTS user_address (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-    address_line VARCHAR(255),
-    country VARCHAR(100),
-    city VARCHAR(100),
-    postal_code VARCHAR(20),
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS cart (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -117,15 +107,30 @@ CREATE TABLE IF NOT EXISTS wishlist (
     UNIQUE(user_id, product_id)
 );
 
+CREATE TABLE IF NOT EXISTS courier (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20) NOT NULL UNIQUE,
+    email VARCHAR(255) UNIQUE,
+    transport VARCHAR(50) NOT NULL,
+    experience INT,
+    city VARCHAR(100) NOT NULL,
+    status VARCHAR(50) DEFAULT 'ожидает',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS orders (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    courier_id INTEGER REFERENCES courier(id) ON DELETE SET NULL,
     total DECIMAL(10, 2) NOT NULL,
     payment_provider VARCHAR(100),
     address VARCHAR(255),
     city VARCHAR(100),
     notes TEXT,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    status VARCHAR(50) NOT NULL DEFAULT 'ожидает',
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -136,6 +141,7 @@ CREATE TABLE IF NOT EXISTS order_item (
     size_id INTEGER REFERENCES sizes(id) ON DELETE SET NULL,
     quantity SMALLINT DEFAULT 1 CHECK (quantity > 0),
     price_at_purchase NUMERIC(10, 2) NOT NULL,
+    canceled BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -145,15 +151,12 @@ CREATE TABLE IF NOT EXISTS reviews (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     rating INTEGER CHECK (rating BETWEEN 1 AND 5),
-    status VARCHAR(20) DEFAULT 'pending',
+    status VARCHAR(20) DEFAULT 'ожидает',
     created_at TIMESTAMP DEFAULT NOW(),
     published_at TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES product(id)
 );
 
-
--- 8. Создаём индексы после создания всех таблиц
-CREATE INDEX IF NOT EXISTS idx_user_address_user_id ON user_address(user_id);
 CREATE INDEX IF NOT EXISTS idx_product_category ON product(category_id);
 CREATE INDEX IF NOT EXISTS idx_product_subcategory ON product(sub_category_id);
 CREATE INDEX IF NOT EXISTS idx_product_size_type ON product(size_type_id);
