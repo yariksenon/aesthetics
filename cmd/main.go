@@ -58,13 +58,13 @@ func main() {
 		log.Fatalf("Ошибка загрузки SQL-запросов: %v", err)
 	}
 
-	redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
+	// redisClient := database.NewRedisClient(cfg.Redis.Host+cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 
 	smtpClient := smtp.NewSMTPClient(cfg.Smtp.From, cfg.Smtp.Password, cfg.Smtp.Host, cfg.Smtp.Port)
 
 	twilioClient := twilio.NewTwilioClient(cfg.Twilio.TwilioNumber, cfg.Twilio.AccountSID, cfg.Twilio.AuthToken)
 
-	routes.SetupRoutes(r, db, smtpClient, redisClient, twilioClient)
+	routes.SetupRoutes(r, db, smtpClient, twilioClient)
 
 	r.Static("/static", "./uploads")
 

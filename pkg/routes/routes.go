@@ -8,10 +8,9 @@ import (
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 )
 
-func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisClient *redis.Client, twilioClient *twilio.TwilioClient) {
+func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, twilioClient *twilio.TwilioClient) {
 	v1 := r.Group("/api/v1")
 	{
 		v1.GET("/", handlers.HomePage)
@@ -24,11 +23,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			{
 
 				categoryGroup.GET("/", handlers.GetCategory(db))
-
-				// subCategoryGroup := categoryGroup.Group("/:subcategory")
-				// {
-					// subCategoryGroup.GET("/", handlers.GetSubCategories(db))
-				// }
 			}
 		}
 
@@ -44,9 +38,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/orders/:userId/:orderId", handlers.GetOrderDetails(db))
 		v1.PUT("/:orderId/status", admin.UpdateOrderStatus(db, smtpClient))
 
-		// v1.PUT("/orders/:userId/:orderId/cancel", handlers.CancelOrder(db))
-		// v1.PUT("/:orderId/status", admin.CancelOrder(db))
-
 		v1.DELETE("/orders/:userId/:orderId/items/:productId/:sizeId", handlers.RemoveOrderItem(db))
 
 
@@ -54,8 +45,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/profile/:userId", handlers.GetProfile(db))
 		v1.PUT("/profile/:userId", handlers.UpdateProfile(db))
 		v1.PUT("/profile/:userId/password", handlers.PutPasswordProfile(db))
-		// v1.GET("/profile/address", handlers.GetAddress(db))
-		// v1.POST("/profile/address", handlers.SaveAddress(db))
 
 
 		// Reviews
@@ -76,8 +65,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
     v1.GET("/wishlist/:userId/:productId", handlers.RemoveFromWishlist(db))
 
 		// Email
-		// v1.POST("/subscribe", handlers.HandleEmail(db, smtpClient))
-		// v1.GET("/subscribe/:userId", handlers.CheckSubscribe(db))
 		v1.POST("/subscribe", handlers.HandleEmail(db, smtpClient))
 		v1.POST("/unsubscribe", handlers.HandleUnsubscribe(db))
 		v1.GET("/subscribe/check/:email", handlers.CheckSubscribeByEmail(db))
@@ -103,13 +90,8 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/product/:id", handlers.GetProduct(db))
 		v1.POST("/create-product/:userId", handlers.BrandCreateProduct(db))       // Создание товара
 
-		// v1.GET("", handlers.BrandGetProducts(db))          // Получение всех товаров
-		// v1.PUT("/:id", handlers.BrandUpdateProduct(db))    // Обновление товара
-		// v1.DELETE("/:id", handlers.BrandDeleteProduct(db)) // Удаление товара
-
 		// Search
 		v1.GET("/products/sku/:sku", handlers.GetProductBySKU(db))
-
 
 
 		v1.POST("/be-courier", handlers.PostCourier(db))
@@ -120,23 +102,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 		v1.GET("/courier/available-orders", handlers.GetAvailableOrders(db))
 		v1.PUT("/courier/accept/:order_id", handlers.AcceptOrder(db))
 		v1.PUT("/courier/orders/:order_id/status", handlers.UpdateOrderStatus(db, smtpClient))
-		
-
-
-			// Принятие заказа курьером
-			// v1.POST("/courier/accept-order/:order_id", handlers.AcceptOrder(db))
-
-			// // Получение списка текущих заказов курьера
-			// v1.GET("/courier/my-orders", handlers.GetCourierOrders(db))
-
-			// // Изменение статуса заказа
-			
-
-			// v1.PUT("/courier/order/:order_id/accept", handlers.UpdateOrderStatus(db))
-			
-
-			// // Получение статистики курьера
-			// v1.GET("/courier/stats", handlers.GetCourierStats(db))
 		
 		routesAdmin := v1.Group("/admin")
 		{
@@ -170,7 +135,6 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 				product.GET("", admin.AdminGetProducts(db))          // Получение всех товаров
 				product.PUT("/:productId", admin.AdminUpdateProduct(db))    // Обновление товара
 				product.DELETE("/:productId", admin.AdminDeleteProduct(db)) // Удаление товара
-				// product.POST("", admin.AdminCreateProduct(db))       // Создание товара
 			}
 
 			reviews := routesAdmin.Group("/reviews")
@@ -191,13 +155,9 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, redisCl
 			{
 					brand.GET("/approved", admin.AdminGetApprovedSellers(db))
 					brand.GET("/pending", admin.AdminGetPendingSellers(db))
-					
-					
 					brand.GET("/:id", admin.AdminGetSellerByID(db))
-
 					brand.PUT("/:id/approve", admin.AdminApproveBrand(db, smtpClient))
 					brand.PUT("/:id/reject", admin.AdminRejectBrand(db, smtpClient))
-					
 					brand.DELETE("/:id", admin.AdminDeleteBrand(db))
 			}
 

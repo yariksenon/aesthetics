@@ -141,7 +141,6 @@ CREATE TABLE IF NOT EXISTS order_item (
     size_id INTEGER REFERENCES sizes(id) ON DELETE SET NULL,
     quantity SMALLINT DEFAULT 1 CHECK (quantity > 0),
     price_at_purchase NUMERIC(10, 2) NOT NULL,
-    canceled BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
