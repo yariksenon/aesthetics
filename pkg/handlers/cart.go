@@ -370,3 +370,89 @@ func ClearCart(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, gin.H{"message": "Корзина очищена"})
 	}
 }
+
+func DeleteCartItems(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+			userID, err := strconv.Atoi(c.Param("userId"))
+			if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+					return
+			}
+
+			// Получаем cart_id пользователя
+			var cartID int
+			err = db.QueryRow("SELECT id FROM cart WHERE user_id = $1", userID).Scan(&cartID)
+			if err != nil {
+					if err == sql.ErrNoRows {
+							c.JSON(http.StatusOK, gin.H{"message": "Cart not found"})
+							return
+					}
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+					return
+			}
+
+			var itemsToDelete []struct {
+					ProductID int `json:"productId"`
+					SizeID    int `json:"sizeId"`
+			}
+
+			if err := c.ShouldBindJSON(&itemsToDelete); err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+					return
+			}
+
+			if len(itemsToDelete) == 0 {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "No items to delete"})
+					return
+			}
+
+			tx, err := db.Begin()
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to start transaction"})
+					return
+			}
+			defer tx.Rollback()
+
+			stmt, err := tx.Prepare(`
+					DELETE FROM cart_item 
+					WHERE cart_id = $1 AND product_id = $2 AND size_id = $3
+					RETURNING id
+			`)
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare statement"})
+					return
+			}
+			defer stmt.Close()
+
+			var deletedIDs []int
+			for _, item := range itemsToDelete {
+					var id int
+					err := stmt.QueryRow(cartID, item.ProductID, item.SizeID).Scan(&id)
+					if err != nil {
+							if err == sql.ErrNoRows {
+									continue // Пропускаем если товар не найден
+							}
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item"})
+							return
+					}
+					deletedIDs = append(deletedIDs, id)
+			}
+
+			err = tx.Commit()
+			if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
+					return
+			}
+
+			if len(deletedIDs) == 0 {
+					c.JSON(http.StatusNotFound, gin.H{"message": "No items were found to delete"})
+					return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+					"message": "Удалено",
+					"deletedCount": len(deletedIDs),
+					"deletedIDs": deletedIDs,
+			})
+	}
+}

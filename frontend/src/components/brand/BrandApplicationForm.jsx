@@ -67,11 +67,34 @@ const BrandApplicationForm = () => {
 	const [rulesChecked, setRulesChecked] = useState(false)
 	const [rulesModalVisible, setRulesModalVisible] = useState(false)
 
-	useEffect(() => {
-		const storedUserId = localStorage.getItem('userId')
-		const parsedUserId = storedUserId ? parseInt(storedUserId, 10) : null
+	const formatDate = dateString => {
+		if (!dateString) return 'Неизвестно'
 
-		if (!storedUserId || isNaN(parsedUserId)) {
+		const date = new Date(dateString)
+		return date.toLocaleDateString('ru-RU', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit',
+		})
+	}
+
+	useEffect(() => {
+		const storedUserData = localStorage.getItem('userData')
+		let parsedUserData = null
+		let parsedUserId = null
+		let defaultEmail = 'user@example.com' // Fallback email
+
+		try {
+			parsedUserData = storedUserData ? JSON.parse(storedUserData) : null
+			parsedUserId = parsedUserData?.id ? parseInt(parsedUserData.id, 10) : null
+			defaultEmail = parsedUserData?.email || defaultEmail
+		} catch (e) {
+			setError('Ошибка при чтении данных пользователя из localStorage')
+		}
+
+		if (!parsedUserData || !parsedUserId || isNaN(parsedUserId)) {
 			setError('Пользователь не авторизован или ID пользователя недействителен')
 			setCheckingSubmission(false)
 			return
@@ -102,6 +125,11 @@ const BrandApplicationForm = () => {
 							description: data.brand.description,
 						})
 					}
+				} else {
+					// Set default email from localStorage
+					form.setFieldsValue({
+						email: defaultEmail,
+					})
 				}
 			} catch (error) {
 				setError(error.message)
@@ -184,7 +212,7 @@ const BrandApplicationForm = () => {
 				...values,
 				id: data.brand?.id || submissionData?.id,
 				status: 'pending',
-				date: new Date().toISOString(),
+				created_at: data.brand?.created_at || submissionData?.created_at,
 			})
 
 			message.success(
@@ -203,6 +231,22 @@ const BrandApplicationForm = () => {
 			setLoading(false)
 		}
 	}
+
+	const validateSingleValue = fieldName => ({
+		validator(_, value) {
+			if (!value) return Promise.resolve()
+			const values = value
+				.split(',')
+				.map(v => v.trim())
+				.filter(v => v)
+			if (value.trim().includes('  ')) {
+				return Promise.reject(
+					new Error(`Поле "${fieldName}" содержит лишние пробелы`)
+				)
+			}
+			return Promise.resolve()
+		},
+	})
 
 	if (checkingSubmission) {
 		return (
@@ -325,9 +369,7 @@ const BrandApplicationForm = () => {
 						</Paragraph>
 						<Paragraph>
 							<strong>Дата подачи:</strong>{' '}
-							{submissionData?.date
-								? new Date(submissionData.date).toLocaleDateString('ru-RU')
-								: 'Неизвестно'}
+							{formatDate(submissionData?.created_at)}
 						</Paragraph>
 						<Paragraph type='secondary' className='mt-4'>
 							Мы свяжемся с вами по email: {submissionData?.email}
@@ -354,7 +396,7 @@ const BrandApplicationForm = () => {
 					</h1>
 				</div>
 			</motion.div>
-			<Divider className='my-6' />
+
 			{error && (
 				<Alert
 					message='Ошибка'
@@ -387,7 +429,8 @@ const BrandApplicationForm = () => {
 					label='Название бренда'
 					rules={[
 						{ required: true, message: 'Пожалуйста, введите название бренда' },
-						{ max: 255, message: 'Название не должно превышать 255 символов' },
+						{ max: 50, message: 'Название не должно превышать 50 символов' },
+						validateSingleValue('Название бренда'),
 					]}
 				>
 					<Input
@@ -395,6 +438,7 @@ const BrandApplicationForm = () => {
 						placeholder='Введите название бренда'
 						className='py-2'
 						size='large'
+						maxLength={50}
 					/>
 				</Form.Item>
 
@@ -404,6 +448,7 @@ const BrandApplicationForm = () => {
 					rules={[
 						{ required: true, message: 'Пожалуйста, введите email' },
 						{ type: 'email', message: 'Введите корректный email' },
+						{ max: 255, message: 'Email не должен превышать 255 символов' },
 					]}
 				>
 					<Input
@@ -411,18 +456,21 @@ const BrandApplicationForm = () => {
 						placeholder='Введите email'
 						className='py-2'
 						size='large'
+						maxLength={255}
 					/>
 				</Form.Item>
 
 				<Form.Item
 					name='website'
-					label='Веб-сайт (необязательно)'
+					label='Веб-сайт'
 					rules={[
+						{ required: true, message: 'Пожалуйста, введите URL веб-сайта' },
 						{
 							type: 'url',
 							message:
 								'Введите корректный URL (начинается с http:// или https://)',
 						},
+						{ max: 255, message: 'URL не должен превышать 255 символов' },
 					]}
 				>
 					<Input
@@ -430,6 +478,7 @@ const BrandApplicationForm = () => {
 						placeholder='https://example.com'
 						className='py-2'
 						size='large'
+						maxLength={255}
 					/>
 				</Form.Item>
 
@@ -442,6 +491,11 @@ const BrandApplicationForm = () => {
 							min: 50,
 							message: 'Описание должно содержать не менее 50 символов',
 						},
+						{
+							max: 500,
+							message: 'Описание не должно превышать 500 символов',
+						},
+						validateSingleValue('Описание бренда'),
 					]}
 				>
 					<TextArea
@@ -449,6 +503,7 @@ const BrandApplicationForm = () => {
 						placeholder='Расскажите о вашем бренде, его ценностях и уникальности...'
 						className='py-2'
 						size='large'
+						maxLength={500}
 					/>
 				</Form.Item>
 
@@ -545,8 +600,7 @@ const BrandApplicationForm = () => {
 					<Paragraph>
 						<strong>6. Возвраты</strong>
 						<br />
-						Бренд обязан принимать возвраты в соответствии с политикой
-						платформы.
+						Бренд обязан принимать возвраты.
 					</Paragraph>
 
 					<Paragraph>
@@ -558,7 +612,7 @@ const BrandApplicationForm = () => {
 					<Paragraph>
 						<strong>8. Нарушения</strong>
 						<br />
-						За нарушения правил возможна блокировка аккаунта бренда.
+						За нарушения правил возможна блокировка аккаунта.
 					</Paragraph>
 				</div>
 			</Modal>

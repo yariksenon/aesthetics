@@ -39,7 +39,7 @@ func HandleEmail(db *sql.DB, smtpClient *smtp.SMTPClient) gin.HandlerFunc {
 
         if err != nil {
             log.Printf("Ошибка при обновлении подписки: %v", err)
-            c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении подписки"})
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Это не ваша почта"})
             return
         }
 

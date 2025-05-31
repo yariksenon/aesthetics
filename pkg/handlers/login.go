@@ -33,7 +33,6 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		// Стандартная задержка для неудачных попыток
 		defer func(start time.Time) {
 			if c.Writer.Status() != http.StatusOK {
 				elapsed := time.Since(start)
@@ -56,7 +55,7 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 
 		if err != nil {
 			if err == sql.ErrNoRows {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Невереный логин или пароль"})
 			} else {
 				log.Printf("Database error: %v", err)
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
@@ -65,7 +64,7 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(dbPassword), []byte(req.Password)); err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Невереный логин или пароль"})
 			return
 		}
 

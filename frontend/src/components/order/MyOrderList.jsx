@@ -15,6 +15,8 @@ import {
 	Card,
 } from 'antd'
 import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import Header from '../home/Header'
 import AsideBanner from '../home/AsideBanner'
@@ -34,6 +36,7 @@ const MyOrderList = () => {
 	const [hoverImageIndex, setHoverImageIndex] = useState({})
 	const [hoveredProduct, setHoveredProduct] = useState(null)
 	const userId = localStorage.getItem('userId')
+	const navigate = useNavigate()
 
 	const statusOptions = [
 		{ value: 'ожидает', label: 'Ожидает', color: 'cyan' },
@@ -41,7 +44,7 @@ const MyOrderList = () => {
 		{ value: 'в_пути', label: 'В пути', color: 'orange' },
 		{ value: 'прибыл', label: 'Прибыл', color: 'purple' },
 		{ value: 'завершено', label: 'Завершено', color: 'green' },
-		{ value: 'завершено_частично', label: 'Завершено частично', color: 'gold' }, // Added new status
+		{ value: 'завершено_частично', label: 'Завершено частично', color: 'gold' },
 		{ value: 'отменён', label: 'Отменён', color: 'red' },
 	]
 
@@ -202,56 +205,107 @@ const MyOrderList = () => {
 			<Header />
 			<Section />
 			<div className='mx-[15%] py-8'>
-				<Title level={2} style={{ marginBottom: 24 }}>
-					Мои заказы
-				</Title>
+				<motion.div
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={{ duration: 0.5 }}
+					className='mb-8'
+				>
+					<h1 className='text-3xl font-bold m-0'>Заказы</h1>
+				</motion.div>
 				<Spin spinning={loading}>
-					<Card
-						bordered={false}
-						style={{
-							borderRadius: 8,
-							boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-							border: '1px solid #f0f0f0',
-						}}
-						bodyStyle={{ padding: 0 }}
-					>
-						<Tabs
-							defaultActiveKey='all'
-							tabBarStyle={{ padding: '0 24px', margin: 0 }}
-							items={[
-								{
-									key: 'all',
-									label: 'Все заказы',
-									children: (
-										<Table
-											columns={columns}
-											dataSource={orders}
-											rowKey='id'
-											pagination={{ pageSize: 10 }}
-											style={{ borderTop: '1px solid #f0f0f0' }}
-											className='custom-orders-table'
+					{orders.length === 0 ? (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							transition={{ duration: 0.5 }}
+							className='text-center py-12'
+						>
+							<div className='max-w-md mx-auto'>
+								<motion.div
+									animate={{ y: [-5, 5, -5] }}
+									transition={{ repeat: Infinity, duration: 3 }}
+								>
+									<svg
+										xmlns='http://www.w3.org/2000/svg'
+										className='h-24 w-24 mx-auto text-gray-400 mb-6'
+										fill='none'
+										viewBox='0 0 24 24'
+										stroke='currentColor'
+									>
+										<path
+											strokeLinecap='round'
+											strokeLinejoin='round'
+											strokeWidth={1.5}
+											d='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
 										/>
-									),
-								},
-								...statusOptions.map(status => ({
-									key: status.value,
-									label: status.label,
-									children: (
-										<Table
-											columns={columns}
-											dataSource={orders.filter(
-												order => order.status === status.value
-											)}
-											rowKey='id'
-											pagination={{ pageSize: 10 }}
-											style={{ borderTop: '1px solid #f0f0f0' }}
-											className='custom-orders-table'
-										/>
-									),
-								})),
-							]}
-						/>
-					</Card>
+									</svg>
+								</motion.div>
+								<h2 className='text-2xl font-medium text-gray-700 mb-3'>
+									У вас пока нет заказов
+								</h2>
+								<p className='text-gray-500 mb-8'>
+									Сделайте свой первый заказ и он появится здесь. Мы сохраняем
+									историю всех ваших покупок!
+								</p>
+								<motion.button
+									whileHover={{ scale: 1.03, backgroundColor: '#1a1a1a' }}
+									whileTap={{ scale: 0.98 }}
+									onClick={() => navigate('/cart')}
+									className='bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 transition-colors text-lg font-medium shadow-md'
+								>
+									Перейти в корзину
+								</motion.button>
+							</div>
+						</motion.div>
+					) : (
+						<Card
+							bordered={false}
+							style={{
+								borderRadius: 8,
+								boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+								border: '1px solid #f0f0f0',
+							}}
+							bodyStyle={{ padding: 0 }}
+						>
+							<Tabs
+								defaultActiveKey='all'
+								tabBarStyle={{ padding: '0 24px', margin: 0 }}
+								items={[
+									{
+										key: 'all',
+										label: 'Все заказы',
+										children: (
+											<Table
+												columns={columns}
+												dataSource={orders}
+												rowKey='id'
+												pagination={{ pageSize: 10 }}
+												style={{ borderTop: '1px solid #f0f0f0' }}
+												className='custom-orders-table'
+											/>
+										),
+									},
+									...statusOptions.map(status => ({
+										key: status.value,
+										label: status.label,
+										children: (
+											<Table
+												columns={columns}
+												dataSource={orders.filter(
+													order => order.status === status.value
+												)}
+												rowKey='id'
+												pagination={{ pageSize: 10 }}
+												style={{ borderTop: '1px solid #f0f0f0' }}
+												className='custom-orders-table'
+											/>
+										),
+									})),
+								]}
+							/>
+						</Card>
+					)}
 				</Spin>
 
 				<Modal

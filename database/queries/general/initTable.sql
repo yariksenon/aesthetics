@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
+    first_name VARCHAR(100) DEFAULT 'не указано',
+    last_name VARCHAR(100) DEFAULT 'не указана',
     username VARCHAR(100) UNIQUE NOT NULL,
     email VARCHAR(255) NOT NULL,
     subscription BOOLEAN DEFAULT FALSE,

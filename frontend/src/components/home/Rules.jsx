@@ -1,19 +1,19 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Button, Card, Divider, List, Typography, Collapse, Image } from 'antd'
+import { Card, message, List, Typography, Button } from 'antd'
 import {
-	ArrowLeftOutlined,
 	CheckCircleOutlined,
 	ShoppingCartOutlined,
-	TeamOutlined,
 	CommentOutlined,
-	StarOutlined,
 	SafetyOutlined,
-	TrophyOutlined,
 	CarOutlined,
-	EnvironmentOutlined,
-	DollarOutlined,
+	UserOutlined,
+	LockOutlined,
+	ShopOutlined,
+	SolutionOutlined,
+	SyncOutlined,
+	CreditCardOutlined,
 } from '@ant-design/icons'
-import Logo from '../../assets/home/Footer/Logo.svg'
+import { useNavigate } from 'react-router-dom'
 
 import AsideBanner from './AsideBanner'
 import Header from './Header'
@@ -21,7 +21,6 @@ import Section from './Section'
 import Footer from './Footer'
 
 const { Title, Text, Paragraph } = Typography
-const { Panel } = Collapse
 
 const deliveryOptions = [
 	{
@@ -29,12 +28,11 @@ const deliveryOptions = [
 		icon: <CheckCircleOutlined />,
 		features: [
 			'Ожидайте курьера на протяжении всего интервала времени',
-			'Курьер свяжется с Вами перед доставкой спортивной экипировки',
+			'Курьер свяжется с Вами перед доставкой',
 			'Проверьте и примерьте заказ (до 15 минут)',
 			'Возможен частичный или полный возврат товаров',
-			'Оплата: наличными или картой курьеру',
+			'Оплата: наличными или картой',
 			'Дата доставки: в течение 2-5 рабочих дней',
-			'Максимум 7 товаров в заказе',
 		],
 	},
 	{
@@ -51,9 +49,9 @@ const deliveryOptions = [
 		title: 'Экспресс доставка',
 		icon: <CarOutlined />,
 		features: [
-			'Быстрая доставка спортивных товаров в день заказа',
+			'Быстрая доставка товаров в день заказа',
 			'Доставка в течение 2 часов после оформления',
-			'Дополнительная плата 15 ₽ за срочность',
+			'Дополнительная плата 5.29 BYN за срочность',
 			'Оплата: наличными или картой курьеру',
 		],
 	},
@@ -69,12 +67,68 @@ const brandBenefits = [
 const communityRules = [
 	'Делитесь отзывами о спортивных товарах',
 	'Не используйте ненормативную лексику',
-	'Публикуйте фото спортивной экипировки в действии',
-	'Будьте уважительными к другим спортсменам',
-	'За нарушения возможна блокировка аккаунта',
+	'Будьте уважительными к другим пользователям',
+	'За нарушения возможно удаление аккаунта',
+]
+
+const adminRules = [
+	'Полный доступ к управлению контентом и пользователями',
+	'Модерация отзывов и комментариев',
+	'Управление заказами и доставками',
+	'Добавление и редактирование товаров',
+	'Доступ к статистике и аналитике продаж',
+	'Обязанность соблюдать конфиденциальность данных пользователей',
+]
+
+const userRules = [
+	'Возможность оформлять заказы и отслеживать их статус',
+	'Доступ к истории покупок',
+	'Возможность оставлять отзывы и оценки товарам',
+	'Настройка профиля',
+	'Добавлять товары в списки желаний',
+]
+
+const guestRules = [
+	'Просмотр каталога товаров',
+	'Доступ к информации о товарах и брендах',
+	'Ограниченный доступ к функциям сайта',
+	'Для полного доступа необходимо зарегистрироваться',
+	'Возможность использовать поиск по сайту',
+]
+
+const courierRules = [
+	'Обязательно наличие опрятного внешнего вида',
+	'При себе необходимо иметь терминал для безналичной оплаты',
+	'Курьер обязан позвонить клиенту за 15-30 минут до доставки',
+	'Соблюдать временной интервал доставки (не более 2 часов ожидания)',
+	'При доставке с примеркой - предоставить клиенту до 15 минут на примерку',
+	'Принимать оплату наличными или картой',
+	'Соблюдать правила хранения и транспортировки спортивного инвентаря',
+	'Запрещено вскрывать упаковки или повреждать товар',
+	'При возврате товара проверить его целостность и комплектацию',
+]
+
+const returnPolicy = [
+	'Возврат возможен в течение 14 дней с момента получения заказа',
+	'Товар должен сохранить товарный вид, ярлыки и упаковку',
+	'Для возврата необходимо заполнить заявление в личном кабинете',
+	'Деньги возвращаются тем же способом, которым была произведена оплата',
+	'Срок возврата денежных средств - до 10 банковских дней',
+	'Возврат доставки не производится, кроме случаев доставки бракованного товара',
+]
+
+const paymentMethods = [
+	'Наличными курьеру при получении заказа',
+	'Банковской картой курьеру при получении (через мобильный терминал)',
 ]
 
 function Rules() {
+	const navigate = useNavigate()
+	const copyEmail = () => {
+		navigator.clipboard.writeText('aesthetics.team.contacts@gmail.com')
+		message.success('Email скопирован!')
+	}
+
 	return (
 		<AnimatePresence>
 			<motion.div
@@ -92,33 +146,103 @@ function Rules() {
 						animate={{ y: 0, opacity: 1 }}
 						transition={{ delay: 0.2 }}
 					>
-						{/* Шапка с кнопкой назад и логотипом */}
-						<div className='flex justify-between items-center '>
-							<motion.div
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-							>
-								<Image
-									src={Logo}
-									alt='Logo'
-									preview={false}
-									width={120}
-									className='cursor-pointer'
-									onClick={() => navigate('/')}
-								/>
+						<motion.div
+							initial={{ opacity: 0, y: -20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5 }}
+							className='mb-8'
+						>
+							<h1 className='text-3xl font-bold py-8'>Наши условия</h1>
+						</motion.div>
+						{/* Условия для гостей */}
+						<motion.section
+							className='mb-12'
+							whileInView={{ opacity: 1, y: 0 }}
+							initial={{ opacity: 0, y: 20 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5, delay: 0.2 }}
+						>
+							<Title level={3} className='mb-6'>
+								<SolutionOutlined className='mr-2' />
+								Условия для поситителей сайта
+							</Title>
+
+							<motion.div whileHover={{ scale: 1.01 }}>
+								<Card>
+									<Paragraph className='mb-4'>
+										Посетители могут воспользоваться следующими возможностями:
+									</Paragraph>
+									<List
+										dataSource={guestRules}
+										renderItem={item => (
+											<List.Item>
+												<CheckCircleOutlined className='text-green-500 mr-2' />
+												{item}
+											</List.Item>
+										)}
+									/>
+								</Card>
 							</motion.div>
-						</div>
+						</motion.section>
+						{/* Способы оплаты */}
+						<motion.section
+							className='mb-12'
+							whileInView={{ opacity: 1, y: 0 }}
+							initial={{ opacity: 0, y: 20 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5 }}
+						>
+							<Title level={3} className='mb-6'>
+								<CreditCardOutlined className='mr-2' />
+								Способы оплаты
+							</Title>
 
-						{/* Основной заголовок */}
-						<Title level={2} className='text-3xl font-bold m-0'>
-							Наши условия и сервис
-						</Title>
+							<motion.div whileHover={{ scale: 1.01 }}>
+								<Card>
+									<List
+										dataSource={paymentMethods}
+										renderItem={item => (
+											<List.Item>
+												<CheckCircleOutlined className='text-green-500 mr-2' />
+												{item}
+											</List.Item>
+										)}
+									/>
+								</Card>
+							</motion.div>
+						</motion.section>
 
-						<Paragraph className='text-lg'>
-							Мы — специализированный магазин профессиональной спортивной
-							экипировки и товаров для активного образа жизни.
-						</Paragraph>
+						{/* Условия для пользователей */}
+						<motion.section
+							className='mb-12'
+							whileInView={{ opacity: 1, y: 0 }}
+							initial={{ opacity: 0, y: 20 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5, delay: 0.1 }}
+						>
+							<Title level={3} className='mb-6'>
+								<UserOutlined className='mr-2' />
+								Условия для зарегистрированных пользователей
+							</Title>
 
+							<motion.div whileHover={{ scale: 1.01 }}>
+								<Card>
+									<Paragraph className='mb-4'>
+										Зарегистрированные пользователи получают следующие
+										возможности:
+									</Paragraph>
+									<List
+										dataSource={userRules}
+										renderItem={item => (
+											<List.Item>
+												<CheckCircleOutlined className='text-green-500 mr-2' />
+												{item}
+											</List.Item>
+										)}
+									/>
+								</Card>
+							</motion.div>
+						</motion.section>
 						{/* Условия доставки */}
 						<motion.section
 							className='mb-12'
@@ -128,9 +252,9 @@ function Rules() {
 							transition={{ duration: 0.5 }}
 						>
 							<Title level={3} className='mb-6'>
+								<CarOutlined className='mr-2' />
 								Условия доставки спортивных товаров
 							</Title>
-							<Divider />
 
 							<div className='grid md:grid-cols-3 gap-6'>
 								{deliveryOptions.map((option, index) => (
@@ -147,7 +271,7 @@ function Rules() {
 												</div>
 											}
 											bordered={false}
-											className='shadow-sm hover:shadow-md transition-shadow'
+											className='shadow-sm hover:shadow-md transition-shadow h-full'
 										>
 											<List
 												dataSource={option.features}
@@ -162,7 +286,6 @@ function Rules() {
 								))}
 							</div>
 						</motion.section>
-
 						{/* Для брендов */}
 						<motion.section
 							className='mb-12'
@@ -172,15 +295,14 @@ function Rules() {
 							transition={{ duration: 0.5, delay: 0.1 }}
 						>
 							<Title level={3} className='mb-6'>
-								<TeamOutlined className='mr-2' />
+								<ShopOutlined className='mr-2' />
 								Для брендов спортивных товаров
 							</Title>
-							<Divider />
+
 							<motion.div whileHover={{ scale: 1.01 }}>
 								<Card>
 									<Paragraph className='mb-4'>
-										Спортивные бренды могут размещать свою продукцию на нашей
-										платформе:
+										Бренды могут размещать свою продукцию на нашей платформе:
 									</Paragraph>
 									<List
 										dataSource={brandBenefits}
@@ -194,7 +316,6 @@ function Rules() {
 								</Card>
 							</motion.div>
 						</motion.section>
-
 						{/* Правила сообщества */}
 						<motion.section
 							className='mb-12'
@@ -207,7 +328,7 @@ function Rules() {
 								<CommentOutlined className='mr-2' />
 								Правила оставления отзывов
 							</Title>
-							<Divider />
+
 							<motion.div whileHover={{ scale: 1.01 }}>
 								<Card>
 									<Paragraph className='mb-4'>
@@ -225,7 +346,6 @@ function Rules() {
 								</Card>
 							</motion.div>
 						</motion.section>
-
 						{/* Правила для курьеров */}
 						<motion.section
 							className='mb-12'
@@ -238,7 +358,7 @@ function Rules() {
 								<SafetyOutlined className='mr-2' />
 								Правила для курьеров
 							</Title>
-							<Divider />
+
 							<motion.div whileHover={{ scale: 1.01 }}>
 								<Card>
 									<Paragraph className='mb-4'>
@@ -246,18 +366,7 @@ function Rules() {
 										требования:
 									</Paragraph>
 									<List
-										dataSource={[
-											'Обязательно наличие опрятного внешнего вида и фирменной атрибутики',
-											'При себе необходимо иметь терминал для безналичной оплаты',
-											'Курьер обязан позвонить клиенту за 15-30 минут до доставки',
-											'Соблюдать временной интервал доставки (не более 2 часов ожидания)',
-											'При доставке с примеркой - предоставить клиенту до 15 минут на примерку',
-											'Принимать оплату наличными или картой, выдать чек',
-											'Соблюдать правила хранения и транспортировки спортивного инвентаря',
-											'В случае форс-мажора незамедлительно сообщать в службу поддержки',
-											'Запрещено вскрывать упаковки или повреждать товар',
-											'При возврате товара проверить его целостность и комплектацию',
-										]}
+										dataSource={courierRules}
 										renderItem={item => (
 											<List.Item>
 												<CheckCircleOutlined className='text-green-500 mr-2' />
@@ -265,26 +374,59 @@ function Rules() {
 											</List.Item>
 										)}
 									/>
-									<Divider />
-									<Title level={5} className='mt-4'>
-										<TrophyOutlined className='mr-2' />
-										Преимущества работы курьером у нас:
+								</Card>
+							</motion.div>
+						</motion.section>
+						<motion.section
+							className='mb-12'
+							whileInView={{ opacity: 1, y: 0 }}
+							initial={{ opacity: 0, y: 20 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5 }}
+						></motion.section>
+						<motion.section
+							className='mb-12 text-center'
+							whileInView={{ opacity: 1 }}
+							initial={{ opacity: 0 }}
+							viewport={{ once: true }}
+							transition={{ duration: 0.5 }}
+						>
+							<motion.div
+								whileHover={{ scale: 1.02 }}
+								transition={{ duration: 0.3 }}
+							>
+								<Card
+									className='p-8 shadow-lg rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors duration-300'
+									hoverable
+								>
+									<Title level={3} className='text-gray-800 mb-4'>
+										<CommentOutlined className='mr-2 text-black-500' />
+										Остались вопросы?
 									</Title>
-									<List
-										dataSource={[
-											'Гибкий график работы',
-											'Бонусы за положительные отзывы клиентов',
-											'Премии за рекордное количество доставок',
-											'Возможность карьерного роста в логистическом отделе',
-											'Компенсация мобильной связи и транспорта',
-										]}
-										renderItem={item => (
-											<List.Item>
-												<StarOutlined className='text-yellow-500 mr-2' />
-												{item}
-											</List.Item>
-										)}
-									/>
+									<Paragraph className='mb-6 text-gray-600 text-lg'>
+										Если вы не нашли ответ на свой вопрос, наша служба поддержки
+										всегда готова помочь!
+									</Paragraph>
+									<div className='mb-6 p-4 bg-gray-50 rounded-lg'>
+										<Text className='text-gray-700 font-semibold'>
+											Свяжитесь с нами по email:
+										</Text>
+										<Text
+											className='text-gray-400 font-medium ml-2 hover:text-gray-800 cursor-pointer transition-colors'
+											onClick={copyEmail}
+										>
+											aesthetics.team.contacts@gmail.com
+										</Text>
+									</div>
+									<Button
+										type='primary'
+										size='large'
+										className='bg-black text-white hover:bg-black'
+										icon={<SolutionOutlined />}
+										onClick={copyEmail}
+									>
+										Скопировать почту
+									</Button>
 								</Card>
 							</motion.div>
 						</motion.section>

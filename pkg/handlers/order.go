@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"encoding/json"
+	"net/url"
 	"time"
 	"log"
 
@@ -747,5 +749,124 @@ func CancelOrder(db *sql.DB) gin.HandlerFunc {
 
 
 		c.JSON(http.StatusOK, gin.H{"message": "Статус заказа успешно обновлен"})
+	}
+}
+
+
+
+// CacheEntry represents a cached Nominatim response
+type CacheEntry struct {
+	Response map[string]interface{}
+	Expires  time.Time
+}
+
+// In-memory cache for reverse geocoding responses
+var reverseGeocodeCache = make(map[string]CacheEntry)
+
+// ReverseGeocodeHandler handles reverse geocoding requests to Nominatim
+func ReverseGeocodeHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Extract lat and lon from query parameters, with defaults
+		lat := c.Query("lat")
+		lon := c.Query("lon")
+		if lat == "" {
+			lat = "53.6835" // Default latitude (Grodno, Belarus)
+		}
+		if lon == "" {
+			lon = "23.8345" // Default longitude (Grodno, Belarus)
+		}
+
+		// Validate coordinates
+		latVal, err := strconv.ParseFloat(lat, 64)
+		lonVal, err := strconv.ParseFloat(lon, 64)
+		if err != nil || latVal < 51 || latVal > 56 || lonVal < 23 || lonVal > 32 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid coordinates"})
+			return
+		}
+
+		// Create cache key
+		cacheKey := fmt.Sprintf("%s:%s", lat, lon)
+
+		// Check cache
+		if entry, exists := reverseGeocodeCache[cacheKey]; exists && time.Now().Before(entry.Expires) {
+			c.JSON(http.StatusOK, entry.Response)
+			return
+		}
+
+		// Construct Nominatim API URL
+		nominatimURL := "https://nominatim.openstreetmap.org/reverse"
+		params := url.Values{}
+		params.Add("format", "json")
+		params.Add("lat", lat)
+		params.Add("lon", lon)
+		params.Add("zoom", "18")
+		params.Add("addressdetails", "1")
+
+		// Create HTTP client with custom User-Agent
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+
+		// Retry logic for rate-limiting
+		const maxRetries = 3
+		for attempt := 1; attempt <= maxRetries; attempt++ {
+			req, err := http.NewRequest("GET", nominatimURL+"?"+params.Encode(), nil)
+			if err != nil {
+				log.Printf("Failed to create request: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create request"})
+				return
+			}
+			req.Header.Set("User-Agent", "CheckoutApp/1.0 (your-real-email@domain.com)") // Replace with your real email
+
+			// Make request to Nominatim
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Printf("Nominatim request error: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch address from Nominatim"})
+				return
+			}
+			defer resp.Body.Close()
+
+			// Handle response status
+			if resp.StatusCode == http.StatusOK {
+				// Parse response
+				var result map[string]interface{}
+				if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+					log.Printf("Failed to parse Nominatim response: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse address data"})
+					return
+				}
+
+				// Cache the response for 24 hours
+				reverseGeocodeCache[cacheKey] = CacheEntry{
+					Response: result,
+					Expires:  time.Now().Add(24 * time.Hour),
+				}
+
+				// Return the response
+				c.JSON(http.StatusOK, result)
+				return
+			} else if resp.StatusCode == http.StatusTooManyRequests {
+				// Handle 429 (rate-limiting)
+				if attempt == maxRetries {
+					log.Printf("Nominatim rate limit exceeded after %d attempts", maxRetries)
+					c.JSON(http.StatusTooManyRequests, gin.H{"error": "Nominatim rate limit exceeded"})
+					return
+				}
+				log.Printf("Nominatim 429, retrying (%d/%d)", attempt, maxRetries)
+				time.Sleep(time.Second * time.Duration(attempt)) // Exponential backoff
+				continue
+			} else if resp.StatusCode == http.StatusForbidden {
+				// Handle 403 (forbidden)
+				log.Printf("Nominatim returned 403 Forbidden")
+				c.JSON(http.StatusForbidden, gin.H{"error": "Nominatim access forbidden, check User-Agent or usage policy"})
+				return
+			} else {
+				// Other errors
+				log.Printf("Nominatim returned status: %d", resp.StatusCode)
+				c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("Nominatim API error: %s", resp.Status)})
+				return
+			}
+		}
 	}
 }

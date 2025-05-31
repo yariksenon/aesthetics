@@ -98,17 +98,32 @@ function Header() {
 			? savedMenuItem
 			: 'woman'
 	})
+	const [wishlistItemsCount, setWishlistItemsCount] = useState(0)
 	const [isAuthenticated, setIsAuthenticated] = useState(false)
 	const [userData, setUserData] = useState(null)
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-	const [cartItemsCount, setCartItemsCount] = useState(0) // Состояние для количества товаров
+	const [cartItemsCount, setCartItemsCount] = useState(0)
 	const dropdownRef = useRef(null)
 	const navigate = useNavigate()
 	const { gender } = useParams()
 	const isAdmin = userData?.role === 'admin'
 
-	// Получаем userId из localStorage
 	const userId = localStorage.getItem('userId')
+
+	const fetchWishlistCount = async () => {
+		if (!userId) return
+
+		try {
+			const response = await axios.get(
+				`http://localhost:8080/api/v1/wishlist/${userId}`
+			)
+			const items = response.data?.items || []
+			setWishlistItemsCount(items.length)
+		} catch (error) {
+			console.error('Ошибка при загрузке избранного:', error)
+			setWishlistItemsCount(0)
+		}
+	}
 
 	useEffect(() => {
 		const token = localStorage.getItem('authToken')
@@ -119,11 +134,10 @@ function Header() {
 			setUserData(user)
 		}
 
-		// Загружаем количество товаров в корзине
 		fetchCartCount()
+		fetchWishlistCount()
 	}, [])
 
-	// Функция для получения количества товаров в корзине
 	const fetchCartCount = async () => {
 		if (!userId) return
 
@@ -159,18 +173,19 @@ function Header() {
 		setIsAuthenticated(true)
 		setUserData(user)
 		setIsModalOpen(false)
-		// Обновляем количество после входа
 		fetchCartCount()
+		fetchWishlistCount()
 	}, [])
 
 	const handleLogout = useCallback(() => {
 		localStorage.removeItem('authToken')
 		localStorage.removeItem('userData')
-		localStorage.removeItem('userId') // Добавляем удаление userId
+		localStorage.removeItem('userId')
 		setIsAuthenticated(false)
 		setUserData(null)
 		setIsDropdownOpen(false)
-		setCartItemsCount(0) // Сбрасываем счетчик при выходе
+		setCartItemsCount(0)
+		setWishlistItemsCount(0)
 		navigate('/')
 	}, [navigate])
 
@@ -287,7 +302,6 @@ function Header() {
 								firstName={userData?.firstName}
 							/>
 						</button>
-
 						{isDropdownOpen && (
 							<div className='absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200'>
 								<Link
@@ -295,23 +309,15 @@ function Header() {
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
 									onClick={() => setIsDropdownOpen(false)}
 								>
-									Мой профиль
+									Профиль
 								</Link>
 								<Link
 									to='/my-order'
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
 									onClick={() => setIsDropdownOpen(false)}
 								>
-									Мои заказы
+									Заказы
 								</Link>
-								<Link
-									to='/favorites'
-									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-									onClick={() => setIsDropdownOpen(false)}
-								>
-									Избранное
-								</Link>
-
 								<Link
 									to='/brand'
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
@@ -319,7 +325,6 @@ function Header() {
 								>
 									Бренд
 								</Link>
-
 								<Link
 									to='/courier'
 									className='block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors'
@@ -327,7 +332,6 @@ function Header() {
 								>
 									Курьер
 								</Link>
-
 								{isAdmin && (
 									<Link
 										to='/admin'
@@ -337,7 +341,6 @@ function Header() {
 										Админ
 									</Link>
 								)}
-
 								<div className='border-t border-gray-200 my-1'></div>
 								<button
 									onClick={e => {
@@ -361,6 +364,27 @@ function Header() {
 					</button>
 				)}
 
+				<div className='flex items-center transition-transform duration-300 ease-in-out hover:scale-110'>
+					<Link to='/favorites' className='flex items-center'>
+						<div className='relative mr-1'>
+							<svg
+								className='w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 fill-black'
+								viewBox='0 0 24 24'
+								xmlns='http://www.w3.org/2000/svg'
+							>
+								<path d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z' />
+							</svg>
+							{wishlistItemsCount > 0 && (
+								<span className='absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-[8px] sm:text-[10px] md:text-xs font-bold'>
+									{wishlistItemsCount > 99 ? '99+' : wishlistItemsCount}
+								</span>
+							)}
+						</div>
+						<span className='text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline'>
+							Избранное
+						</span>
+					</Link>
+				</div>
 				<div className='flex items-center transition-transform duration-300 ease-in-out hover:scale-110 relative'>
 					<Link to='/cart' className='flex items-center'>
 						<img
@@ -368,10 +392,9 @@ function Header() {
 							className='h-6 sm:h-8 md:h-10 w-6 sm:w-8 md:w-10 cursor-pointer'
 							alt='Basket'
 						/>
-						{/* Бейдж с количеством товаров */}
 						{cartItemsCount > 0 && (
 							<span className='absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center'>
-								{cartItemsCount > 9 ? '9+' : cartItemsCount}
+								{cartItemsCount > 99 ? '99+' : cartItemsCount}
 							</span>
 						)}
 						<span className='text-[10px] sm:text-xs md:text-sm lg:text-base text-black custom-underline ml-1'>

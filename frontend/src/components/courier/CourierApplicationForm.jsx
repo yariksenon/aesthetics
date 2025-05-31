@@ -8,7 +8,6 @@ import {
 	Card,
 	Spin,
 	Alert,
-	Divider,
 	Select,
 	Checkbox,
 	Modal,
@@ -25,9 +24,28 @@ import {
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import CourierOrders from './CourierOrders'
+import PhoneInput from 'react-phone-number-input'
+import 'react-phone-number-input/style.css'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 
 const { Option } = Select
-const { Title, Paragraph, Link } = Typography
+const { Title, Paragraph } = Typography
+
+const regionsOfBelarus = [
+	{ value: 'brest', label: 'Брестская область' },
+	{ value: 'vitebsk', label: 'Витебская область' },
+	{ value: 'gomel', label: 'Гомельская область' },
+	{ value: 'grodno', label: 'Гродненская область' },
+	{ value: 'minsk', label: 'Минская область' },
+	{ value: 'mogilev', label: 'Могилевская область' },
+]
+
+const transportOptions = [
+	{ value: 'foot', label: 'Пешком' },
+	{ value: 'bicycle', label: 'Велосипед' },
+	{ value: 'motorcycle', label: 'Мотоцикл' },
+	{ value: 'car', label: 'Автомобиль' },
+]
 
 const CourierApplicationForm = () => {
 	const [form] = Form.useForm()
@@ -39,61 +57,177 @@ const CourierApplicationForm = () => {
 	const [userId, setUserId] = useState(null)
 	const [rulesChecked, setRulesChecked] = useState(false)
 	const [rulesModalVisible, setRulesModalVisible] = useState(false)
+	const [phoneValue, setPhoneValue] = useState('')
+	const [phoneError, setPhoneError] = useState('')
+	const [userData, setUserData] = useState(null)
 	const navigate = useNavigate()
 
-	const transportOptions = [
-		{ value: 'foot', label: 'Пешком' },
-		{ value: 'bicycle', label: 'Велосипед' },
-		{ value: 'motorcycle', label: 'Мотоцикл' },
-		{ value: 'car', label: 'Автомобиль' },
-	]
+	const validatePhoneNumber = phoneNumber => {
+		if (!phoneNumber || typeof phoneNumber !== 'string') {
+			setPhoneError('Номер телефона обязателен')
+			return false
+		}
+
+		const cleanedPhone = phoneNumber.replace(/\D/g, '')
+		if (cleanedPhone.length > 12) {
+			setPhoneError('Номер телефона не должен превышать 12 цифр')
+			return false
+		}
+
+		if (!isValidPhoneNumber(phoneNumber)) {
+			setPhoneError('Некорректный номер телефона')
+			return false
+		}
+
+		setPhoneError('')
+		return true
+	}
+
+	const handlePhoneChange = value => {
+		setPhoneValue(value || '')
+		form.setFieldsValue({ phone: value || '' })
+		validatePhoneNumber(value || '')
+	}
 
 	useEffect(() => {
-		const storedUserId = localStorage.getItem('userId')
-		const parsedUserId = storedUserId ? parseInt(storedUserId, 10) : null
+		const fetchUserData = async userId => {
+			try {
+				const response = await fetch('http://localhost:8080/api/v1/admin/users')
+				if (!response.ok) {
+					throw new Error('Ошибка при получении данных пользователя')
+				}
+				const users = await response.json()
+				const currentUser = users.find(user => user.id === userId)
+				if (currentUser) {
+					setUserData(currentUser)
+					return currentUser
+				}
+				return null
+			} catch (error) {
+				console.error('Ошибка при получении данных пользователя:', error)
+				return null
+			}
+		}
 
-		if (!storedUserId || isNaN(parsedUserId)) {
-			setError('Пользователь не авторизован или ID пользователя недействителен')
+		const storedUserData = localStorage.getItem('userData')
+		let parsedUserData = null
+		let parsedUserId = null
+
+		try {
+			parsedUserData = storedUserData ? JSON.parse(storedUserData) : null
+			parsedUserId = parsedUserData?.id ? parseInt(parsedUserData.id, 10) : null
+		} catch (e) {
+			console.error('Ошибка при парсинге userData:', e)
+		}
+
+		if (!parsedUserData || !parsedUserId || isNaN(parsedUserId)) {
+			setError('Пользователь не авторизован или данные недействительны')
 			setCheckingSubmission(false)
 			return
 		}
 
 		setUserId(parsedUserId)
 
-		const checkExistingApplication = async () => {
-			try {
-				const response = await fetch(
-					`http://localhost:8080/api/v1/check-courier-application?userId=${parsedUserId}`
-				)
+		fetchUserData(parsedUserId).then(user => {
+			// Проверяем значения first_name и last_name, заменяем "не указано"/"не указана" на пустую строку
+			const defaultFirstName =
+				user?.first_name === 'не указано' ||
+				parsedUserData.first_name === 'не указано'
+					? ''
+					: user?.first_name || parsedUserData.first_name || ''
+			const defaultLastName =
+				user?.last_name === 'не указана' ||
+				parsedUserData.last_name === 'не указана'
+					? ''
+					: user?.last_name || parsedUserData.last_name || ''
+			const defaultPatronymic =
+				user?.patronymic || parsedUserData.patronymic || ''
 
-				if (!response.ok) {
-					throw new Error('Ошибка при проверке заявки')
+			if (user) {
+				form.setFieldsValue({
+					email: user.email || '',
+					phone: user.phone || '',
+					first_name: defaultFirstName,
+					last_name: defaultLastName,
+					patronymic: defaultPatronymic,
+				})
+				setPhoneValue(user.phone || '')
+			} else {
+				form.setFieldsValue({
+					email: parsedUserData.email || '',
+					phone: parsedUserData.phone || '',
+					first_name: defaultFirstName,
+					last_name: defaultLastName,
+					patronymic: defaultPatronymic,
+				})
+				if (parsedUserData.phone) {
+					setPhoneValue(parsedUserData.phone)
 				}
-
-				const data = await response.json()
-
-				if (data.exists) {
-					setAlreadySubmitted(true)
-					setSubmissionData(data.courier || { status: 'pending' })
-					if (data.courier?.status === 'rejected') {
-						form.setFieldsValue({
-							name: data.courier.name,
-							phone: data.courier.phone,
-							email: data.courier.email,
-							transport: data.courier.transport,
-							experience: data.courier.experience,
-							city: data.courier.city,
-						})
-					}
-				}
-			} catch (error) {
-				setError(error.message)
-			} finally {
-				setCheckingSubmission(false)
 			}
-		}
 
-		checkExistingApplication()
+			const checkExistingApplication = async () => {
+				try {
+					const response = await fetch(
+						`http://localhost:8080/api/v1/check-courier-application?userId=${parsedUserId}`
+					)
+
+					if (!response.ok) {
+						throw new Error('Ошибка при проверке заявки')
+					}
+
+					const data = await response.json()
+
+					if (data.exists && data.courier?.id) {
+						setAlreadySubmitted(true)
+						setSubmissionData(data.courier || { status: 'pending' })
+						// Save courier ID to localStorage
+						localStorage.setItem('courierId', data.courier.id)
+						if (data.courier?.status === 'rejected') {
+							const rejectedFirstName =
+								data.courier.first_name === 'не указано'
+									? ''
+									: data.courier.first_name || defaultFirstName
+							const rejectedLastName =
+								data.courier.last_name === 'не указана'
+									? ''
+									: data.courier.last_name || defaultLastName
+							const rejectedPatronymic =
+								data.courier.patronymic || defaultPatronymic
+							form.setFieldsValue({
+								first_name: rejectedFirstName,
+								last_name: rejectedLastName,
+								patronymic: rejectedPatronymic,
+								name:
+									data.courier.name ||
+									`${rejectedFirstName} ${rejectedLastName} ${rejectedPatronymic}`.trim(),
+								phone:
+									data.courier.phone ||
+									user?.phone ||
+									parsedUserData.phone ||
+									'',
+								email:
+									data.courier.email ||
+									user?.email ||
+									parsedUserData.email ||
+									'',
+								transport: data.courier.transport,
+								experience: data.courier.experience,
+								region: data.courier.region,
+							})
+							setPhoneValue(
+								data.courier.phone || user?.phone || parsedUserData.phone || ''
+							)
+						}
+					}
+				} catch (error) {
+					setError(error.message)
+				} finally {
+					setCheckingSubmission(false)
+				}
+			}
+
+			checkExistingApplication()
+		})
 	}, [form])
 
 	const showRulesModal = () => {
@@ -108,6 +242,30 @@ const CourierApplicationForm = () => {
 		setRulesModalVisible(false)
 	}
 
+	const validateNameField = (_, value) => {
+		if (!value || value.trim() === '') {
+			return Promise.reject('Пожалуйста, введите корректное значение')
+		}
+		if (value.length > 50) {
+			return Promise.reject('Поле не должно превышать 50 символов')
+		}
+		return Promise.resolve()
+	}
+
+	const validateExperience = (_, value) => {
+		const numValue = Number(value)
+		if (numValue < 0) {
+			return Promise.reject('Опыт не может быть отрицательным')
+		}
+		if (numValue > 99) {
+			return Promise.reject('Опыт не может быть больше 99 лет')
+		}
+		if (!/^\d{1,2}$/.test(value)) {
+			return Promise.reject('Введите число от 0 до 99')
+		}
+		return Promise.resolve()
+	}
+
 	const onFinish = async values => {
 		if (!userId || isNaN(userId)) {
 			setError('Не удалось идентифицировать пользователя')
@@ -119,6 +277,10 @@ const CourierApplicationForm = () => {
 			return
 		}
 
+		if (!validatePhoneNumber(values.phone)) {
+			return
+		}
+
 		setLoading(true)
 		setError(null)
 
@@ -126,7 +288,16 @@ const CourierApplicationForm = () => {
 			...values,
 			experience: parseInt(values.experience, 10),
 			userId: userId,
+			name: `${values.first_name} ${values.last_name} ${
+				values.patronymic || ''
+			}`.trim(),
+			city: values.region,
 		}
+
+		delete transformedValues.first_name
+		delete transformedValues.last_name
+		delete transformedValues.patronymic
+		delete transformedValues.region
 
 		try {
 			let response
@@ -213,7 +384,6 @@ const CourierApplicationForm = () => {
 		)
 	}
 
-	// Если заявка одобрена - показываем панель управления заказами
 	if (alreadySubmitted && submissionData?.status === 'approved') {
 		return <CourierOrders />
 	}
@@ -237,9 +407,18 @@ const CourierApplicationForm = () => {
 						</Paragraph>
 						<Paragraph>
 							<strong>Дата подачи:</strong>{' '}
-							{submissionData?.date
-								? new Date(submissionData.date).toLocaleDateString('ru-RU')
-								: new Date().toLocaleDateString('ru-RU')}
+							{submissionData?.created_at
+								? new Date(submissionData.created_at).toLocaleDateString(
+										'ru-RU',
+										{
+											day: 'numeric',
+											month: 'long',
+											year: 'numeric',
+											hour: '2-digit',
+											minute: '2-digit',
+										}
+								  )
+								: 'Неизвестно'}
 						</Paragraph>
 						<Paragraph type='secondary' className='mt-4'>
 							Мы свяжемся с вами по email:{' '}
@@ -267,7 +446,7 @@ const CourierApplicationForm = () => {
 					</h1>
 				</div>
 			</motion.div>
-			<Divider className='my-6' />
+
 			{error && (
 				<Alert
 					message='Ошибка'
@@ -296,16 +475,37 @@ const CourierApplicationForm = () => {
 				className='space-y-6'
 			>
 				<Form.Item
-					name='name'
-					label='ФИО'
-					rules={[
-						{ required: true, message: 'Пожалуйста, введите ваше ФИО' },
-						{ max: 255, message: 'ФИО не должно превышать 255 символов' },
-					]}
+					name='first_name'
+					label='Имя'
+					rules={[{ required: true, validator: validateNameField }]}
 				>
 					<Input
 						prefix={<UserOutlined className='text-gray-400' />}
-						placeholder='Введите ваше ФИО'
+						placeholder='Введите ваше имя'
+						className='py-2'
+						size='large'
+					/>
+				</Form.Item>
+				<Form.Item
+					name='last_name'
+					label='Фамилия'
+					rules={[{ required: true, validator: validateNameField }]}
+				>
+					<Input
+						prefix={<UserOutlined className='text-gray-400' />}
+						placeholder='Введите вашу фамилию'
+						className='py-2'
+						size='large'
+					/>
+				</Form.Item>
+				<Form.Item
+					name='patronymic'
+					label='Отчество'
+					rules={[{ required: true, message: 'Пожалуйста, введите отчество' }]}
+				>
+					<Input
+						prefix={<UserOutlined className='text-gray-400' />}
+						placeholder='Введите ваше отчество'
 						className='py-2'
 						size='large'
 					/>
@@ -314,19 +514,26 @@ const CourierApplicationForm = () => {
 				<Form.Item
 					name='phone'
 					label='Телефон'
+					validateStatus={phoneError ? 'error' : ''}
+					help={phoneError}
 					rules={[
-						{ required: true, message: 'Пожалуйста, введите номер телефона' },
 						{
-							pattern: /^[\d\s\-()+]+$/,
-							message: 'Введите корректный номер телефона',
+							validator: () =>
+								phoneError ? Promise.reject(phoneError) : Promise.resolve(),
 						},
 					]}
 				>
-					<Input
-						prefix={<PhoneOutlined className='text-gray-400' />}
+					<PhoneInput
+						international
+						defaultCountry='BY'
+						value={phoneValue}
+						onChange={handlePhoneChange}
+						className={`ant-input ant-input-lg w-full p-2 border rounded`}
+						style={{
+							borderColor: phoneError ? '#ff4d4f' : '#d9d9d9',
+							height: '40px',
+						}}
 						placeholder='Введите номер телефона'
-						className='py-2'
-						size='large'
 					/>
 				</Form.Item>
 
@@ -368,34 +575,35 @@ const CourierApplicationForm = () => {
 					label='Опыт работы (лет)'
 					rules={[
 						{ required: true, message: 'Пожалуйста, укажите ваш опыт' },
-						{
-							type: 'number',
-							min: 0,
-							max: 50,
-							message: 'Введите число от 0 до 50',
-							transform: value => Number(value),
-						},
+						{ validator: validateExperience },
 					]}
 				>
 					<Input
 						type='number'
-						placeholder='Укажите ваш опыт работы курьером в годах'
+						placeholder='10'
 						className='py-2'
 						size='large'
+						max={99}
+						min={0}
 					/>
 				</Form.Item>
 
 				<Form.Item
-					name='city'
-					label='Город'
-					rules={[{ required: true, message: 'Пожалуйста, укажите город' }]}
+					name='region'
+					label='Область'
+					rules={[{ required: true, message: 'Пожалуйста, выберите область' }]}
 				>
-					<Input
-						prefix={<EnvironmentOutlined className='text-gray-400' />}
-						placeholder='Введите город работы'
-						className='py-2'
+					<Select
+						placeholder='Выберите область'
 						size='large'
-					/>
+						suffixIcon={<EnvironmentOutlined className='text-gray-400' />}
+					>
+						{regionsOfBelarus.map(region => (
+							<Option key={region.value} value={region.value}>
+								{region.label}
+							</Option>
+						))}
+					</Select>
 				</Form.Item>
 
 				<Form.Item>
@@ -424,7 +632,7 @@ const CourierApplicationForm = () => {
 						loading={loading}
 						className='w-full bg-black hover:bg-gray-800 text-white py-4 h-auto text-lg font-medium'
 						size='large'
-						disabled={!rulesChecked}
+						disabled={!rulesChecked || !!phoneError}
 					>
 						{submissionData?.status === 'rejected'
 							? 'ОТПРАВИТЬ ПОВТОРНО'

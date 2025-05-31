@@ -1,10 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
 import axios from 'axios'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import './custom.css'
+
+const ErrorMessage = ({ error }) => (
+	<motion.p
+		initial={{ opacity: 0 }}
+		animate={{ opacity: 1 }}
+		transition={{ duration: 0.3 }}
+		className='text-red-500 text-sm mt-1'
+	>
+		{error.message}
+	</motion.p>
+)
 
 const schema = yup.object().shape({
 	email: yup
@@ -21,17 +33,41 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 	const {
 		register,
 		handleSubmit,
-		formState: { errors },
+		formState: { errors, isValid, isDirty },
+		setError,
+		clearErrors,
+		watch,
 		reset,
 	} = useForm({
 		resolver: yupResolver(schema),
+		mode: 'onChange',
+		defaultValues: {
+			email: localStorage.getItem('loginFormEmail') || '',
+			password: localStorage.getItem('loginFormPassword') || '',
+		},
 	})
 
-	const [errorMessage, setErrorMessage] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const navigate = useNavigate()
 
-	const onSubmit = async (data, event) => {
+	// Отслеживание изменений в полях формы
+	const email = watch('email')
+	const password = watch('password')
+
+	// Сохранение данных в localStorage при изменении полей
+	useEffect(() => {
+		localStorage.setItem('loginFormEmail', email || '')
+		localStorage.setItem('loginFormPassword', password || '')
+	}, [email, password])
+
+	// Очистка данных при успешной авторизации или при закрытии формы (опционально)
+	const clearFormData = () => {
+		localStorage.removeItem('loginFormEmail')
+		localStorage.removeItem('loginFormPassword')
+		reset({ email: '', password: '' })
+	}
+
+	const onSubmit = async data => {
 		setIsLoading(true)
 		try {
 			const response = await axios.post(
@@ -42,41 +78,60 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 				}
 			)
 
-			// Получаем данные пользователя из ответа
 			const userData = response.data.user
-
-			// Сохраняем ID пользователя в localStorage
 			localStorage.setItem('userId', userData.id)
 
 			if (onLoginSuccess) {
-				onLoginSuccess(null, userData, event)
+				onLoginSuccess(response.data.token, userData)
 			}
 
 			const redirectPath = userData.role === 'admin' ? '/admin' : '/profile'
 			navigate(redirectPath)
 
+			// Очистка данных после успешного логина
+			clearFormData()
+
 			if (closeModal) {
 				closeModal()
 			}
 		} catch (error) {
-			let message = 'Произошла непредвиденная ошибка'
 			if (error.response) {
-				message =
-					error.response.data?.error || error.response.data?.message || message
-			} else if (error.message) {
-				message = error.message
+				if (error.response.data?.errors) {
+					error.response.data.errors.forEach(err => {
+						setError(err.field || 'root', {
+							type: 'server',
+							message: err.message,
+						})
+					})
+				} else {
+					setError('root', {
+						type: 'server',
+						message:
+							error.response.data?.message || 'Неверный логин или пароль',
+					})
+				}
+			} else if (error.request) {
+				setError('root', {
+					type: 'network',
+					message: 'Ошибка соединения с сервером',
+				})
+			} else {
+				setError('root', {
+					type: 'unknown',
+					message: error.message || 'Произошла непредвиденная ошибка',
+				})
 			}
-			setErrorMessage(message)
-			console.error('Ошибка авторизации:', error)
 		} finally {
 			setIsLoading(false)
 		}
 	}
 
-	const getInputClassName = error =>
+	const getInputClassName = fieldName =>
 		`w-full p-2 border-b-[2px] focus:outline-none transition duration-300 ${
-			error ? 'border-red-500 animate-shake' : 'border-black'
+			errors[fieldName] ? 'border-red-500 animate-shake' : 'border-black'
 		}`
+
+	const isSubmitDisabled = isLoading || !isValid || !isDirty
 
 	return (
 		<div className='max-w-md mx-auto'>
@@ -86,16 +141,21 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 					<button
 						type='button'
 						onClick={switchToRegister}
-						className='text-blue-600 hover:underline focus:outline-none'
+						className='text-black hover:underline focus:outline-none'
 					>
 						Зарегистрироваться
 					</button>
 				</p>
 
-				{errorMessage && (
-					<div className='bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded'>
-						<p>{errorMessage}</p>
-					</div>
+				{errors.root && (
+					<motion.div
+						initial={{ opacity: 0 }}
+						animate={{ opacity: 1 }}
+						transition={{ duration: 0.3 }}
+						className='bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded'
+					>
+						<p>{errors.root.message}</p>
+					</motion.div>
 				)}
 
 				<div className='mb-6'>
@@ -108,15 +168,11 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 					<input
 						type='email'
 						id='email'
-						className={getInputClassName(errors.email)}
+						className={getInputClassName('email')}
 						placeholder='example@mail.com'
 						{...register('email')}
 					/>
-					{errors.email && (
-						<p className='text-red-500 text-sm mt-1 animate-fadeIn'>
-							{errors.email.message}
-						</p>
-					)}
+					{errors.email && <ErrorMessage error={errors.email} />}
 				</div>
 
 				<div className='mb-8'>
@@ -129,23 +185,21 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 					<input
 						type='password'
 						id='password'
-						className={getInputClassName(errors.password)}
+						className={getInputClassName('password')}
 						placeholder='••••••••'
 						{...register('password')}
 					/>
-					{errors.password && (
-						<p className='text-red-500 text-sm mt-1 animate-fadeIn'>
-							{errors.password.message}
-						</p>
-					)}
+					{errors.password && <ErrorMessage error={errors.password} />}
 				</div>
 
 				<button
 					type='submit'
-					className={`w-full bg-black text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition duration-300 flex justify-center items-center ${
-						isLoading ? 'opacity-75 cursor-not-allowed' : ''
+					className={`w-full text-white py-3 px-4 rounded-lg transition duration-300 flex justify-center items-center ${
+						isSubmitDisabled
+							? 'bg-gray-400 cursor-not-allowed'
+							: 'bg-black hover:bg-gray-800'
 					}`}
-					disabled={isLoading}
+					disabled={isSubmitDisabled}
 				>
 					{isLoading ? (
 						<>

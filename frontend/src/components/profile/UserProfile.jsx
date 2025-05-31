@@ -26,7 +26,11 @@ import {
 	CalendarOutlined,
 } from '@ant-design/icons'
 import dayjs from 'dayjs'
+import 'dayjs/locale/ru' // Импортируем русскую локаль
 import 'antd/dist/reset.css'
+
+// Устанавливаем русскую локаль для dayjs
+dayjs.locale('ru')
 
 const { Text, Title } = Typography
 const API_BASE_URL = 'http://localhost:8080/api/v1/profile'
@@ -73,6 +77,18 @@ const UserProfile = () => {
 	const navigate = useNavigate()
 	const userId = localStorage.getItem('userId')
 
+	// Функция для обработки имени/фамилии
+	const processName = name => {
+		if (
+			!name ||
+			name.toLowerCase() === 'не указано' ||
+			name.toLowerCase() === 'не указана'
+		) {
+			return ''
+		}
+		return name
+	}
+
 	const fetchProfile = async () => {
 		try {
 			if (!userId) throw new Error('Пользователь не авторизован')
@@ -83,8 +99,8 @@ const UserProfile = () => {
 			setProfile(data)
 			form.setFieldsValue({
 				username: data.username || '',
-				first_name: data.first_name || '',
-				last_name: data.last_name || '',
+				first_name: processName(data.first_name),
+				last_name: processName(data.last_name),
 				email: data.email || '',
 				phone: data.phone || '',
 				subscription: data.subscription || false,
@@ -128,8 +144,8 @@ const UserProfile = () => {
 		form.resetFields()
 		form.setFieldsValue({
 			username: profile?.username || '',
-			first_name: profile?.first_name || '',
-			last_name: profile?.last_name || '',
+			first_name: processName(profile?.first_name),
+			last_name: processName(profile?.last_name),
 			email: profile?.email || '',
 			phone: profile?.phone || '',
 			subscription: profile?.subscription || false,
@@ -193,7 +209,14 @@ const UserProfile = () => {
 						Профиль пользователя
 					</Title>
 					<Text style={{ fontSize: '16px', color: '#666' }}>
-						{profile?.first_name || 'Имя'} {profile?.last_name || 'Фамилия'}
+						{profile?.first_name &&
+						profile.first_name.toLowerCase() !== 'не указано'
+							? profile.first_name
+							: ''}{' '}
+						{profile?.last_name &&
+						profile.last_name.toLowerCase() !== 'не указана'
+							? profile.last_name
+							: ''}
 					</Text>
 				</div>
 
@@ -207,8 +230,8 @@ const UserProfile = () => {
 						}}
 						initialValues={{
 							username: profile?.username || '',
-							first_name: profile?.first_name || '',
-							last_name: profile?.last_name || '',
+							first_name: processName(profile?.first_name),
+							last_name: processName(profile?.last_name),
 							email: profile?.email || '',
 							phone: profile?.phone || '',
 							subscription: profile?.subscription || false,
@@ -224,7 +247,7 @@ const UserProfile = () => {
 							<Form.Item
 								label={
 									<span style={{ fontSize: '16px', color: '#000' }}>
-										Имя пользователя
+										Псевдоним
 									</span>
 								}
 								name='username'
@@ -233,6 +256,7 @@ const UserProfile = () => {
 									prefix={<UserOutlined style={{ color: '#666' }} />}
 									size='large'
 									style={{ fontSize: '16px' }}
+									disabled // Добавлено это свойство
 								/>
 							</Form.Item>
 
@@ -409,10 +433,20 @@ const UserProfile = () => {
 								</Text>
 							</Descriptions.Item>
 							<Descriptions.Item label='Имя'>
-								<Text strong>{profile?.first_name || 'Не указано'}</Text>
+								<Text strong>
+									{profile?.first_name &&
+									profile.first_name.toLowerCase() !== 'не указано'
+										? profile.first_name
+										: 'Не указано'}
+								</Text>
 							</Descriptions.Item>
 							<Descriptions.Item label='Фамилия'>
-								<Text strong>{profile?.last_name || 'Не указано'}</Text>
+								<Text strong>
+									{profile?.last_name &&
+									profile.last_name.toLowerCase() !== 'не указана'
+										? profile.last_name
+										: 'Не указано'}
+								</Text>
 							</Descriptions.Item>
 							<Descriptions.Item label='Телефон'>
 								<Text strong>{profile?.phone || 'Не указано'}</Text>
@@ -451,7 +485,7 @@ const UserProfile = () => {
 											style={{ color: '#666', fontSize: '16px' }}
 										/>
 										<Text strong style={{ fontSize: '16px', color: '#333' }}>
-											{dayjs(profile?.created_at).format('D MMMM YYYY')}
+											{dayjs(profile?.created_at).format('D MMMM YYYY [года]')}
 										</Text>
 									</Space>
 								</Descriptions.Item>

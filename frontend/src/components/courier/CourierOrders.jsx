@@ -22,7 +22,16 @@ const CourierOrders = () => {
 	const [searchTerm, setSearchTerm] = useState('')
 	const [statusFilter, setStatusFilter] = useState('all')
 	const [selectedOrder, setSelectedOrder] = useState(null)
+	const [courierId, setCourierId] = useState(null)
 	const navigate = useNavigate()
+
+	// Получение courier_id из localStorage при монтировании компонента
+	useEffect(() => {
+		const storedCourierId = localStorage.getItem('courierId')
+		if (storedCourierId) {
+			setCourierId(parseInt(storedCourierId))
+		}
+	}, [])
 
 	// Получение заказов для курьера
 	useEffect(() => {
@@ -33,7 +42,11 @@ const CourierOrders = () => {
 					'http://localhost:8080/api/v1/courier/available-orders'
 				)
 				if (response.data.success) {
-					setOrders(response.data.orders || [])
+					// Фильтруем заказы: только те, где courier_id равен нашему courierId или null
+					const filtered = response.data.orders.filter(
+						order => order.courier_id === courierId || order.courier_id === null
+					)
+					setOrders(filtered || [])
 				} else {
 					setError('Не удалось загрузить заказы')
 				}
@@ -43,8 +56,11 @@ const CourierOrders = () => {
 				setLoading(false)
 			}
 		}
-		fetchOrders()
-	}, [])
+
+		if (courierId !== null) {
+			fetchOrders()
+		}
+	}, [courierId])
 
 	// Фильтрация заказов
 	const filteredOrders = orders.filter(order => {
@@ -62,13 +78,13 @@ const CourierOrders = () => {
 		try {
 			const response = await axios.put(
 				`http://localhost:8080/api/v1/courier/accept/${orderId}`,
-				{ courier_id: 1 } // Assuming courier_id is 1 for the logged-in courier
+				{ courier_id: courierId }
 			)
 			if (response.data.success) {
 				setOrders(
 					orders.map(order =>
 						order.id === orderId
-							? { ...order, status: 'в_пути', courier_id: 1 }
+							? { ...order, status: 'в_пути', courier_id: courierId }
 							: order
 					)
 				)
@@ -91,7 +107,6 @@ const CourierOrders = () => {
 
 	// Обновить статус заказа
 	const handleUpdateStatus = async (orderId, status) => {
-		console.log('Sending payload:', { status }) // Add this for debugging
 		try {
 			const response = await axios.put(
 				`http://localhost:8080/api/v1/courier/orders/${orderId}/status`,
@@ -121,6 +136,7 @@ const CourierOrders = () => {
 	}
 
 	// Отменить заказ
+	// Отменить заказ
 	const handleCancelOrder = async orderId => {
 		try {
 			const result = await Swal.fire({
@@ -136,7 +152,8 @@ const CourierOrders = () => {
 
 			if (result.isConfirmed) {
 				const response = await axios.put(
-					`http://localhost:8080/api/v1/courier/orders/${orderId}/cancel`
+					`http://localhost:8080/api/v1/courier/orders/${orderId}/status`,
+					{ status: 'отменён' }
 				)
 
 				if (response.data.success) {
@@ -263,10 +280,26 @@ const CourierOrders = () => {
 		)
 	}
 
-	return (
-		<div className='container mx-auto p-4'>
-			<h1 className='text-2xl font-bold mb-6 text-center'>Доступные заказы</h1>
+	if (courierId === null) {
+		return (
+			<div className='flex justify-center items-center h-screen'>
+				<div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded'>
+					Не удалось определить ID курьера. Пожалуйста, войдите в систему.
+				</div>
+			</div>
+		)
+	}
 
+	return (
+		<div className='container mx-auto py-8'>
+			<motion.div
+				initial={{ opacity: 0, y: -20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+				className='mb-8'
+			>
+				<h1 className='text-3xl font-bold m-0'>Доступные заказы</h1>
+			</motion.div>
 			{error && (
 				<div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4'>
 					{error}
@@ -354,7 +387,7 @@ const CourierOrders = () => {
 						</div>
 
 						<div className='flex flex-wrap gap-2 mt-3'>
-							{order.status === 'ожидает' && (
+							{order.status === 'ожидает' && order.courier_id === null && (
 								<button
 									onClick={e => {
 										e.stopPropagation()
@@ -366,19 +399,20 @@ const CourierOrders = () => {
 								</button>
 							)}
 
-							{order.status === 'оформлен' && (
-								<button
-									onClick={e => {
-										e.stopPropagation()
-										handleUpdateStatus(order.id, 'в_пути')
-									}}
-									className='bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm flex items-center transition-colors'
-								>
-									<FaTruck className='mr-1' /> Взять в доставку
-								</button>
-							)}
+							{order.status === 'оформлен' &&
+								order.courier_id === courierId && (
+									<button
+										onClick={e => {
+											e.stopPropagation()
+											handleUpdateStatus(order.id, 'в_пути')
+										}}
+										className='bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm flex items-center transition-colors'
+									>
+										<FaTruck className='mr-1' /> Взять в доставку
+									</button>
+								)}
 
-							{order.status === 'в_пути' && (
+							{order.status === 'в_пути' && order.courier_id === courierId && (
 								<>
 									<button
 										onClick={e => {
@@ -401,7 +435,7 @@ const CourierOrders = () => {
 								</>
 							)}
 
-							{order.status === 'прибыл' && (
+							{order.status === 'прибыл' && order.courier_id === courierId && (
 								<>
 									<button
 										onClick={e => {
@@ -477,6 +511,10 @@ const CourierOrders = () => {
 										<span className='font-medium'>Дата создания:</span>{' '}
 										{new Date(selectedOrder.created_at).toLocaleString()}
 									</p>
+									<p>
+										<span className='font-medium'>ID курьера:</span>{' '}
+										{selectedOrder.courier_id || 'Не назначен'}
+									</p>
 								</div>
 							</div>
 
@@ -501,87 +539,91 @@ const CourierOrders = () => {
 						<div className='mb-6'>
 							<h3 className='font-semibold mb-2'>Действия</h3>
 							<div className='flex flex-wrap gap-2'>
-								{selectedOrder.status === 'ожидает' && (
-									<button
-										onClick={() => {
-											handleAcceptOrder(selectedOrder.id)
-											setSelectedOrder(null)
-										}}
-										className='bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-									>
-										<FaCheck className='mr-2' /> Принять заказ
-									</button>
-								)}
+								{selectedOrder.status === 'ожидает' &&
+									selectedOrder.courier_id === null && (
+										<button
+											onClick={() => {
+												handleAcceptOrder(selectedOrder.id)
+												setSelectedOrder(null)
+											}}
+											className='bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+										>
+											<FaCheck className='mr-2' /> Принять заказ
+										</button>
+									)}
 
-								{selectedOrder.status === 'оформлен' && (
-									<button
-										onClick={() => {
-											handleUpdateStatus(selectedOrder.id, 'в_пути')
-											setSelectedOrder(null)
-										}}
-										className='bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-									>
-										<FaTruck className='mr-2' /> Взять в доставку
-									</button>
-								)}
+								{selectedOrder.status === 'оформлен' &&
+									selectedOrder.courier_id === courierId && (
+										<button
+											onClick={() => {
+												handleUpdateStatus(selectedOrder.id, 'в_пути')
+												setSelectedOrder(null)
+											}}
+											className='bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+										>
+											<FaTruck className='mr-2' /> Взять в доставку
+										</button>
+									)}
 
-								{selectedOrder.status === 'в_пути' && (
-									<>
-										<button
-											onClick={() => {
-												handleUpdateStatus(selectedOrder.id, 'прибыл')
-												setSelectedOrder(null)
-											}}
-											className='bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-										>
-											<FaCheckCircle className='mr-2' /> Отметить прибытие
-										</button>
-										<button
-											onClick={() => {
-												handleCancelOrder(selectedOrder.id)
-												setSelectedOrder(null)
-											}}
-											className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-										>
-											<FaTimes className='mr-2' /> Отменить заказ
-										</button>
-									</>
-								)}
+								{selectedOrder.status === 'в_пути' &&
+									selectedOrder.courier_id === courierId && (
+										<>
+											<button
+												onClick={() => {
+													handleUpdateStatus(selectedOrder.id, 'прибыл')
+													setSelectedOrder(null)
+												}}
+												className='bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+											>
+												<FaCheckCircle className='mr-2' /> Отметить прибытие
+											</button>
+											<button
+												onClick={() => {
+													handleCancelOrder(selectedOrder.id)
+													setSelectedOrder(null)
+												}}
+												className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+											>
+												<FaTimes className='mr-2' /> Отменить заказ
+											</button>
+										</>
+									)}
 
-								{selectedOrder.status === 'прибыл' && (
-									<>
-										<button
-											onClick={() => {
-												handleUpdateStatus(selectedOrder.id, 'завершено')
-												setSelectedOrder(null)
-											}}
-											className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-										>
-											<FaCheckCircle className='mr-2' /> Завершить доставку
-										</button>
-										<button
-											onClick={() => {
-												handleUpdateStatus(
-													selectedOrder.id,
-													'завершено_частично'
-												)
-												setSelectedOrder(null)
-											}}
-											className='bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-										>
-											<FaCheckCircle className='mr-2' /> Завершить частично
-										</button>
-										<button
-											onClick={() => {
-												handleCancelOrder(selectedOrder.id)
-												setSelectedOrder(null)
-											}}
-											className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
-										>
-											<FaTimes className='mr-2' /> Отменить заказ
-										</button>
-									</>
-								)}
+								{selectedOrder.status === 'прибыл' &&
+									selectedOrder.courier_id === courierId && (
+										<>
+											<button
+												onClick={() => {
+													handleUpdateStatus(selectedOrder.id, 'завершено')
+													setSelectedOrder(null)
+												}}
+												className='bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+											>
+												<FaCheckCircle className='mr-2' /> Завершить доставку
+											</button>
+											<button
+												onClick={() => {
+													handleUpdateStatus(
+														selectedOrder.id,
+														'завершено_частично'
+													)
+													setSelectedOrder(null)
+												}}
+												className='bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+											>
+												<FaCheckCircle className='mr-2' /> Завершить частично
+											</button>
+											<button
+												onClick={() => {
+													handleCancelOrder(selectedOrder.id)
+													setSelectedOrder(null)
+												}}
+												className='bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg flex items-center transition-colors'
+											>
+												<FaTimes className='mr-2' /> Отменить заказ
+											</button>
+										</>
+									)}
 
 								<button
 									onClick={() => setSelectedOrder(null)}

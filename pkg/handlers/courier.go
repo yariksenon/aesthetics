@@ -67,7 +67,7 @@ func PostCourier(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Courier application created successfully",
+			"message": "Заявка на курьера создана успешно",
 			"courier": map[string]interface{}{
 				"id":         id,
 				"user_id":    req.UserId,
@@ -223,76 +223,79 @@ func ResubmitCourier(db *sql.DB) gin.HandlerFunc {
 
 func GetAvailableOrders(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		rows, err := db.Query(`
-			SELECT 
-				id, user_id, total, payment_provider, 
-				address, city, notes, status, created_at
-			FROM orders
-			ORDER BY created_at ASC`)
-		
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Ошибка при получении заказов",
-				"details": err.Error(),
-			})
-			return
-		}
-		defer rows.Close()
-
-		// 2. Формируем список заказов
-		var orders []map[string]interface{}
-		for rows.Next() {
-			var order struct {
-				ID              int
-				UserID          *int
-				Total           float64
-				PaymentProvider string
-				Address         string
-				City            string
-				Notes           string
-				Status          string
-				CreatedAt       time.Time
-			}
-
-			err := rows.Scan(
-				&order.ID,
-				&order.UserID,
-				&order.Total,
-				&order.PaymentProvider,
-				&order.Address,
-				&order.City,
-				&order.Notes,
-				&order.Status,
-				&order.CreatedAt,
-			)
+			rows, err := db.Query(`
+					SELECT 
+							id, user_id, courier_id, total, payment_provider, 
+							address, city, notes, status, created_at
+					FROM orders
+					ORDER BY created_at ASC`)
 			
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "Ошибка обработки данных заказа",
-					"details": err.Error(),
-				})
-				return
+					c.JSON(http.StatusInternalServerError, gin.H{
+							"error": "Ошибка при получении заказов",
+							"details": err.Error(),
+					})
+					return
+			}
+			defer rows.Close()
+
+			// Формируем список заказов
+			var orders []map[string]interface{}
+			for rows.Next() {
+					var order struct {
+							ID              int
+							UserID          *int
+							CourierID       *int     // Добавляем поле для courier_id
+							Total           float64
+							PaymentProvider string
+							Address         string
+							City            string
+							Notes           string
+							Status          string
+							CreatedAt       time.Time
+					}
+
+					err := rows.Scan(
+							&order.ID,
+							&order.UserID,
+							&order.CourierID,     // Добавляем сканирование courier_id
+							&order.Total,
+							&order.PaymentProvider,
+							&order.Address,
+							&order.City,
+							&order.Notes,
+							&order.Status,
+							&order.CreatedAt,
+					)
+					
+					if err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{
+									"error": "Ошибка обработки данных заказа",
+									"details": err.Error(),
+							})
+							return
+					}
+
+					orders = append(orders, map[string]interface{}{
+							"id":               order.ID,
+							"user_id":          order.UserID,
+							"courier_id":       order.CourierID,     // Добавляем в ответ
+							"total":            order.Total,
+							"payment_provider": order.PaymentProvider,
+							"address":         order.Address,
+							"city":            order.City,
+							"notes":           order.Notes,
+							"status":          order.Status,
+							"created_at":      order.CreatedAt,
+					})
 			}
 
-			orders = append(orders, map[string]interface{}{
-				"id":               order.ID,
-				"user_id":          order.UserID,
-				"total":            order.Total,
-				"payment_provider": order.PaymentProvider,
-				"address":         order.Address,
-				"city":            order.City,
-				"notes":           order.Notes,
-				"status":          order.Status,
-				"created_at":      order.CreatedAt,
+			// Возвращаем результат
+			c.JSON(http.StatusOK, gin.H{
+					"success": true,
+					"orders":  orders,
+					"count":   len(orders),
 			})
-		}
-
-		// 3. Возвращаем результат
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"orders":  orders,
-			"count":   len(orders),
-		})
 	}
 }
 
@@ -310,7 +313,7 @@ func UpdateOrderStatus(db *sql.DB, smtpClient *smtp.SMTPClient) gin.HandlerFunc 
 			"в_пути":            true,
 			"прибыл":            true,
 			"завершено":         true,
-			"завершено_частично": true, // Fixed typo from "звершено_частично"
+			"завершено_частично": true, 
 			"отменён":           true,
 		}
 

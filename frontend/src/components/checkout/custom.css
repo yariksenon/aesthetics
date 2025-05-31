@@ -1,0 +1,6 @@
+.custom-segmented .ant-segmented-item-selected {
+	background-color: #000 !important;
+	color: #fff !important;
+	border-radius: 8px;
+	transition: all 0.3s ease;
+}

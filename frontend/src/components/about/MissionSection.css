@@ -1,0 +1,71 @@
+.mission-overlap-container {
+	display: flex;
+	position: relative;
+	margin: 50px auto;
+	min-height: 600px;
+}
+
+.mission-title {
+	font-size: 1.5rem;
+	font-weight: 700;
+}
+
+.mission-text-block {
+	width: 50%;
+	background: black;
+	color: white;
+	padding: 40px;
+	box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+	position: relative;
+	z-index: 2;
+	align-self: flex-start;
+}
+
+.mission-items {
+	margin-top: 0;
+}
+
+.mission-item {
+	margin-bottom: 30px;
+}
+
+.mission-item-header {
+	font-weight: bold;
+	font-size: 18px;
+	margin-bottom: 10px;
+}
+
+.mission-item-text {
+	margin: 0;
+	line-height: 1.6;
+	font-size: 16px;
+}
+
+.mission-image-block {
+	width: 70%;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	z-index: 1;
+	/* height: 80%; */
+	margin-top: auto;
+}
+
+@media (max-width: 768px) {
+	.mission-overlap-container {
+		flex-direction: column;
+		min-height: auto;
+	}
+
+	.mission-text-block,
+	.mission-image-block {
+		width: 100%;
+	}
+
+	.mission-image-block {
+		position: relative;
+		min-height: 300px;
+		margin-top: 30px;
+		height: auto;
+	}
+}

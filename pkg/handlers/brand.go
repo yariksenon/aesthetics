@@ -63,7 +63,7 @@ func PostBrand(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"message": "Brand created successfully",
+			"message": "Заявка на становление брендом успешно отправленна",
 			"brand": map[string]interface{}{
 				"id":          id,
 				"user_id":     req.UserId,

@@ -27,7 +27,7 @@ import Checkout from './components/checkout/Checkout'
 import MyOrder from './components/order/MyOrderList'
 import Brand from './components/brand/Brand'
 import Courier from './components/courier/Courier'
-import About from './components/home/About'
+import About from './components/about/About'
 
 // Админские компоненты
 import AdminPanel from './components/admin/Panel'

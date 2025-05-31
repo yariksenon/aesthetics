@@ -294,6 +294,9 @@ const ProductList = ({ filters = {} }) => {
 			message.success(
 				isFavorite ? 'Товар удалён из избранного' : 'Товар добавлен в избранное'
 			)
+
+			// Перезагрузка страницы после успешного обновления
+			window.location.reload()
 		} catch (error) {
 			message.error(error.message)
 		} finally {

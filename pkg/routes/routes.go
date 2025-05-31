@@ -37,6 +37,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, twilioC
 		v1.GET("/orders/:userId", handlers.GetOrders(db))
 		v1.GET("/orders/:userId/:orderId", handlers.GetOrderDetails(db))
 		v1.PUT("/:orderId/status", admin.UpdateOrderStatus(db, smtpClient))
+		v1.GET("/reverse-geocode", handlers.ReverseGeocodeHandler())
 
 		v1.DELETE("/orders/:userId/:orderId/items/:productId/:sizeId", handlers.RemoveOrderItem(db))
 
@@ -57,6 +58,7 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, twilioC
 		v1.POST("/cart/:userId", handlers.AddCartProduct(db))                 // Добавить товар в корзину
 		v1.PUT("/cart/:userId/:productId", handlers.UpdateCartProduct(db))    // Обновить количество товара в корзине
 		v1.DELETE("/cart/:userId/clear", handlers.ClearCart(db))                    // Очистить корзину пользователя
+		v1.DELETE("/cart/:userId/items", handlers.DeleteCartItems(db))	
 
 			// Wishlist
 		v1.GET("/wishlist/:userId", handlers.GetWishlist(db))

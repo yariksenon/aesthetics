@@ -2,24 +2,29 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import axios from 'axios'
+import { motion } from 'framer-motion'
+import './custom.css'
 import {
 	Button,
 	Card,
 	Form,
 	Input,
-	Radio,
 	Spin,
 	Typography,
+	Segmented,
+	Tabs,
 	Divider,
 	Image,
 	Space,
 	Empty,
 	AutoComplete,
+	Tooltip,
 } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
+import { LoadingOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { debounce } from 'lodash'
 
 // Fix Leaflet marker icon issue
 delete L.Icon.Default.prototype._getIconUrl
@@ -43,7 +48,7 @@ const CheckoutPage = () => {
 	const [selectedCoordinates, setSelectedCoordinates] = useState({
 		lat: 53.6835,
 		lng: 23.8345,
-	}) // Default to Grodno
+	})
 	const [mapError, setMapError] = useState(null)
 	const mapRef = useRef(null)
 	const markerRef = useRef(null)
@@ -62,7 +67,7 @@ const CheckoutPage = () => {
 	// Initialize form with Grodno as default city
 	useEffect(() => {
 		form.setFieldsValue({
-			city: 'Гродно',
+			city: 'Гродна',
 		})
 	}, [form])
 
@@ -71,7 +76,6 @@ const CheckoutPage = () => {
 			const { data } = await axios.get(
 				`http://localhost:8080/api/v1/cart/${userId}`
 			)
-			console.log('Cart data:', data) // Debug cart data
 			const items = Array.isArray(data?.items) ? data.items : []
 			setCartItems(items)
 			setTotal(items.reduce((sum, item) => sum + item.price * item.quantity, 0))
@@ -100,58 +104,61 @@ const CheckoutPage = () => {
 	const reverseGeocode = async ({ lng, lat }) => {
 		try {
 			const response = await axios.get(
-				`https://nominatim.openstreetmap.org/reverse`,
+				`http://localhost:8080/api/v1/reverse-geocode`,
 				{
 					params: {
-						format: 'json',
+						lat,
 						lon: lng,
-						lat: lat,
-						zoom: 18,
-						addressdetails: 1,
-					},
-					headers: {
-						'User-Agent': 'CheckoutApp/1.0 (your.email@example.com)', // Replace with your app details
 					},
 				}
 			)
+
 			const address = response.data.address
+			if (address && address.country_code !== 'by') {
+				toast.error('Доставка возможна только по территории Беларуси')
+				setMapError('Доставка возможна только по территории Беларуси')
+				return
+			}
+
 			if (address) {
-				const fullAddress = [address.road, address.house_number, address.suburb]
+				const fullAddress = [
+					address.road,
+					address.house_number,
+					address.neighbourhood,
+				]
 					.filter(Boolean)
 					.join(', ')
 				form.setFieldsValue({
 					address: fullAddress || response.data.display_name,
-					city: address.city || address.town || 'Гродно', // Default to Grodno
+					city: address.city || address.town || 'Гродно',
 				})
+				setMapError(null)
 			}
 		} catch (error) {
-			toast.error('Не удалось получить адрес')
+			let message = 'Не удалось получить адрес. Попробуйте снова.'
+			if (error.response?.status === 403) {
+				message =
+					'Доступ к геокодированию запрещен. Пожалуйста, попробуйте позже или свяжитесь с поддержкой.'
+			} else if (error.response?.status === 429) {
+				message =
+					'Слишком много запросов. Пожалуйста, подождите и попробуйте снова.'
+			}
+			toast.error(message)
 			console.error('Reverse geocode error:', error)
 		}
 	}
 
-	const handleAddressSearch = async value => {
+	const handleAddressSearch = debounce(async value => {
 		if (value.length < 3) {
 			setAddressOptions([])
 			return
 		}
 		try {
 			const response = await axios.get(
-				`https://nominatim.openstreetmap.org/search`,
+				`http://localhost:8080/api/v1/search-address`,
 				{
 					params: {
-						q: `${value}, Гродно`, // Prioritize Grodno
-						format: 'json',
-						countrycodes: 'BY',
-						addressdetails: 1,
-						limit: 5,
-						'accept-language': 'ru', // Russian for better labels
-						// Bounding box for Grodno (approximate)
-						viewbox: '23.7,53.6,24.0,53.8',
-						bounded: 1,
-					},
-					headers: {
-						'User-Agent': 'CheckoutApp/1.0 (your.email@example.com)', // Replace with your app details
+						q: `${value}, Гродно`,
 					},
 				}
 			)
@@ -164,12 +171,20 @@ const CheckoutPage = () => {
 			toast.error('Не удалось загрузить предложения адреса')
 			console.error('Address search error:', error)
 		}
-	}
+	}, 300)
 
 	const handleAddressSelect = async (value, option) => {
-		const { lon, lat } = option.data
+		const { lon, lat, address } = option.data
+
+		if (address?.country_code !== 'by') {
+			toast.error('Доставка возможна только по территории Беларуси')
+			setMapError('Доставка возможна только по территории Беларуси')
+			return
+		}
+
 		const coord = { lng: parseFloat(lon), lat: parseFloat(lat) }
 		setSelectedCoordinates(coord)
+		setMapError(null)
 		if (mapRef.current) {
 			mapRef.current.setView([coord.lat, coord.lng], 13)
 		}
@@ -180,8 +195,44 @@ const CheckoutPage = () => {
 			toast.error('Ваша корзина пуста')
 			return
 		}
+
+		// Проверка обязательных полей
+		if (!values.address || !values.city || !values.paymentMethod) {
+			toast.error('Пожалуйста, заполните все обязательные поля')
+			return
+		}
+
 		if (!selectedCoordinates) {
 			toast.error('Пожалуйста, выберите адрес доставки на карте')
+			return
+		}
+
+		try {
+			const response = await axios.get(
+				`http://localhost:8080/api/v1/reverse-geocode`,
+				{
+					params: {
+						lat: selectedCoordinates.lat,
+						lon: selectedCoordinates.lng,
+					},
+				}
+			)
+
+			if (response.data.address?.country_code !== 'by') {
+				toast.error('Доставка возможна только по территории Беларуси')
+				return
+			}
+		} catch (error) {
+			let message = 'Не удалось проверить адрес доставки'
+			if (error.response?.status === 403) {
+				message =
+					'Доступ к геокодированию запрещен. Пожалуйста, попробуйте позже или свяжитесь с поддержкой.'
+			} else if (error.response?.status === 429) {
+				message =
+					'Слишком много запросов. Пожалуйста, подождите и попробуйте снова.'
+			}
+			toast.error(message)
+			console.error('Country check error:', error)
 			return
 		}
 
@@ -239,48 +290,70 @@ const CheckoutPage = () => {
 	}
 
 	return (
-		<div>
-			<Title level={2}>Оформление заказа</Title>
+		<div
+			className='container mx-auto py-8'
+			style={{ backgroundColor: 'white', color: 'black' }}
+		>
+			<motion.div
+				initial={{ opacity: 0, y: -20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+				className='mb-8'
+			>
+				<h1 className='text-3xl font-bold m-0' style={{ color: 'black' }}>
+					Оформление заказа
+				</h1>
+			</motion.div>
 
-			<div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-				<Form form={form} onFinish={handleSubmit} layout='vertical'>
-					<Card
-						title='Адрес доставки'
-						variant='borderless'
-						style={{ marginBottom: 16 }}
-					>
-						<Form.Item
-							name='address'
-							label='Адрес'
-							rules={[{ required: true, message: 'Введите адрес' }]}
+			<div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+				<div className='lg:col-span-2'>
+					<Form form={form} onFinish={handleSubmit} layout='vertical'>
+						<Card
+							title={
+								<Space>
+									<span style={{ color: 'black' }}>Адрес доставки</span>
+									<Tooltip title='Доставка осуществляется только по территории Беларуси'>
+										<QuestionCircleOutlined style={{ color: 'black' }} />
+									</Tooltip>
+								</Space>
+							}
+							style={{
+								marginBottom: 16,
+								backgroundColor: 'white',
+								color: 'black',
+							}}
 						>
-							<AutoComplete
-								onSearch={handleAddressSearch}
-								onSelect={handleAddressSelect}
-								options={addressOptions}
-								placeholder='Улица, дом, квартира'
-							/>
-						</Form.Item>
+							<Form.Item
+								name='address'
+								label={<span style={{ color: 'black' }}>Адрес</span>}
+								rules={[{ required: true, message: 'Введите адрес' }]}
+								help={
+									mapError && <div style={{ color: 'red' }}>{mapError}</div>
+								}
+							>
+								<AutoComplete
+									onSearch={handleAddressSearch}
+									onSelect={handleAddressSelect}
+									options={addressOptions}
+									placeholder='Улица, дом, квартира'
+								/>
+							</Form.Item>
 
-						<Form.Item
-							name='city'
-							label='Город'
-							rules={[{ required: true, message: 'Введите город' }]}
-							initialValue='Гродно'
-						>
-							<Input placeholder='Гродно' />
-						</Form.Item>
+							<Form.Item
+								name='city'
+								label={<span style={{ color: 'black' }}>Город</span>}
+								rules={[{ required: true, message: 'Введите город' }]}
+								initialValue='Гродно'
+							>
+								<Input placeholder='Гродно' />
+							</Form.Item>
 
-						{mapError ? (
-							<div style={{ color: 'red', marginTop: 16 }}>{mapError}</div>
-						) : (
 							<MapContainer
-								center={[53.6835, 23.8345]} // Grodno, Belarus
+								center={[53.6835, 23.8345]}
 								zoom={13}
 								style={{ width: '100%', height: '400px', marginTop: 16 }}
 								whenCreated={map => {
 									mapRef.current = map
-									console.log('Map created:', map) // Debug map creation
 								}}
 							>
 								<TileLayer
@@ -300,125 +373,134 @@ const CheckoutPage = () => {
 									/>
 								)}
 							</MapContainer>
-						)}
-					</Card>
+						</Card>
 
-					<Card
-						title='Способ оплаты'
-						variant='borderless'
-						style={{ marginBottom: 16 }}
-					>
-						<Form.Item name='paymentMethod' initialValue='cash'>
-							<Radio.Group>
-								<Radio
-									value='cash'
-									style={{
-										padding: '8px 16px',
-										borderRadius: 4,
-										width: '100%',
-									}}
+						<Card
+							title={
+								<span
+									style={{ color: '#000', fontWeight: '500', fontSize: '16px' }}
 								>
-									Наличными при получении
-								</Radio>
-								<Radio
-									value='card'
+									Способ оплаты
+								</span>
+							}
+							style={{
+								marginBottom: 16,
+								backgroundColor: '#fff',
+								borderRadius: '8px',
+								padding: '16px',
+								boxShadow: 'none',
+								border: '1px solid #f5f5f5',
+							}}
+							bodyStyle={{ padding: '8px 0 0 0' }}
+						>
+							<Form.Item
+								name='paymentMethod'
+								initialValue='cash'
+								rules={[{ required: true, message: 'Выберите способ оплаты' }]}
+							>
+								<Segmented
+									options={[
+										{ label: 'Наличными при получении', value: 'cash' },
+										{ label: 'Картой онлайн', value: 'card' },
+									]}
 									style={{
-										padding: '8px 16px',
-										borderRadius: 4,
 										width: '100%',
+										backgroundColor: '#fafafa',
+										color: '#000',
+										height: '44px',
 									}}
-								>
-									Картой онлайн
-								</Radio>
-							</Radio.Group>
-						</Form.Item>
-					</Card>
+									block
+									size='large'
+									className='custom-segmented'
+								/>
+							</Form.Item>
+						</Card>
 
-					<Card
-						title='Дополнительная информация'
-						variant='borderless'
-						style={{ marginBottom: 16 }}
+						<Card
+							title={
+								<span style={{ color: 'black' }}>
+									Дополнительная информация
+								</span>
+							}
+							style={{ marginBottom: 16, backgroundColor: 'white' }}
+						>
+							<Form.Item
+								name='notes'
+								label={
+									<span style={{ color: 'black' }}>Примечания к заказу</span>
+								}
+							>
+								<Input.TextArea
+									rows={3}
+									placeholder='Например: код домофона, этаж, удобное время доставки'
+								/>
+							</Form.Item>
+						</Card>
+
+						<Button
+							type='primary'
+							htmlType='submit'
+							loading={submitting}
+							block
+							size='large'
+							style={{
+								background: 'black',
+								borderColor: 'black',
+								fontWeight: 'bold',
+								height: 48,
+								fontSize: 16,
+								marginTop: 16,
+							}}
+						>
+							{submitting ? 'Оформляем заказ...' : 'Подтвердить заказ'}
+						</Button>
+					</Form>
+				</div>
+
+				<div className='lg:col-span-1'>
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						transition={{ delay: 0.2 }}
+						className='bg-white rounded-lg shadow-md p-6 border border-gray-100 sticky top-4'
 					>
-						<Form.Item name='notes' label='Примечания к заказу'>
-							<Input.TextArea
-								rows={3}
-								placeholder='Например: код домофона, этаж, удобное время доставки'
-							/>
-						</Form.Item>
-					</Card>
-
-					<Button
-						type='primary'
-						htmlType='submit'
-						loading={submitting}
-						block
-						size='large'
-						style={{
-							background: 'black',
-							borderColor: 'black',
-							fontWeight: 'bold',
-							height: 48,
-							fontSize: 16,
-							marginTop: 16,
-						}}
-					>
-						{submitting ? 'Оформляем заказ...' : 'Подтвердить заказ'}
-					</Button>
-				</Form>
-
-				<Card title='Ваш заказ' variant='borderless'>
-					<div style={{ maxHeight: 400, overflowY: 'auto' }}>
-						{cartItems.map(item => (
-							<div key={item.id} style={{ marginBottom: 16 }}>
-								<Space
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										justifyContent: 'space-between',
-										width: '100%',
-									}}
+						<h2 className='text-xl font-bold mb-4 border-b border-gray-200 pb-2 text-gray-800'>
+							Ваш заказ
+						</h2>
+						<div className='space-y-3 text-gray-600 mb-4 max-h-96 overflow-y-auto'>
+							{cartItems.map(item => (
+								<div
+									key={`${item.product_id}-${item.size_id}`}
+									className='flex justify-between py-1 items-center'
 								>
-									<Image
-										width={80}
-										height={80}
-										src={
-											item.image_path
-												? `http://localhost:8080/static/${item.image_path}`
-												: 'error'
-										}
-										fallback='https://via.placeholder.com/80x80?text=No+Image'
-										alt={item.name}
-										style={{ objectFit: 'cover' }}
-									/>
-									<div style={{ flex: 1 }}>
-										<Text strong>{item.name}</Text>
-										<br />
-										<Text type='secondary'>Количество: {item.quantity}</Text>
+									<div className='flex items-center space-x-3'>
+										<Image
+											src={`http://localhost:8080/static/${item.image_path}`}
+											fallback='https://via.placeholder.com/50'
+											width={50}
+											height={50}
+											preview={false}
+											className='object-cover rounded'
+											onError={() =>
+												console.log('Image load error for', item.name)
+											}
+										/>
+										<span className='truncate max-w-[160px] text-gray-700 text-sm'>
+											{item.name || 'Товар'} × {item.quantity || 1}
+										</span>
 									</div>
-									<Text strong>
+									<span className='text-gray-800 font-medium text-sm'>
 										{(item.price * item.quantity).toFixed(2)} руб.
-									</Text>
-								</Space>
-								<Divider style={{ margin: '12px 0' }} />
-							</div>
-						))}
-					</div>
-					<Divider />
-					<div
-						style={{
-							display: 'flex',
-							justifyContent: 'space-between',
-							alignItems: 'center',
-						}}
-					>
-						<Text strong style={{ fontSize: 16 }}>
-							Итого к оплате:
-						</Text>
-						<Title level={4} style={{ margin: 0 }}>
-							{total.toFixed(2)} руб.
-						</Title>
-					</div>
-				</Card>
+									</span>
+								</div>
+							))}
+						</div>
+						<div className='border-t border-gray-200 mt-4 pt-4 flex justify-between font-bold text-lg text-gray-800'>
+							<span>Итого:</span>
+							<span>{total.toFixed(2)} руб.</span>
+						</div>
+					</motion.div>
+				</div>
 			</div>
 		</div>
 	)

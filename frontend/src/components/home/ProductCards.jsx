@@ -111,6 +111,7 @@ const ProductCarts = ({ filters = {} }) => {
 	}
 
 	// Обработка избранного
+	// Обработка избранного
 	const handleFavoriteClick = async (productId, e) => {
 		e.stopPropagation()
 		if (!checkAuth()) return
@@ -129,6 +130,9 @@ const ProductCarts = ({ filters = {} }) => {
 			message.success(
 				isFavorite ? 'Товар удалён из избранного' : 'Товар добавлен в избранное'
 			)
+
+			// Перезагрузка страницы после успешного обновления избранного
+			window.location.reload()
 		} catch (error) {
 			message.error(error.message)
 		}

@@ -8,11 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type SizeResponse struct {
+	ID       int    `json:"id"`
+	Size     string `json:"size"`
+	Quantity int    `json:"quantity"`
+	Available bool  `json:"available"` // true, если quantity > 0
+}
+
 type ProductResponse struct {
-	ID        int     `json:"id"`
-	Name      string  `json:"name"`
-	Price     float64 `json:"price"`
-	ImagePath string  `json:"image_path"`
+	ID        int            `json:"id"`
+	Name      string         `json:"name"`
+	Price     float64        `json:"price"`
+	ImagePath string         `json:"image_path"`
+	Sizes     []SizeResponse `json:"sizes"` // Все размеры
+	AvailableSizes []SizeResponse `json:"available_sizes"` // Только доступные
 }
 
 func GetWishlist(db *sql.DB) gin.HandlerFunc {
@@ -23,6 +32,7 @@ func GetWishlist(db *sql.DB) gin.HandlerFunc {
 					return
 			}
 
+			// Основной запрос для получения товаров в вишлисте
 			rows, err := db.Query(`
 					SELECT 
 							p.id,
@@ -57,6 +67,54 @@ func GetWishlist(db *sql.DB) gin.HandlerFunc {
 							})
 							return
 					}
+
+					// Запрос для получения размеров этого товара
+					sizeRows, err := db.Query(`
+							SELECT 
+									s.id, 
+									s.value, 
+									COALESCE(ps.quantity, 0) as quantity
+							FROM sizes s
+							LEFT JOIN product_sizes ps ON s.id = ps.size_id AND ps.product_id = $1
+							WHERE s.size_type_id = (SELECT size_type_id FROM product WHERE id = $1)
+							ORDER BY s.id`, item.ID)
+					if err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{
+									"error": "Ошибка при получении размеров",
+									"details": err.Error(),
+							})
+							return
+					}
+
+					var allSizes []SizeResponse
+					var availableSizes []SizeResponse
+					
+					for sizeRows.Next() {
+							var size SizeResponse
+							if err := sizeRows.Scan(
+									&size.ID,
+									&size.Size,
+									&size.Quantity,
+							); err != nil {
+									sizeRows.Close()
+									c.JSON(http.StatusInternalServerError, gin.H{
+											"error": "Ошибка обработки размера",
+											"details": err.Error(),
+									})
+									return
+							}
+							
+							size.Available = size.Quantity > 0
+							allSizes = append(allSizes, size)
+							
+							if size.Available {
+									availableSizes = append(availableSizes, size)
+							}
+					}
+					sizeRows.Close()
+
+					item.Sizes = allSizes
+					item.AvailableSizes = availableSizes
 					items = append(items, item)
 			}
 
@@ -71,7 +129,6 @@ func GetWishlist(db *sql.DB) gin.HandlerFunc {
 			c.JSON(http.StatusOK, gin.H{"items": items})
 	}
 }
-
 
 func AddToWishlist(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
