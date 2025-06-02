@@ -12,8 +12,6 @@ import {
 	Alert,
 } from 'antd'
 import {
-	ArrowUpOutlined,
-	ArrowDownOutlined,
 	ShoppingOutlined,
 	DollarOutlined,
 	TagOutlined,
@@ -32,57 +30,73 @@ const StatisticsDashboard = () => {
 	})
 	const [error, setError] = useState(null)
 	const [userId, setUserId] = useState(null)
+	const [brandId, setBrandId] = useState(null)
 
 	useEffect(() => {
-		const storedUserId = localStorage.getItem('userId')
-		const parsedUserId = storedUserId ? parseInt(storedUserId, 10) : null
-
-		if (!storedUserId || isNaN(parsedUserId)) {
-			setError('Пользователь не авторизован или ID пользователя недействителен')
-			setLoading({ stats: false, products: false })
-			return
-		}
-
-		setUserId(parsedUserId)
-
-		const fetchStatistics = async () => {
+		const fetchData = async () => {
 			try {
-				const { data } = await axios.get(
-					`${API_BASE_URL}/statistics/${parsedUserId}`
+				setLoading({ stats: true, products: true })
+
+				// Получаем userId из localStorage
+				const storedUserData = localStorage.getItem('userData')
+				if (!storedUserData) {
+					throw new Error('Пользователь не авторизован')
+				}
+
+				const userData = JSON.parse(storedUserData)
+				const userId = userData.id
+
+				if (!userId) {
+					throw new Error('ID пользователя не найден')
+				}
+
+				setUserId(userId)
+
+				// Получаем информацию о бренде пользователя
+				const brandResponse = await axios.get(
+					`${API_BASE_URL}/admin/brand/approved`
 				)
-				setStats(data)
+				const brands = brandResponse.data
+
+				const userBrand = brands.find(brand => brand.user_id === userId)
+				if (!userBrand) {
+					throw new Error('Бренд не найден или не одобрен')
+				}
+
+				setBrandId(userBrand.id)
+
+				// Загружаем статистику и товары
+				const [statsResponse, productsResponse] = await Promise.all([
+					axios.get(`${API_BASE_URL}/statistics/${userBrand.id}`),
+					axios.get(`${API_BASE_URL}/my-product/${userBrand.id}`),
+				])
+
+				setStats(statsResponse.data)
+				setProducts(productsResponse.data.products || [])
 			} catch (error) {
-				message.error('Не удалось загрузить статистику')
-				console.error('Ошибка загрузки статистики:', error)
+				console.error('Ошибка загрузки данных:', error)
+				setError(error.message || 'Ошибка загрузки данных')
+				message.error('Ошибка загрузки статистики')
 			} finally {
-				setLoading(prev => ({ ...prev, stats: false }))
+				setLoading({ stats: false, products: false })
 			}
 		}
 
-		const fetchProducts = async () => {
-			try {
-				const { data } = await axios.get(
-					`${API_BASE_URL}/my-product/${parsedUserId}`
-				)
-				setProducts(data.products || [])
-			} catch (error) {
-				message.error('Не удалось загрузить товары')
-				console.error('Ошибка загрузки товаров:', error)
-			} finally {
-				setLoading(prev => ({ ...prev, products: false }))
-			}
-		}
-
-		fetchStatistics()
-		fetchProducts()
+		fetchData()
 	}, [])
 
 	const handleDeleteProduct = async productId => {
 		try {
 			await axios.delete(`${API_BASE_URL}/products/${productId}`)
 			message.success('Товар успешно удален')
-			const { data } = await axios.get(`${API_BASE_URL}/my-product/${userId}`)
-			setProducts(data.products || [])
+
+			// Обновляем список товаров
+			if (brandId) {
+				const { data } = await axios.get(
+					`${API_BASE_URL}/my-product/${brandId}`
+				)
+				setProducts(data.products || [])
+			}
 		} catch (error) {
 			message.error('Ошибка при удалении товара')
 			console.error('Ошибка удаления:', error)
@@ -175,7 +189,7 @@ const StatisticsDashboard = () => {
 	}
 
 	return (
-		<div style={{ padding: 24, maxWidth: 1200, margin: '0 auto' }}>
+		<div>
 			<Title level={2}>Аналитика бренда</Title>
 
 			{/* Статистические карточки */}

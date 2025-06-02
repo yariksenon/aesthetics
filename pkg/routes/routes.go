@@ -75,7 +75,16 @@ func SetupRoutes(r *gin.Engine, db *sql.DB, smtpClient *smtp.SMTPClient, twilioC
 		v1.GET("/categories", handlers.GetCategories(db))
 		
 		v1.GET("/sub-categories", handlers.GetSubCategories(db))
-	
+
+		
+
+
+
+
+
+
+
+
 		v1.GET("/size-types", handlers.GetSizeTypes(db))
 		v1.GET("/sizes", handlers.GetSizes(db))
 

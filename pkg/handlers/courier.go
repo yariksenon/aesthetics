@@ -202,7 +202,7 @@ func ResubmitCourier(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"message": "Courier application updated and resubmitted successfully!",
+			"message": "Форма отправленна повторна!",
 			"courier": map[string]interface{}{
 				"id":         courierID,
 				"user_id":    userID,

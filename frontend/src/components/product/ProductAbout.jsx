@@ -35,6 +35,11 @@ import {
 	CopyOutlined,
 } from '@ant-design/icons'
 
+const customRateStyle = {
+	'--ant-rate-star-color': '#000000',
+	'--ant-rate-star-size': '16px',
+}
+
 const { Title, Text, Paragraph, Link } = Typography
 const { TextArea } = Input
 
@@ -47,8 +52,6 @@ const ProductAbout = () => {
 	const [favorites, setFavorites] = useState([])
 	const [processingFavorite, setProcessingFavorite] = useState(false)
 	const [activeTab, setActiveTab] = useState('description')
-	const [previewVisible, setPreviewVisible] = useState(false)
-	const [previewCurrent, setPreviewCurrent] = useState('')
 	const [reviews, setReviews] = useState([])
 	const [reviewLoading, setReviewLoading] = useState(false)
 	const { addToCart } = useCart()
@@ -377,22 +380,34 @@ const ProductAbout = () => {
 								{ required: true, message: 'Пожалуйста, выберите оценку' },
 							]}
 						>
-							<Rate allowHalf />
+							<Rate
+								style={customRateStyle}
+								character={<HeartFilled />}
+								allowHalf={false}
+							/>
 						</Form.Item>
 						<Form.Item
 							name='content'
 							label='Ваш отзыв'
 							rules={[
 								{ required: true, message: 'Пожалуйста, напишите отзыв' },
+								{ max: 200, message: 'Отзыв не должен превышать 200 символов' },
 							]}
 						>
 							<TextArea
 								rows={4}
 								placeholder='Поделитесь вашим мнением о товаре'
+								maxLength={200}
+								showCount
 							/>
 						</Form.Item>
 						<Form.Item>
-							<Button type='primary' htmlType='submit' loading={reviewLoading}>
+							<Button
+								type='primary'
+								htmlType='submit'
+								loading={reviewLoading}
+								className='bg-black border-black hover:bg-gray-800'
+							>
 								Отправить отзыв
 							</Button>
 						</Form.Item>
@@ -412,7 +427,13 @@ const ProductAbout = () => {
 										title={
 											<Space>
 												<Text strong>Пользователь #{review.user_id}</Text>
-												<Rate disabled allowHalf value={review.rating} />
+												<Rate
+													disabled
+													style={customRateStyle}
+													character={<HeartFilled />}
+													allowHalf={false}
+													value={review.rating}
+												/>
 											</Space>
 										}
 										description={
@@ -499,12 +520,8 @@ const ProductAbout = () => {
 											<Image
 												src={getImageUrl(img)}
 												alt={`${product.name} ${idx + 1}`}
-												className='w-auto h-auto max-w-full max-h-full object-scale-down cursor-pointer'
+												className='w-auto h-auto max-w-full max-h-full object-scale-down'
 												style={{ maxHeight: '70vh' }}
-												onClick={() => {
-													setPreviewCurrent(getImageUrl(img))
-													setPreviewVisible(true)
-												}}
 											/>
 										</div>
 									))}
@@ -520,12 +537,8 @@ const ProductAbout = () => {
 												<Image
 													src={getImageUrl(img)}
 													alt={`${product.name} ${idx + 3}`}
-													className='w-auto h-auto max-w-full max-h-full object-scale-down cursor-pointer'
+													className='w-auto h-auto max-w-full max-h-full object-scale-down'
 													style={{ maxHeight: '300px' }}
-													onClick={() => {
-														setPreviewCurrent(getImageUrl(img))
-														setPreviewVisible(true)
-													}}
 												/>
 											</div>
 										))}
@@ -552,9 +565,11 @@ const ProductAbout = () => {
 							<div className='flex items-center'>
 								<Rate
 									disabled
-									allowHalf
+									style={customRateStyle}
+									character={<HeartFilled />}
+									allowHalf={false}
 									value={parseFloat(calculateAverageRating())}
-									className='text-sm mr-2 text-black'
+									className='text-sm mr-2'
 								/>
 								<Text>{reviews.length} отзыва</Text>
 							</div>
@@ -579,9 +594,10 @@ const ProductAbout = () => {
 								<Text>{product.sku}</Text>
 								<Tooltip title='Скопировать артикул'>
 									<Button
-										type='link'
+										type='text'
 										icon={<CopyOutlined />}
 										onClick={handleCopyArticle}
+										className='text-black hover:bg-gray-200'
 									/>
 								</Tooltip>
 							</div>
@@ -607,9 +623,11 @@ const ProductAbout = () => {
 									{
 										key: 'sizes',
 										label: (
-											<Title level={4} className='!mb-0'>
-												Размеры
-											</Title>
+											<div className='flex justify-center w-full'>
+												<Title level={4} className='!mb-0'>
+													Размеры
+												</Title>
+											</div>
 										),
 										extra: selectedSize && (
 											<Text strong>Выбрано: {selectedSize.size}</Text>
@@ -624,7 +642,7 @@ const ProductAbout = () => {
 												>
 													Таблица размеров
 												</Button>
-												<div className='grid grid-cols-4 gap-2 mt-4'>
+												<div className='grid grid-cols-4 gap-3 mt-4 py-2'>
 													{product.sizes.map(size => (
 														<Button
 															key={size.id}
@@ -639,8 +657,12 @@ const ProductAbout = () => {
 																e.stopPropagation()
 																setSelectedSize(size)
 															}}
-															className={`relative ${
+															className={`relative h-12 text-base ${
 																size.quantity === 0 ? 'opacity-50' : ''
+															} ${
+																selectedSize?.id === size.id
+																	? 'bg-black text-white border-black'
+																	: 'border-black text-black'
 															}`}
 														>
 															{size.size}
@@ -661,7 +683,8 @@ const ProductAbout = () => {
 								]}
 							/>
 						)}
-						<div className='flex flex-col space-y-3'>
+
+						<div className='flex flex-col space-y-4 mt-6'>
 							<Button
 								type='primary'
 								size='large'
@@ -672,13 +695,13 @@ const ProductAbout = () => {
 										? !selectedSize || selectedSize.quantity <= 0
 										: calculateTotalQuantity() <= 0
 								}
-								className='w-full'
+								className='w-full h-14 text-base bg-black border-black hover:bg-gray-800'
 							>
 								{calculateTotalQuantity() > 0
 									? 'Добавить в корзину'
 									: 'Нет в наличии'}
 							</Button>
-							<div className='flex space-x-3'>
+							<div className='flex space-x-4'>
 								<Button
 									icon={
 										favorites.includes(product.id) ? (
@@ -689,7 +712,7 @@ const ProductAbout = () => {
 									}
 									loading={processingFavorite}
 									onClick={handleWishlistToggle}
-									className='w-1/2'
+									className='w-1/2 h-12 text-base'
 								>
 									{favorites.includes(product.id)
 										? 'В избранном'
@@ -698,7 +721,7 @@ const ProductAbout = () => {
 								<Button
 									icon={<ShareAltOutlined />}
 									onClick={handleShare}
-									className='w-1/2'
+									className='w-1/2 h-12 text-base'
 								>
 									Поделиться
 								</Button>
@@ -710,25 +733,6 @@ const ProductAbout = () => {
 			<div className='mt-12'>
 				<Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
 			</div>
-			{product.images?.length > 0 && (
-				<Image.PreviewGroup
-					preview={{
-						visible: previewVisible,
-						current: previewCurrent,
-						onVisibleChange: visible => setPreviewVisible(visible),
-						onClose: () => setPreviewVisible(false),
-					}}
-				>
-					{product.images.map((img, idx) => (
-						<Image
-							key={idx}
-							src={getImageUrl(img)}
-							alt={`${product.name} ${idx + 1}`}
-							style={{ display: 'none' }}
-						/>
-					))}
-				</Image.PreviewGroup>
-			)}
 		</div>
 	)
 }

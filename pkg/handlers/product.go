@@ -661,7 +661,7 @@ func GetProductBySKU(db *sql.DB) gin.HandlerFunc {
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusNotFound, gin.H{
-					"error": "Товар с таким SKU не найден",
+					"error": "Товар с таким артикулом не найден",
 				})
 				return
 			}

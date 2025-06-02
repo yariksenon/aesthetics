@@ -39,6 +39,7 @@ const BrandProductsForm = () => {
 	const [products, setProducts] = useState([])
 	const [loading, setLoading] = useState(false)
 	const [userId, setUserId] = useState(null)
+	const [brandId, setBrandId] = useState(null)
 	const [error, setError] = useState(null)
 	const [searchParams, setSearchParams] = useState({
 		name: '',
@@ -47,31 +48,54 @@ const BrandProductsForm = () => {
 	})
 
 	useEffect(() => {
-		const storedUserId = localStorage.getItem('userId')
-		const parsedUserId = storedUserId ? parseInt(storedUserId, 10) : null
+		const fetchBrandAndProducts = async () => {
+			try {
+				setLoading(true)
 
-		if (!storedUserId || isNaN(parsedUserId)) {
-			setError('Пользователь не авторизован или ID пользователя недействителен')
-			setLoading(false)
-			return
+				// Получаем userId из localStorage
+				const storedUserData = localStorage.getItem('userData')
+				if (!storedUserData) {
+					throw new Error('Пользователь не авторизован')
+				}
+
+				const userData = JSON.parse(storedUserData)
+				const userId = userData.id
+
+				if (!userId) {
+					throw new Error('ID пользователя не найден')
+				}
+
+				setUserId(userId)
+
+				// Получаем информацию о бренде пользователя
+				const brandResponse = await axios.get(
+					`${API_BASE_URL}/admin/brand/approved`
+				)
+				const brands = brandResponse.data
+
+				const userBrand = brands.find(brand => brand.user_id === userId)
+				if (!userBrand) {
+					throw new Error('Бренд не найден или не одобрен')
+				}
+
+				setBrandId(userBrand.id)
+
+				// Получаем товары бренда
+				const productsResponse = await axios.get(
+					`${API_BASE_URL}/my-product/${userBrand.id}`
+				)
+				setProducts(productsResponse.data.products || [])
+			} catch (error) {
+				console.error('Ошибка загрузки данных:', error)
+				setError(error.message || 'Ошибка загрузки данных')
+				message.error('Ошибка загрузки товаров')
+			} finally {
+				setLoading(false)
+			}
 		}
 
-		setUserId(parsedUserId)
-		fetchProducts(parsedUserId)
+		fetchBrandAndProducts()
 	}, [])
-
-	const fetchProducts = async brandId => {
-		try {
-			setLoading(true)
-			const { data } = await axios.get(`${API_BASE_URL}/my-product/${brandId}`)
-			setProducts(data.products || [])
-		} catch (error) {
-			message.error('Ошибка загрузки товаров')
-			console.error('Ошибка:', error)
-		} finally {
-			setLoading(false)
-		}
-	}
 
 	const filteredProducts = products.filter(product => {
 		return (
@@ -87,7 +111,14 @@ const BrandProductsForm = () => {
 		try {
 			await axios.delete(`${API_BASE_URL}/products/${productId}`)
 			message.success('Товар удален')
-			fetchProducts(userId)
+
+			// Обновляем список товаров
+			if (brandId) {
+				const { data } = await axios.get(
+					`${API_BASE_URL}/my-product/${brandId}`
+				)
+				setProducts(data.products || [])
+			}
 		} catch (error) {
 			message.error('Ошибка удаления товара')
 			console.error('Ошибка:', error)
@@ -168,8 +199,8 @@ const BrandProductsForm = () => {
 	}
 
 	return (
-		<div style={{ padding: 24 }}>
-			<Card title={`Товары бренда`}>
+		<div>
+			<div className='py-8'>
 				<Form layout='inline' style={{ marginBottom: 16, width: '100%' }}>
 					<Row gutter={16} style={{ width: '100%' }}>
 						<Col flex='auto'>
@@ -230,7 +261,7 @@ const BrandProductsForm = () => {
 						rowExpandable: record => record.description || record.color,
 					}}
 				/>
-			</Card>
+			</div>
 		</div>
 	)
 }

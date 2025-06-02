@@ -24,7 +24,7 @@ import {
 	FileTextOutlined,
 } from '@ant-design/icons'
 import { motion } from 'framer-motion'
-import AddForm from '../admin/product/AdminProductAdd'
+import AddForm from './ProductAdd'
 import StatisticsDashboard from './StatisticsDashboard'
 import BrandProductsForm from './BrandProductsForm'
 
@@ -66,6 +66,7 @@ const BrandApplicationForm = () => {
 	const [activeTab, setActiveTab] = useState('statistics')
 	const [rulesChecked, setRulesChecked] = useState(false)
 	const [rulesModalVisible, setRulesModalVisible] = useState(false)
+	const [brandNames, setBrandNames] = useState([]) // Состояние для хранения существующих названий брендов
 
 	const formatDate = dateString => {
 		if (!dateString) return 'Неизвестно'
@@ -78,6 +79,23 @@ const BrandApplicationForm = () => {
 			hour: '2-digit',
 			minute: '2-digit',
 		})
+	}
+
+	// Функция для загрузки существующих названий брендов
+	const fetchExistingBrandNames = async () => {
+		try {
+			const response = await fetch(
+				'http://localhost:8080/api/v1/admin/brand/approved'
+			)
+			if (!response.ok) {
+				throw new Error('Ошибка при загрузке списка брендов')
+			}
+			const data = await response.json()
+			const names = data.map(brand => brand.name.toLowerCase().trim())
+			setBrandNames(names)
+		} catch (error) {
+			console.error('Ошибка загрузки названий брендов:', error)
+		}
 	}
 
 	useEffect(() => {
@@ -104,6 +122,9 @@ const BrandApplicationForm = () => {
 
 		const checkExistingApplication = async () => {
 			try {
+				// Загружаем существующие названия брендов
+				await fetchExistingBrandNames()
+
 				const response = await fetch(
 					`http://localhost:8080/api/v1/check-brand-application?userId=${parsedUserId}`
 				)
@@ -141,6 +162,22 @@ const BrandApplicationForm = () => {
 		checkExistingApplication()
 	}, [form])
 
+	// Валидатор для проверки уникальности названия бренда
+	const validateBrandName = async (_, value) => {
+		if (!value) {
+			return Promise.reject(new Error('Пожалуйста, введите название бренда'))
+		}
+
+		const name = value.toLowerCase().trim()
+
+		// Проверяем, есть ли такое название среди существующих брендов
+		if (brandNames.includes(name)) {
+			return Promise.reject(new Error('Бренд с таким названием уже существует'))
+		}
+
+		return Promise.resolve()
+	}
+
 	const showRulesModal = () => {
 		setRulesModalVisible(true)
 	}
@@ -168,6 +205,12 @@ const BrandApplicationForm = () => {
 		setError(null)
 
 		try {
+			// Дополнительная проверка на стороне клиента перед отправкой
+			const brandName = values.name.toLowerCase().trim()
+			if (brandNames.includes(brandName)) {
+				throw new Error('Бренд с таким названием уже существует')
+			}
+
 			let response
 			if (
 				alreadySubmitted &&
@@ -220,10 +263,11 @@ const BrandApplicationForm = () => {
 			)
 		} catch (error) {
 			setError(error.message)
-			if (error.message.includes('already exists')) {
-				message.error(
-					'Заявка для этого пользователя уже существует. Если она отклонена, вы можете её отредактировать.'
-				)
+			if (
+				error.message.includes('already exists') ||
+				error.message.includes('уже существует')
+			) {
+				message.error(error.message)
 			} else {
 				message.error(error.message || 'Произошла ошибка при отправке заявки')
 			}
@@ -274,9 +318,9 @@ const BrandApplicationForm = () => {
 	if (alreadySubmitted && submissionData?.status !== 'rejected') {
 		if (submissionData?.status === 'approved') {
 			return (
-				<div className='w-full min-h-screen bg-white py-12 px-4 sm:px-6 lg:px-8'>
-					<div className=''>
-						<Card className='text-center'>
+				<div className='py-8'>
+					<div>
+						<div className='text-center'>
 							<CheckCircleOutlined
 								style={{ fontSize: '48px', color: '#52c41a' }}
 							/>
@@ -289,8 +333,6 @@ const BrandApplicationForm = () => {
 								просматривать статистику.
 							</Paragraph>
 
-							<Divider className='my-6' />
-
 							<Tabs
 								activeKey={activeTab}
 								onChange={setActiveTab}
@@ -301,7 +343,7 @@ const BrandApplicationForm = () => {
 								<TabPane
 									tab={
 										<span>
-											<BarChartOutlined />
+											<BarChartOutlined className='mr-2 ' />
 											Статистика
 										</span>
 									}
@@ -315,7 +357,7 @@ const BrandApplicationForm = () => {
 								<TabPane
 									tab={
 										<span>
-											<ShoppingOutlined />
+											<ShoppingOutlined className='mr-2' />
 											Товары бренда
 										</span>
 									}
@@ -329,7 +371,7 @@ const BrandApplicationForm = () => {
 								<TabPane
 									tab={
 										<span>
-											<PlusCircleOutlined />
+											<PlusCircleOutlined className='mr-2' />
 											Добавить товар
 										</span>
 									}
@@ -344,7 +386,7 @@ const BrandApplicationForm = () => {
 									</ErrorBoundary>
 								</TabPane>
 							</Tabs>
-						</Card>
+						</div>
 					</div>
 				</div>
 			)
@@ -430,6 +472,7 @@ const BrandApplicationForm = () => {
 					rules={[
 						{ required: true, message: 'Пожалуйста, введите название бренда' },
 						{ max: 50, message: 'Название не должно превышать 50 символов' },
+						{ validator: validateBrandName },
 						validateSingleValue('Название бренда'),
 					]}
 				>

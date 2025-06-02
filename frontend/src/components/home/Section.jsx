@@ -93,12 +93,13 @@ function Section() {
 					setSearchQuery('')
 					return
 				} else if (response.status === 404) {
-					message.error('Товар с таким SKU не найден')
+					message.error('Товар с таким артикулом не найден')
 					return
 				}
 			}
 
-			navigate(`/${gender}/search?q=${encodeURIComponent(query)}`)
+			// Если запрос не SKU (содержит русские или другие символы) - сразу переходим к обычному поиску
+			message.error('Товар с таким артикулом не найден')
 			setSearchQuery('')
 		} catch (error) {
 			message.error('Ошибка при поиске товара')

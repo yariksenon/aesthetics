@@ -259,52 +259,41 @@ const MyOrderList = () => {
 							</div>
 						</motion.div>
 					) : (
-						<Card
-							bordered={false}
-							style={{
-								borderRadius: 8,
-								boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-								border: '1px solid #f0f0f0',
-							}}
-							bodyStyle={{ padding: 0 }}
-						>
-							<Tabs
-								defaultActiveKey='all'
-								tabBarStyle={{ padding: '0 24px', margin: 0 }}
-								items={[
-									{
-										key: 'all',
-										label: 'Все заказы',
-										children: (
-											<Table
-												columns={columns}
-												dataSource={orders}
-												rowKey='id'
-												pagination={{ pageSize: 10 }}
-												style={{ borderTop: '1px solid #f0f0f0' }}
-												className='custom-orders-table'
-											/>
-										),
-									},
-									...statusOptions.map(status => ({
-										key: status.value,
-										label: status.label,
-										children: (
-											<Table
-												columns={columns}
-												dataSource={orders.filter(
-													order => order.status === status.value
-												)}
-												rowKey='id'
-												pagination={{ pageSize: 10 }}
-												style={{ borderTop: '1px solid #f0f0f0' }}
-												className='custom-orders-table'
-											/>
-										),
-									})),
-								]}
-							/>
-						</Card>
+						<Tabs
+							defaultActiveKey='all'
+							items={[
+								{
+									key: 'all',
+									label: 'Все заказы',
+									children: (
+										<Table
+											columns={columns}
+											dataSource={orders}
+											rowKey='id'
+											pagination={{ pageSize: 10 }}
+											style={{ borderTop: '1px solid #f0f0f0' }}
+											className='custom-orders-table'
+										/>
+									),
+								},
+								...statusOptions.map(status => ({
+									key: status.value,
+									label: status.label,
+									children: (
+										<Table
+											columns={columns}
+											dataSource={orders.filter(
+												order => order.status === status.value
+											)}
+											rowKey='id'
+											pagination={{ pageSize: 10 }}
+											style={{ borderTop: '1px solid #f0f0f0' }}
+											className='custom-orders-table'
+										/>
+									),
+								})),
+							]}
+						/>
 					)}
 				</Spin>
 

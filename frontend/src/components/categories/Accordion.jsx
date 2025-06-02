@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
 import Arrow from '../../assets/category/accordion/DownArrow.svg'
@@ -36,7 +36,7 @@ const Accordion = () => {
 	const [subCategories, setSubCategories] = useState([])
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
-	const contentRefs = useRef([])
+	const contentRefs = useRef({})
 	const navigate = useNavigate()
 	const { category: urlCategory } = useParams()
 
@@ -47,6 +47,72 @@ const Accordion = () => {
 		localStorage.getItem('subCategory') || ''
 	)
 
+	// Получаем текущий выбранный гендер
+	const getActiveGender = useCallback(() => {
+		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+		switch (activeMenuItem) {
+			case 'man':
+				return 'men'
+			case 'woman':
+				return 'women'
+			case 'children':
+				return 'children'
+			default:
+				return 'men'
+		}
+	}, [])
+
+	// Получаем количество товаров для текущего гендера
+	const getProductCountForGender = useCallback(
+		subCategory => {
+			const gender = getActiveGender()
+			switch (gender) {
+				case 'men':
+					return subCategory.product_count?.men || 0
+				case 'women':
+					return subCategory.product_count?.women || 0
+				case 'children':
+					return subCategory.product_count?.children || 0
+				default:
+					return subCategory.product_count?.total || 0
+			}
+		},
+		[getActiveGender]
+	)
+
+	// Получаем подкатегории с товарами для текущего гендера
+	const getSubCategoriesWithProducts = useCallback(
+		categoryId => {
+			return subCategories
+				.filter(subCat => subCat.category_id === categoryId)
+				.map(subCat => ({
+					...subCat,
+					displayCount: getProductCountForGender(subCat),
+				}))
+				.filter(subCat => subCat.displayCount > 0)
+		},
+		[subCategories, getProductCountForGender]
+	)
+
+	// Проверяем, есть ли товары в категории (хотя бы в одной подкатегории)
+	const hasProductsInCategory = useCallback(
+		categoryId => {
+			return getSubCategoriesWithProducts(categoryId).length > 0
+		},
+		[getSubCategoriesWithProducts]
+	)
+
+	// Получаем общее количество товаров в категории для текущего гендера
+	const getTotalProductsForCategory = useCallback(
+		categoryId => {
+			const categorySubs = getSubCategoriesWithProducts(categoryId)
+			return categorySubs.reduce((total, subCat) => {
+				return total + subCat.displayCount
+			}, 0)
+		},
+		[getSubCategoriesWithProducts]
+	)
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -54,10 +120,8 @@ const Accordion = () => {
 					axios.get('http://localhost:8080/api/v1/categories'),
 					axios.get('http://localhost:8080/api/v1/subcategory'),
 				])
-				const validCategories = (categoriesRes.data?.categories || []).filter(
-					cat => cat?.id && cat?.name?.trim()
-				)
-				setCategories(validCategories)
+
+				setCategories(categoriesRes.data?.categories || [])
 				setSubCategories(subCategoriesRes.data || [])
 			} catch (err) {
 				console.error('Ошибка при загрузке данных:', err)
@@ -69,39 +133,51 @@ const Accordion = () => {
 		fetchData()
 	}, [])
 
-	const getSubCategoriesByCategory = categoryId => {
-		return subCategories.filter(subCat => subCat.category_id === categoryId)
-	}
+	// Обновляем при изменении активного гендера
+	useEffect(() => {
+		const handleStorageChange = () => {
+			setCategories(prev => [...prev])
+		}
 
-	const toggleAccordion = index => {
+		window.addEventListener('storage', handleStorageChange)
+		return () => window.removeEventListener('storage', handleStorageChange)
+	}, [])
+
+	const toggleAccordion = useCallback(index => {
 		setOpenIndexes(prev =>
 			prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
 		)
-	}
+	}, [])
 
-	const handleCategoryClick = (categoryName, index) => {
-		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
-		const translatedCategory = translateCategoryToEnglish(categoryName)
-		setSelectedCategory(categoryName)
-		setSelectedSubCategory('')
-		localStorage.setItem('category', categoryName)
-		localStorage.removeItem('subCategory')
-		navigate(`/${activeMenuItem}/${translatedCategory}`)
+	const handleCategoryClick = useCallback(
+		(categoryName, index) => {
+			const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+			const translatedCategory = translateCategoryToEnglish(categoryName)
+			setSelectedCategory(categoryName)
+			setSelectedSubCategory('')
+			localStorage.setItem('category', categoryName)
+			localStorage.removeItem('subCategory')
+			navigate(`/${activeMenuItem}/${translatedCategory}`)
 
-		if (!openIndexes.includes(index)) {
-			toggleAccordion(index)
-		}
-	}
+			if (!openIndexes.includes(index)) {
+				toggleAccordion(index)
+			}
+		},
+		[navigate, openIndexes, toggleAccordion]
+	)
 
-	const handleSubCategoryClick = (subCategoryName, categoryName) => {
-		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
-		const translatedCategory = translateCategoryToEnglish(categoryName)
-		setSelectedSubCategory(subCategoryName)
-		setSelectedCategory(categoryName)
-		localStorage.setItem('subCategory', subCategoryName)
-		localStorage.setItem('category', categoryName)
-		navigate(`/${activeMenuItem}/${translatedCategory}`)
-	}
+	const handleSubCategoryClick = useCallback(
+		(subCategoryName, categoryName) => {
+			const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+			const translatedCategory = translateCategoryToEnglish(categoryName)
+			setSelectedSubCategory(subCategoryName)
+			setSelectedCategory(categoryName)
+			localStorage.setItem('subCategory', subCategoryName)
+			localStorage.setItem('category', categoryName)
+			navigate(`/${activeMenuItem}/${translatedCategory}`)
+		},
+		[navigate]
+	)
 
 	if (loading)
 		return <div className='py-4 text-center'>Загрузка категорий...</div>
@@ -109,14 +185,22 @@ const Accordion = () => {
 	if (!categories.length)
 		return <div className='py-4 text-center'>Нет доступных категорий</div>
 
+	// Фильтруем категории - оставляем только те, где есть товары и подкатегории
+	const visibleCategories = categories
+		.slice(0, 8)
+		.filter(category => hasProductsInCategory(category.id))
+
+	if (visibleCategories.length === 0)
+		return <div className='py-4 text-center'>Нет категорий с товарами</div>
+
 	return (
 		<div className='mr-5'>
 			<ul className='space-y-2'>
-				{' '}
-				{/* Добавлен отступ между категориями */}
-				{categories.slice(0, 8).map((category, index) => {
-					const categorySubs = getSubCategoriesByCategory(category.id)
+				{visibleCategories.map((category, index) => {
+					const categorySubs = getSubCategoriesWithProducts(category.id)
 					const isCategorySelected = selectedCategory === category.name
+					const isOpen = openIndexes.includes(index)
+					const totalProducts = getTotalProductsForCategory(category.id)
 
 					return (
 						<li key={category.id} className='py-1'>
@@ -133,33 +217,34 @@ const Accordion = () => {
 										isCategorySelected ? 'text-white' : 'text-black'
 									}`}
 								>
-									<div className='flex items-center'>
+									<div className='flex items-center justify-between w-full'>
 										<span className='text-lg font-semibold'>
 											{category.name || 'Без названия'}
 										</span>
 										<span
-											className={`text-sm mx-2 ${
+											className={`text-sm ml-2 ${
 												isCategorySelected ? 'text-white' : 'text-gray-500'
 											}`}
 										>
-											{category.product_count}
+											{totalProducts}
 										</span>
 									</div>
 								</button>
 								{categorySubs.length > 0 && (
 									<button
-										onClick={() => toggleAccordion(index)}
-										className='focus:outline-none'
-										aria-expanded={openIndexes.includes(index)}
+										onClick={e => {
+											e.stopPropagation()
+											toggleAccordion(index)
+										}}
+										className='focus:outline-none ml-2'
+										aria-expanded={isOpen}
 										aria-controls={`category-${category.id}-content`}
 									>
 										<img
 											src={Arrow}
-											alt={
-												openIndexes.includes(index) ? 'Свернуть' : 'Развернуть'
-											}
-											className={`h-6 w-6 transition-transform duration-300 ${
-												openIndexes.includes(index) ? 'rotate-180' : 'rotate-0'
+											alt={isOpen ? 'Свернуть' : 'Развернуть'}
+											className={`h-6 w-6 transition-transform duration-200 ${
+												isOpen ? 'rotate-180' : 'rotate-0'
 											} ${isCategorySelected ? 'invert' : ''}`}
 										/>
 									</button>
@@ -167,59 +252,53 @@ const Accordion = () => {
 							</div>
 							<div
 								id={`category-${category.id}-content`}
-								ref={el => (contentRefs.current[index] = el)}
+								ref={el => (contentRefs.current[category.id] = el)}
 								style={{
-									maxHeight: openIndexes.includes(index)
-										? `${contentRefs.current[index]?.scrollHeight}px`
+									maxHeight: isOpen
+										? `${contentRefs.current[category.id]?.scrollHeight}px`
 										: '0',
 									overflow: 'hidden',
-									transition: 'max-height 0.3s ease-out',
+									transition: 'max-height 0.2s ease-in-out',
 								}}
-								aria-hidden={!openIndexes.includes(index)}
+								aria-hidden={!isOpen}
 							>
-								{categorySubs.length > 0 ? (
-									<ul className='pl-6 py-1 space-y-1'>
-										{categorySubs.map(subCategory => {
-											const isSubCategorySelected =
-												selectedSubCategory === subCategory.name &&
-												selectedCategory === category.name
+								<ul className='pl-6 py-1 space-y-1'>
+									{categorySubs.map(subCategory => {
+										const isSubCategorySelected =
+											selectedSubCategory === subCategory.name &&
+											selectedCategory === category.name
 
-											return (
-												<li key={subCategory.id} className='py-1'>
-													<div
-														className={`flex items-center cursor-pointer hover:text-gray-700 relative px-3 py-1 rounded ${
-															isSubCategorySelected
-																? 'font-semibold bg-gray-200'
-																: 'hover:bg-gray-100'
-														}`}
-														onClick={() =>
-															handleSubCategoryClick(
-																subCategory.name,
-																category.name
-															)
-														}
-													>
-														<div className='flex-grow min-w-0'>
-															<span className='text-sm break-words'>
-																{subCategory.name || 'Без названия'}
-															</span>
-														</div>
-														<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
-															{subCategory.product_count || 0}
+										return (
+											<li key={subCategory.id} className='py-1'>
+												<div
+													className={`flex items-center cursor-pointer hover:text-gray-700 relative px-3 py-1 rounded ${
+														isSubCategorySelected
+															? 'font-semibold bg-gray-200'
+															: 'hover:bg-gray-100'
+													}`}
+													onClick={() =>
+														handleSubCategoryClick(
+															subCategory.name,
+															category.name
+														)
+													}
+												>
+													<div className='flex-grow min-w-0'>
+														<span className='text-sm break-words'>
+															{subCategory.name || 'Без названия'}
 														</span>
-														{isSubCategorySelected && (
-															<div className='ml-2 w-2 h-2 bg-black rounded-full flex-shrink-0'></div>
-														)}
 													</div>
-												</li>
-											)
-										})}
-									</ul>
-								) : (
-									<div className='py-2 text-gray-400 pl-6'>
-										Нет подкатегорий
-									</div>
-								)}
+													<span className='text-xs text-gray-500 ml-2 whitespace-nowrap'>
+														{subCategory.displayCount}
+													</span>
+													{isSubCategorySelected && (
+														<div className='ml-2 w-2 h-2 bg-black rounded-full flex-shrink-0'></div>
+													)}
+												</div>
+											</li>
+										)
+									})}
+								</ul>
 							</div>
 						</li>
 					)

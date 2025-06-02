@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.4.6",
     "@mui/material": "^6.4.6",
     "@pbe/react-yandex-maps": "^1.2.5",
+    "@react-icons/all-files": "^4.1.0",
     "ant-design": "^1.0.0",
     "antd": "^5.24.9",
     "axios": "^1.7.9",
