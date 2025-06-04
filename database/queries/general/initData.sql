@@ -1,9 +1,9 @@
 -- Вставка данных в таблицу пользователей
 INSERT INTO users (first_name, last_name, username, email, subscription, password, phone, role, created_at) VALUES
-('admin', 'admin', 'admin', 'admin@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+12025550173', 'admin', CURRENT_TIMESTAMP),
-('Ярослав', 'Зубарь', 'Александрович', 'yariksen.exe@gmail.com', TRUE, '$2a$10$cSN7IYyE2Bz3VuBlBf.CE.4GWulypkZzc3A8KRgsJ4iU7csOqilK6', '+442079460958', 'customer', CURRENT_TIMESTAMP),
-('brand', 'brand', 'brand', 'brand@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+14165550841', 'brand', CURRENT_TIMESTAMP),
-('courier', 'courier', 'courier', 'courier@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+61298765432', 'courier', CURRENT_TIMESTAMP)
+('Ярослав', 'Зубарь', 'admin', 'admin@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+12025550173', 'admin', CURRENT_TIMESTAMP),
+('Ярослав', 'Зубарь', 'customer', 'customer@gmail.com', TRUE, '$2a$10$cSN7IYyE2Bz3VuBlBf.CE.4GWulypkZzc3A8KRgsJ4iU7csOqilK6', '+442079460958', 'customer', CURRENT_TIMESTAMP),
+('Ярослав', 'Зубарь', 'brand', 'brand@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+14165550841', 'customer', CURRENT_TIMESTAMP),
+('Ярослав', 'Зубарь', 'courier', 'courier@gmail.com', TRUE, '$2a$10$pRW3cKjK970FiGqR2RWlmOCV0C4jPU/aiOembwuYS3xlOgv5RF0A.', '+61298765432', 'customer', CURRENT_TIMESTAMP)
 ON CONFLICT (username) DO NOTHING;
 
 

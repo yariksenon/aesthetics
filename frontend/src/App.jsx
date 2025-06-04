@@ -12,6 +12,8 @@ import { VALID_GENDERS } from './components/gender/Gender'
 import ProtectedRoute from './components/admin/ProtectedRoute'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
+import NetworkStatus from './components/network/NetworkStatus'
+import Offline from './components/network/Offline'
 
 // Импортируем компоненты напрямую
 import Home from './components/home/Home'
@@ -67,6 +69,7 @@ const routes = [
 	{ path: '/cart', component: Cart },
 	{ path: '/favorites', component: Favorites },
 	{ path: '/404', component: NotFound },
+	{ path: '/offline', component: Offline },
 	{ path: '/:gender', component: GenderRoute },
 	{ path: '/:gender/:category', component: CategoryRoute },
 	{ path: '/:gender/:category/:subcategory', component: SubCategory },
@@ -134,42 +137,47 @@ export default function App() {
 		<CartProvider>
 			<FavoritesProvider>
 				<Router>
-					<Suspense fallback={<Loading />}>
-						<Routes>
-							<Route path='/' element={<Navigate to={`/${initialGender}`} />} />
-							<Route path='*' element={<Navigate to='/404' />} />
-
-							{routes.map((route, index) => (
+					<NetworkStatus>
+						<Suspense fallback={<Loading />}>
+							<Routes>
 								<Route
-									key={index}
-									path={route.path}
-									element={
-										route.redirect ? (
-											<Navigate to={`/${initialGender}`} />
-										) : (
-											<route.component />
-										)
-									}
+									path='/'
+									element={<Navigate to={`/${initialGender}`} />}
 								/>
-							))}
+								<Route path='*' element={<Navigate to='/404' />} />
 
-							{adminRoutes.map((route, index) => (
-								<Route
-									key={`admin-${index}`}
-									path={route.path}
-									element={
-										route.protected ? (
-											<ProtectedRoute>
+								{routes.map((route, index) => (
+									<Route
+										key={index}
+										path={route.path}
+										element={
+											route.redirect ? (
+												<Navigate to={`/${initialGender}`} />
+											) : (
 												<route.component />
-											</ProtectedRoute>
-										) : (
-											<route.component />
-										)
-									}
-								/>
-							))}
-						</Routes>
-					</Suspense>
+											)
+										}
+									/>
+								))}
+
+								{adminRoutes.map((route, index) => (
+									<Route
+										key={`admin-${index}`}
+										path={route.path}
+										element={
+											route.protected ? (
+												<ProtectedRoute>
+													<route.component />
+												</ProtectedRoute>
+											) : (
+												<route.component />
+											)
+										}
+									/>
+								))}
+							</Routes>
+						</Suspense>
+					</NetworkStatus>
 				</Router>
 			</FavoritesProvider>
 		</CartProvider>

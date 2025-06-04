@@ -220,6 +220,7 @@ const ProductAbout = () => {
 			message.success(
 				isFavorite ? 'Товар удалён из избранного' : 'Товар добавлен в избранное'
 			)
+			window.location.reload() // Reload the page after successful wishlist update
 		} catch (error) {
 			message.error(error.message)
 		} finally {

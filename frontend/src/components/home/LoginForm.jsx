@@ -18,16 +18,24 @@ const ErrorMessage = ({ error }) => (
 	</motion.p>
 )
 
-const schema = yup.object().shape({
-	email: yup
-		.string()
-		.email('Некорректный формат почты')
-		.required('Почта обязательна'),
-	password: yup
-		.string()
-		.min(6, 'Пароль должен содержать минимум 6 символов')
-		.required('Пароль обязателен'),
-})
+const schema = yup.object().shape(
+	{
+		email: yup
+			.string()
+			.email('Некорректный формат почты')
+			.required('Почта обязательна'),
+		// Conditionally require password only if userId is not present
+		password: yup.string().when('$userId', {
+			is: null,
+			then: schema =>
+				schema
+					.min(6, 'Пароль должен содержать минимум 6 символов')
+					.required('Пароль обязателен'),
+			otherwise: schema => schema.notRequired(),
+		}),
+	},
+	{ context: { userId: localStorage.getItem('userId') } }
+)
 
 const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 	const {
@@ -45,34 +53,45 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 			email: localStorage.getItem('loginFormEmail') || '',
 			password: localStorage.getItem('loginFormPassword') || '',
 		},
+		context: { userId: localStorage.getItem('userId') },
 	})
 
 	const [isLoading, setIsLoading] = useState(false)
 	const navigate = useNavigate()
+	const userId = localStorage.getItem('userId')
 
 	// Отслеживание изменений в полях формы
 	const email = watch('email')
 	const password = watch('password')
 
-	// Сохранение данных в localStorage при изменении полей
+	// Сохранение данных в localStorage при изменении полей, только если userId отсутствует
 	useEffect(() => {
-		localStorage.setItem('loginFormEmail', email || '')
-		localStorage.setItem('loginFormPassword', password || '')
-	}, [email, password])
+		if (!userId) {
+			localStorage.setItem('loginFormEmail', email || '')
+			localStorage.setItem('loginFormPassword', password || '')
+		}
+	}, [email, password, userId])
 
-	// Очистка данных при успешной авторизации или при закрытии формы (опционально)
+	// Очистка данных в localStorage
 	const clearFormData = () => {
 		localStorage.removeItem('loginFormEmail')
 		localStorage.removeItem('loginFormPassword')
 		reset({ email: '', password: '' })
 	}
 
+	// Очистка localStorage при монтировании компонента, если userId присутствует
+	useEffect(() => {
+		if (userId) {
+			clearFormData()
+		}
+	}, [userId])
+
 	const onSubmit = async data => {
 		setIsLoading(true)
 		try {
 			const response = await axios.post(
 				'http://localhost:8080/api/v1/login',
-				data,
+				{ ...data, userId }, // Include userId in the payload if present
 				{
 					withCredentials: true,
 				}
@@ -175,22 +194,24 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 					{errors.email && <ErrorMessage error={errors.email} />}
 				</div>
 
-				<div className='mb-8'>
-					<label
-						htmlFor='password'
-						className='block text-sm font-medium text-gray-700 mb-1'
-					>
-						Пароль
-					</label>
-					<input
-						type='password'
-						id='password'
-						className={getInputClassName('password')}
-						placeholder='••••••••'
-						{...register('password')}
-					/>
-					{errors.password && <ErrorMessage error={errors.password} />}
-				</div>
+				{!userId && (
+					<div className='mb-8'>
+						<label
+							htmlFor='password'
+							className='block text-sm font-medium text-gray-700 mb-1'
+						>
+							Пароль
+						</label>
+						<input
+							type='password'
+							id='password'
+							className={getInputClassName('password')}
+							placeholder='••••••••'
+							{...register('password')}
+						/>
+						{errors.password && <ErrorMessage error={errors.password} />}
+					</div>
+				)}
 
 				<button
 					type='submit'
