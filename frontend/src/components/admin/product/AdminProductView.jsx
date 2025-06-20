@@ -4,7 +4,7 @@ import { Table, Button, Tag, Image, Spin, message, Space } from 'antd'
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api/v1/admin'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1/admin'
 
 const AdminProductView = () => {
 	const [loading, setLoading] = useState(true)
@@ -75,7 +75,7 @@ const AdminProductView = () => {
 				<Space>
 					{record.image_path && (
 						<Image
-							src={`http://localhost:8080/static/products/${record.image_path
+							src={`http://45.12.74.28:8080/static/products/${record.image_path
 								.split('/')
 								.pop()}`}
 							width={50}

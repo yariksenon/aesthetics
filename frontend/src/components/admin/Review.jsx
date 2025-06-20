@@ -36,7 +36,7 @@ const Review = () => {
 		try {
 			// Получаем продукты
 			const productsResponse = await fetch(
-				'http://localhost:8080/api/v1/products'
+				'http://45.12.74.28:8080/api/v1/products'
 			)
 			if (!productsResponse.ok) throw new Error('Не удалось загрузить продукты')
 			const productsData = await productsResponse.json()
@@ -46,7 +46,7 @@ const Review = () => {
 			let allReviews = []
 			for (const product of productsData.products) {
 				const reviewsResponse = await fetch(
-					`http://localhost:8080/api/v1/reviews/${product.id}`
+					`http://45.12.74.28:8080/api/v1/reviews/${product.id}`
 				)
 				if (!reviewsResponse.ok) continue
 
@@ -77,7 +77,7 @@ const Review = () => {
 		setApproving(reviewId)
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/admin/reviews/${reviewId}/approve`,
+				`http://45.12.74.28:8080/api/v1/admin/reviews/${reviewId}/approve`,
 				{
 					method: 'PUT',
 					headers: {
@@ -107,7 +107,7 @@ const Review = () => {
 		setDeleting(reviewId)
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/admin/reviews/${reviewId}`,
+				`http://45.12.74.28:8080/api/v1/admin/reviews/${reviewId}`,
 				{
 					method: 'DELETE',
 					headers: {

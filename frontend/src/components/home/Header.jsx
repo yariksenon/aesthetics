@@ -115,7 +115,7 @@ function Header() {
 
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/wishlist/${userId}`
+				`http://45.12.74.28:8080/api/v1/wishlist/${userId}`
 			)
 			const items = response.data?.items || []
 			setWishlistItemsCount(items.length)
@@ -143,7 +143,7 @@ function Header() {
 
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/cart/${userId}`
+				`http://45.12.74.28:8080/api/v1/cart/${userId}`
 			)
 			const items = response.data?.items || []
 			const count = items.reduce((total, item) => total + item.quantity, 0)

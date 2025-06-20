@@ -25,7 +25,7 @@ const Courier = () => {
 		setLoading(prev => ({ ...prev, [loadingKey]: true }))
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/admin/courier/${endpoint}`
+				`http://45.12.74.28:8080/api/v1/admin/courier/${endpoint}`
 			)
 			setter(response.data || [])
 		} catch (error) {
@@ -48,7 +48,7 @@ const Courier = () => {
 	const fetchCourierById = async id => {
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/admin/courier/${id}`
+				`http://45.12.74.28:8080/api/v1/admin/courier/${id}`
 			)
 			setSelectedCourier(response.data)
 			setIsModalOpen(true)
@@ -60,7 +60,7 @@ const Courier = () => {
 	const handleApprove = async id => {
 		try {
 			await axios.put(
-				`http://localhost:8080/api/v1/admin/courier/${id}/approve`
+				`http://45.12.74.28:8080/api/v1/admin/courier/${id}/approve`
 			)
 			message.success('Курьер успешно принят')
 			fetchCouriers('pending', setPendingCouriers, 'pending')
@@ -72,7 +72,9 @@ const Courier = () => {
 
 	const handleReject = async id => {
 		try {
-			await axios.put(`http://localhost:8080/api/v1/admin/courier/${id}/reject`)
+			await axios.put(
+				`http://45.12.74.28:8080/api/v1/admin/courier/${id}/reject`
+			)
 			message.success('Курьер успешно отклонён')
 			fetchCouriers('pending', setPendingCouriers, 'pending')
 			fetchCouriers('approved', setApprovedCouriers, 'approved')
@@ -83,7 +85,7 @@ const Courier = () => {
 
 	const handleDelete = async id => {
 		try {
-			await axios.delete(`http://localhost:8080/api/v1/admin/courier/${id}`)
+			await axios.delete(`http://45.12.74.28:8080/api/v1/admin/courier/${id}`)
 			message.success('Курьер успешно удалён')
 			fetchCouriers('pending', setPendingCouriers, 'pending')
 			fetchCouriers('approved', setApprovedCouriers, 'approved')

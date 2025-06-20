@@ -74,7 +74,7 @@ const CheckoutPage = () => {
 	const fetchCartItems = async () => {
 		try {
 			const { data } = await axios.get(
-				`http://localhost:8080/api/v1/cart/${userId}`
+				`http://45.12.74.28:8080/api/v1/cart/${userId}`
 			)
 			const items = Array.isArray(data?.items) ? data.items : []
 			setCartItems(items)
@@ -104,7 +104,7 @@ const CheckoutPage = () => {
 	const reverseGeocode = async ({ lng, lat }) => {
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/reverse-geocode`,
+				`http://45.12.74.28:8080/api/v1/reverse-geocode`,
 				{
 					params: {
 						lat,
@@ -155,7 +155,7 @@ const CheckoutPage = () => {
 		}
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/search-address`,
+				`http://45.12.74.28:8080/api/v1/search-address`,
 				{
 					params: {
 						q: `${value}, Гродно`,
@@ -209,7 +209,7 @@ const CheckoutPage = () => {
 
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/reverse-geocode`,
+				`http://45.12.74.28:8080/api/v1/reverse-geocode`,
 				{
 					params: {
 						lat: selectedCoordinates.lat,
@@ -239,7 +239,7 @@ const CheckoutPage = () => {
 		setSubmitting(true)
 		try {
 			const { data } = await axios.post(
-				`http://localhost:8080/api/v1/orders/${userId}`,
+				`http://45.12.74.28:8080/api/v1/orders/${userId}`,
 				{
 					address: values.address,
 					city: values.city,
@@ -475,7 +475,7 @@ const CheckoutPage = () => {
 								>
 									<div className='flex items-center space-x-3'>
 										<Image
-											src={`http://localhost:8080/static/${item.image_path}`}
+											src={`http://45.12.74.28:8080/static/${item.image_path}`}
 											fallback='https://via.placeholder.com/50'
 											width={50}
 											height={50}

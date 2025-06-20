@@ -21,7 +21,7 @@ const UserAddress = () => {
 	const [form] = Form.useForm()
 	const navigate = useNavigate()
 
-	const API_URL = 'http://localhost:8080/api/v1/admin/user_addresses'
+	const API_URL = 'http://45.12.74.28:8080/api/v1/admin/user_addresses'
 
 	const columns = [
 		{

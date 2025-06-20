@@ -117,8 +117,8 @@ const Accordion = () => {
 		const fetchData = async () => {
 			try {
 				const [categoriesRes, subCategoriesRes] = await Promise.all([
-					axios.get('http://localhost:8080/api/v1/categories'),
-					axios.get('http://localhost:8080/api/v1/subcategory'),
+					axios.get('http://45.12.74.28:8080/api/v1/categories'),
+					axios.get('http://45.12.74.28:8080/api/v1/subcategory'),
 				])
 
 				setCategories(categoriesRes.data?.categories || [])

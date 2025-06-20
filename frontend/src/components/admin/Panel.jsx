@@ -83,7 +83,7 @@ const Panel = () => {
 
 	const fetchStats = async () => {
 		try {
-			const response = await axios.get('http://localhost:8080/api/v1/admin')
+			const response = await axios.get('http://45.12.74.28:8080/api/v1/admin')
 			setStats(response.data)
 		} catch (error) {
 			console.error('Ошибка при загрузке статистики:', error)

@@ -20,7 +20,7 @@ const ProductFilter = ({ onFilter }) => {
 	useEffect(() => {
 		const fetchPricesAndColors = async () => {
 			try {
-				const response = await fetch('http://localhost:8080/api/v1/products')
+				const response = await fetch('http://45.12.74.28:8080/api/v1/products')
 				const data = await response.json()
 
 				if (data?.products?.length > 0) {

@@ -28,7 +28,7 @@ const OrderPage = () => {
         try {
             // Отправляем запрос на создание заказа
             const response = await axios.post(
-                `http://localhost:8080/api/v1/orders/${userId}`,
+                `http://45.12.74.28:8080/api/v1/orders/${userId}`,
                 {},
                 {
                     headers: {
@@ -132,7 +132,7 @@ const OrderPage = () => {
                                     <div className="flex items-start space-x-4">
                                         <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden flex-shrink-0">
                                             <img
-                                                src={`http://localhost:8080/static/${item.image_path}`}
+                                                src={`http://45.12.74.28:8080/static/${item.image_path}`}
                                                 alt={item.name}
                                                 className="w-full h-full object-cover"
                                                 onError={e => {

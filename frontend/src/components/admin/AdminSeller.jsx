@@ -14,7 +14,7 @@ const AdminSeller = () => {
 	const fetchSellers = async () => {
 		try {
 			const response = await axios.get(
-				'http://localhost:8080/api/v1/admin/seller'
+				'http://45.12.74.28:8080/api/v1/admin/seller'
 			)
 			setSellers(response.data)
 		} catch (error) {
@@ -29,7 +29,7 @@ const AdminSeller = () => {
 		setApprovingId(sellerId)
 		try {
 			await axios.put(
-				`http://localhost:8080/api/v1/admin/seller/${sellerId}/approve`
+				`http://45.12.74.28:8080/api/v1/admin/seller/${sellerId}/approve`
 			)
 			message.success('Продавец успешно подтвержден!')
 
@@ -82,7 +82,7 @@ const AdminSeller = () => {
 			render: (_, record) =>
 				record.logo_path ? (
 					<img
-						src={`http://localhost:8080/static/seller/${record.logo_path
+						src={`http://45.12.74.28:8080/static/seller/${record.logo_path
 							.split('/')
 							.pop()}`}
 						alt='Логотип магазина'

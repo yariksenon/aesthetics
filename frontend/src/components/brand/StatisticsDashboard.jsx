@@ -19,7 +19,7 @@ import {
 
 const { Title, Text } = Typography
 
-const API_BASE_URL = 'http://localhost:8080/api/v1'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1'
 
 const StatisticsDashboard = () => {
 	const [stats, setStats] = useState(null)

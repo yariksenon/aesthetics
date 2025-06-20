@@ -128,7 +128,7 @@ const AdminProductAdd = () => {
 
 			// 5. Отправка данных
 			const response = await axios.post(
-				`http://localhost:8080/api/v1/create-product/${userId}`,
+				`http://45.12.74.28:8080/api/v1/create-product/${userId}`,
 				formData,
 				{
 					headers: {

@@ -13,7 +13,7 @@ const BrandCarousel = () => {
 	// Fetch brands from API, limit to 6
 	useEffect(() => {
 		axios
-			.get('http://localhost:8080/api/v1/admin/brand/approved')
+			.get('http://45.12.74.28:8080/api/v1/admin/brand/approved')
 			.then(response => {
 				setBrands(response.data.slice(0, 6)) // Limit to 6 brands
 			})

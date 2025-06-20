@@ -39,7 +39,7 @@ const AdminProductEdit = () => {
 			try {
 				setLoading(true)
 				const response = await axios.get(
-					`http://localhost:8080/api/v1/admin/products/${id}`
+					`http://45.12.74.28:8080/api/v1/admin/products/${id}`
 				)
 				const product = response.data
 
@@ -208,7 +208,7 @@ const AdminProductEdit = () => {
 
 			// 6. Отправка данных
 			const response = await axios.put(
-				`http://localhost:8080/api/v1/admin/products/${id}`,
+				`http://45.12.74.28:8080/api/v1/admin/products/${id}`,
 				formData,
 				{
 					headers: {

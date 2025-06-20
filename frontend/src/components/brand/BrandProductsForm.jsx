@@ -23,7 +23,7 @@ import axios from 'axios'
 const { Option } = Select
 const { Title, Text } = Typography
 
-const API_BASE_URL = 'http://localhost:8080/api/v1'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1'
 
 const genderMap = {
 	male: 'Мужской',
@@ -133,7 +133,7 @@ const BrandProductsForm = () => {
 			render: images => (
 				<Image
 					width={50}
-					src={`http://localhost:8080/static/${images?.[0]?.image_path}`}
+					src={`http://45.12.74.28:8080/static/${images?.[0]?.image_path}`}
 					fallback='https://via.placeholder.com/50'
 					alt={images?.[0]?.alt_text || 'Product image'}
 				/>

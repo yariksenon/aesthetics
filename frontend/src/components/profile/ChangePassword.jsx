@@ -52,7 +52,7 @@ const ChangePassword = () => {
 
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/profile/${userId}/password`,
+				`http://45.12.74.28:8080/api/v1/profile/${userId}/password`,
 				{
 					method: 'PUT',
 					headers: {

@@ -31,7 +31,7 @@ export const CartProvider = ({ children }) => {
 
 			// 3. Отправка запроса
 			const response = await fetch(
-				`http://localhost:8080/api/v1/cart/${userId}`,
+				`http://45.12.74.28:8080/api/v1/cart/${userId}`,
 				{
 					method: 'POST',
 					headers: {

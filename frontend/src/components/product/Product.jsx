@@ -18,7 +18,7 @@ const Product = () => {
 			try {
 				setLoading(true)
 				const response = await fetch(
-					`http://localhost:8080/api/v1/product/${id}`
+					`http://45.12.74.28:8080/api/v1/product/${id}`
 				)
 
 				if (!response.ok) {

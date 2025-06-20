@@ -25,7 +25,7 @@ const Brand = () => {
 		setLoading(prev => ({ ...prev, [loadingKey]: true }))
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/admin/brand/${endpoint}`
+				`http://45.12.74.28:8080/api/v1/admin/brand/${endpoint}`
 			)
 			setter(response.data || [])
 		} catch (error) {
@@ -48,7 +48,7 @@ const Brand = () => {
 	const fetchBrandById = async id => {
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/admin/brand/${id}`
+				`http://45.12.74.28:8080/api/v1/admin/brand/${id}`
 			)
 			setSelectedBrand(response.data)
 			setIsModalOpen(true)
@@ -59,7 +59,9 @@ const Brand = () => {
 
 	const handleApprove = async id => {
 		try {
-			await axios.put(`http://localhost:8080/api/v1/admin/brand/${id}/approve`)
+			await axios.put(
+				`http://45.12.74.28:8080/api/v1/admin/brand/${id}/approve`
+			)
 			message.success('Бренд успешно принят')
 			fetchBrands('pending', setPendingBrands, 'pending')
 			fetchBrands('approved', setApprovedBrands, 'approved')
@@ -70,7 +72,7 @@ const Brand = () => {
 
 	const handleReject = async id => {
 		try {
-			await axios.put(`http://localhost:8080/api/v1/admin/brand/${id}/reject`)
+			await axios.put(`http://45.12.74.28:8080/api/v1/admin/brand/${id}/reject`)
 			message.success('Бренд успешно отклонён')
 			fetchBrands('pending', setPendingBrands, 'pending')
 			fetchBrands('approved', setApprovedBrands, 'approved')
@@ -81,7 +83,7 @@ const Brand = () => {
 
 	const handleDelete = async id => {
 		try {
-			await axios.delete(`http://localhost:8080/api/v1/admin/brand/${id}`)
+			await axios.delete(`http://45.12.74.28:8080/api/v1/admin/brand/${id}`)
 			message.success('Бренд успешно удалён')
 			fetchBrands('pending', setPendingBrands, 'pending')
 			fetchBrands('approved', setApprovedBrands, 'approved')

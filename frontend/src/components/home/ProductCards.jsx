@@ -60,7 +60,7 @@ const ProductCarts = ({ filters = {} }) => {
 	const fetchProducts = async (menuItem = activeMenuItem) => {
 		setLoading(true)
 		try {
-			let url = `http://localhost:8080/api/v1/products?limit=6`
+			let url = `http://45.12.74.28:8080/api/v1/products?limit=6`
 
 			// Добавляем фильтр по полу
 			const genderFilter = getGenderFilter(menuItem)
@@ -89,7 +89,7 @@ const ProductCarts = ({ filters = {} }) => {
 		if (!userId) return
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/wishlist/${userId}`
+				`http://45.12.74.28:8080/api/v1/wishlist/${userId}`
 			)
 			if (!response.ok) throw new Error('Не удалось загрузить избранное')
 			const data = await response.json()
@@ -118,7 +118,7 @@ const ProductCarts = ({ filters = {} }) => {
 
 		try {
 			const isFavorite = favorites.includes(productId)
-			const url = `http://localhost:8080/api/v1/wishlist/${userId}/${productId}`
+			const url = `http://45.12.74.28:8080/api/v1/wishlist/${userId}/${productId}`
 			const method = isFavorite ? 'DELETE' : 'POST'
 
 			const response = await fetch(url, { method })
@@ -300,7 +300,7 @@ const ProductCarts = ({ filters = {} }) => {
 									<img
 										key={currentImage}
 										alt={product.name}
-										src={`http://localhost:8080/static/${currentImage}`}
+										src={`http://45.12.74.28:8080/static/${currentImage}`}
 										style={{
 											position: 'absolute',
 											top: 0,

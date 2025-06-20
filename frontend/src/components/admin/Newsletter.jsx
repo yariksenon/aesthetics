@@ -15,7 +15,7 @@ const Newsletter = () => {
 		setLoading(true)
 		try {
 			const response = await axios.post(
-				'http://localhost:8080/api/v1/admin/newsletter',
+				'http://45.12.74.28:8080/api/v1/admin/newsletter',
 				{
 					subject: values.subject,
 					body: values.body,

@@ -41,7 +41,7 @@ const AdminProductDelete = () => {
 		setLoading(true)
 		try {
 			const response = await axios.get(
-				'http://localhost:8080/api/v1/admin/products'
+				'http://45.12.74.28:8080/api/v1/admin/products'
 			)
 			setProducts(response.data)
 			setFilteredProducts(response.data)
@@ -88,7 +88,7 @@ const AdminProductDelete = () => {
 			onOk: async () => {
 				try {
 					await axios.delete(
-						`http://localhost:8080/api/v1/admin/products/${productId}`
+						`http://45.12.74.28:8080/api/v1/admin/products/${productId}`
 					)
 					message.success('Товар успешно удален')
 					fetchProducts()
@@ -132,7 +132,9 @@ const AdminProductDelete = () => {
 				try {
 					await Promise.all(
 						selectedRowKeys.map(id =>
-							axios.delete(`http://localhost:8080/api/v1/admin/products/${id}`)
+							axios.delete(
+								`http://45.12.74.28:8080/api/v1/admin/products/${id}`
+							)
 						)
 					)
 					message.success(`Удалено ${selectedRowKeys.length} товаров`)
@@ -177,7 +179,7 @@ const AdminProductDelete = () => {
 					style={{ objectFit: 'cover' }}
 					src={
 						record.image_path
-							? `http://localhost:8080/static/${record.image_path}`
+							? `http://45.12.74.28:8080/static/${record.image_path}`
 							: null
 					}
 					fallback='https://via.placeholder.com/64?text=No+Image'

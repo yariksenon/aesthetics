@@ -92,7 +92,9 @@ const CourierApplicationForm = () => {
 	useEffect(() => {
 		const fetchUserData = async userId => {
 			try {
-				const response = await fetch('http://localhost:8080/api/v1/admin/users')
+				const response = await fetch(
+					'http://45.12.74.28:8080/api/v1/admin/users'
+				)
 				if (!response.ok) {
 					throw new Error('Ошибка при получении данных пользователя')
 				}
@@ -168,7 +170,7 @@ const CourierApplicationForm = () => {
 			const checkExistingApplication = async () => {
 				try {
 					const response = await fetch(
-						`http://localhost:8080/api/v1/check-courier-application?userId=${parsedUserId}`
+						`http://45.12.74.28:8080/api/v1/check-courier-application?userId=${parsedUserId}`
 					)
 
 					if (!response.ok) {
@@ -307,7 +309,7 @@ const CourierApplicationForm = () => {
 				submissionData?.status === 'rejected'
 			) {
 				response = await fetch(
-					`http://localhost:8080/api/v1/courier/${submissionData.id}/resubmit`,
+					`http://45.12.74.28:8080/api/v1/courier/${submissionData.id}/resubmit`,
 					{
 						method: 'PUT',
 						headers: {
@@ -317,7 +319,7 @@ const CourierApplicationForm = () => {
 					}
 				)
 			} else if (!alreadySubmitted) {
-				response = await fetch('http://localhost:8080/api/v1/be-courier', {
+				response = await fetch('http://45.12.74.28:8080/api/v1/be-courier', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',

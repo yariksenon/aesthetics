@@ -14,7 +14,7 @@ const Category = ({ selectedCategoryId, onCategoryChange }) => {
 			try {
 				setState(prev => ({ ...prev, loading: true }))
 				const { data } = await axios.get(
-					'http://localhost:8080/api/v1/categories'
+					'http://45.12.74.28:8080/api/v1/categories'
 				)
 				setState(prev => ({
 					...prev,

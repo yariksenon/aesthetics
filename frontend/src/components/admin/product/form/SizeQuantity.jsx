@@ -28,7 +28,7 @@ const SizeQuantity = ({ form }) => {
 			try {
 				setLoading(true)
 				const response = await axios.get(
-					'http://localhost:8080/api/v1/size-types'
+					'http://45.12.74.28:8080/api/v1/size-types'
 				)
 				// Обрабатываем оба варианта структуры ответа
 				setSizeTypes(
@@ -58,7 +58,7 @@ const SizeQuantity = ({ form }) => {
 			try {
 				setSizesLoading(true)
 				const response = await axios.get(
-					`http://localhost:8080/api/v1/sizes?size_type_id=${selectedSizeTypeId}`
+					`http://45.12.74.28:8080/api/v1/sizes?size_type_id=${selectedSizeTypeId}`
 				)
 				// Обрабатываем оба варианта структуры ответа
 				setSizes(

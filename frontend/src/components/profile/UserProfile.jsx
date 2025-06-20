@@ -33,7 +33,7 @@ import 'antd/dist/reset.css'
 dayjs.locale('ru')
 
 const { Text, Title } = Typography
-const API_BASE_URL = 'http://localhost:8080/api/v1/profile'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1/profile'
 
 const UserAvatar = ({ email }) => {
 	const getInitials = email => {

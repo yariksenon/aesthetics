@@ -58,8 +58,9 @@ const SubCategories = () => {
 
 	const [form] = Form.useForm()
 	const navigate = useNavigate()
-	const SUBCATEGORIES_API = 'http://localhost:8080/api/v1/admin/sub_categories'
-	const CATEGORIES_API = 'http://localhost:8080/api/v1/admin/categories'
+	const SUBCATEGORIES_API =
+		'http://45.12.74.28:8080/api/v1/admin/sub_categories'
+	const CATEGORIES_API = 'http://45.12.74.28:8080/api/v1/admin/categories'
 
 	const columns = [
 		{

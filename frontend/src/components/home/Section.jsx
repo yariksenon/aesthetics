@@ -84,7 +84,7 @@ function Section() {
 			if (isSKUSearch) {
 				// Ищем по SKU
 				const response = await fetch(
-					`http://localhost:8080/api/v1/products/sku/${query}`
+					`http://45.12.74.28:8080/api/v1/products/sku/${query}`
 				)
 
 				if (response.ok) {

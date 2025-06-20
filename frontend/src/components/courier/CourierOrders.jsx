@@ -39,7 +39,7 @@ const CourierOrders = () => {
 			try {
 				setLoading(true)
 				const response = await axios.get(
-					'http://localhost:8080/api/v1/courier/available-orders'
+					'http://45.12.74.28:8080/api/v1/courier/available-orders'
 				)
 				if (response.data.success) {
 					// Фильтруем заказы: только те, где courier_id равен нашему courierId или null
@@ -77,7 +77,7 @@ const CourierOrders = () => {
 	const handleAcceptOrder = async orderId => {
 		try {
 			const response = await axios.put(
-				`http://localhost:8080/api/v1/courier/accept/${orderId}`,
+				`http://45.12.74.28:8080/api/v1/courier/accept/${orderId}`,
 				{ courier_id: courierId }
 			)
 			if (response.data.success) {
@@ -109,7 +109,7 @@ const CourierOrders = () => {
 	const handleUpdateStatus = async (orderId, status) => {
 		try {
 			const response = await axios.put(
-				`http://localhost:8080/api/v1/courier/orders/${orderId}/status`,
+				`http://45.12.74.28:8080/api/v1/courier/orders/${orderId}/status`,
 				{ status }
 			)
 			if (response.data.success) {
@@ -152,7 +152,7 @@ const CourierOrders = () => {
 
 			if (result.isConfirmed) {
 				const response = await axios.put(
-					`http://localhost:8080/api/v1/courier/orders/${orderId}/status`,
+					`http://45.12.74.28:8080/api/v1/courier/orders/${orderId}/status`,
 					{ status: 'отменён' }
 				)
 

@@ -46,7 +46,7 @@ const ProductName = () => {
 			try {
 				// Сначала получаем данные категорий
 				const categoriesResponse = await fetch(
-					'http://localhost:8080/api/v1/categories'
+					'http://45.12.74.28:8080/api/v1/categories'
 				)
 				const categoriesData = await categoriesResponse.json()
 
@@ -68,7 +68,7 @@ const ProductName = () => {
 
 					const endpoint = endpointMap[category] || 'products'
 					const response = await fetch(
-						`http://localhost:8080/api/v1/${endpoint}`
+						`http://45.12.74.28:8080/api/v1/${endpoint}`
 					)
 					const data = await response.json()
 					setProductCount(data.length || 0)

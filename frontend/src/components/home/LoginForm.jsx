@@ -90,7 +90,7 @@ const LoginForm = ({ switchToRegister, onLoginSuccess, closeModal }) => {
 		setIsLoading(true)
 		try {
 			const response = await axios.post(
-				'http://localhost:8080/api/v1/login',
+				'http://45.12.74.28:8080/api/v1/login',
 				{ ...data, userId }, // Include userId in the payload if present
 				{
 					withCredentials: true,

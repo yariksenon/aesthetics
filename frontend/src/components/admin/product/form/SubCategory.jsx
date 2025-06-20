@@ -18,7 +18,7 @@ const ProductSubCategorySelect = ({ categoryId, onError }) => {
 			try {
 				setLoading(true)
 				const response = await axios.get(
-					`http://localhost:8080/api/v1/sub-categories?category_id=${categoryId}`
+					`http://45.12.74.28:8080/api/v1/sub-categories?category_id=${categoryId}`
 				)
 				setSubCategories(
 					Array.isArray(response.data.sub_categories)

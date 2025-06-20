@@ -79,7 +79,7 @@ const ProductAbout = () => {
 				setError(null)
 
 				const productResponse = await fetch(
-					`http://localhost:8080/api/v1/product/${id}`
+					`http://45.12.74.28:8080/api/v1/product/${id}`
 				)
 				if (!productResponse.ok) throw new Error('Товар не найден')
 				const productData = await productResponse.json()
@@ -97,7 +97,7 @@ const ProductAbout = () => {
 				if (userId) {
 					try {
 						const favoritesResponse = await fetch(
-							`http://localhost:8080/api/v1/wishlist/${userId}`
+							`http://45.12.74.28:8080/api/v1/wishlist/${userId}`
 						)
 						if (favoritesResponse.ok) {
 							const favoritesData = await favoritesResponse.json()
@@ -113,7 +113,7 @@ const ProductAbout = () => {
 				}
 
 				const reviewsResponse = await fetch(
-					`http://localhost:8080/api/v1/reviews/${id}`
+					`http://45.12.74.28:8080/api/v1/reviews/${id}`
 				)
 				if (reviewsResponse.ok) {
 					const reviewsData = await reviewsResponse.json()
@@ -206,7 +206,7 @@ const ProductAbout = () => {
 		setProcessingFavorite(true)
 		try {
 			const isFavorite = favorites.includes(product.id)
-			const url = `http://localhost:8080/api/v1/wishlist/${userId}/${product.id}`
+			const url = `http://45.12.74.28:8080/api/v1/wishlist/${userId}/${product.id}`
 			const method = isFavorite ? 'DELETE' : 'POST'
 
 			const response = await fetch(url, { method })
@@ -237,7 +237,7 @@ const ProductAbout = () => {
 		try {
 			setReviewLoading(true)
 			const response = await fetch(
-				`http://localhost:8080/api/v1/reviews/${userId}`,
+				`http://45.12.74.28:8080/api/v1/reviews/${userId}`,
 				{
 					method: 'POST',
 					headers: {
@@ -257,7 +257,7 @@ const ProductAbout = () => {
 			message.success('Отзыв отправлен на модерацию')
 
 			const reviewsResponse = await fetch(
-				`http://localhost:8080/api/v1/reviews/${id}`
+				`http://45.12.74.28:8080/api/v1/reviews/${id}`
 			)
 			if (reviewsResponse.ok) {
 				const reviewsData = await reviewsResponse.json()
@@ -289,7 +289,7 @@ const ProductAbout = () => {
 	}
 
 	const getImageUrl = path => {
-		return path ? `http://localhost:8080/static/${path}` : ''
+		return path ? `http://45.12.74.28:8080/static/${path}` : ''
 	}
 
 	const tabItems = [

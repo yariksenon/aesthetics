@@ -21,7 +21,7 @@ const ShoppingCart = () => {
 		try {
 			setLoading(true)
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/cart/${userId}`
+				`http://45.12.74.28:8080/api/v1/cart/${userId}`
 			)
 
 			const items = Array.isArray(response.data?.items)
@@ -59,7 +59,7 @@ const ShoppingCart = () => {
 
 		try {
 			await axios.put(
-				`http://localhost:8080/api/v1/cart/${userId}/${productId}`,
+				`http://45.12.74.28:8080/api/v1/cart/${userId}/${productId}`,
 				{
 					quantity: newQuantity,
 					size_id: sizeId,
@@ -79,7 +79,7 @@ const ShoppingCart = () => {
 
 		try {
 			const response = await axios.delete(
-				`http://localhost:8080/api/v1/cart/${userId}/items`,
+				`http://45.12.74.28:8080/api/v1/cart/${userId}/items`,
 				{
 					data: selectedItems.map(item => ({
 						productId: item.productId,
@@ -313,7 +313,7 @@ const ShoppingCart = () => {
 														<img
 															src={
 																item.image_path
-																	? `http://localhost:8080/static/${item.image_path}`
+																	? `http://45.12.74.28:8080/static/${item.image_path}`
 																	: 'https://placehold.co/300'
 															}
 															alt={item.name}

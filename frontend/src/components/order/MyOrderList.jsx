@@ -27,8 +27,8 @@ import Section from '../home/Section'
 import Footer from '../home/Footer'
 
 const { Title, Text } = Typography
-const API_BASE_URL = 'http://localhost:8080/api/v1/orders'
-const STATIC_BASE_URL = 'http://localhost:8080/static/'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1/orders'
+const STATIC_BASE_URL = 'http://45.12.74.28:8080/static/'
 
 const MyOrderList = () => {
 	const [orders, setOrders] = useState([])

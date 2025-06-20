@@ -22,8 +22,8 @@ import axios from 'axios'
 import debounce from 'lodash/debounce'
 
 const { Text } = Typography
-const API_BASE_URL = 'http://localhost:8080/api/v1'
-const STATIC_URL = 'http://localhost:8080/static'
+const API_BASE_URL = 'http://45.12.74.28:8080/api/v1'
+const STATIC_URL = 'http://45.12.74.28:8080/static'
 
 const Products = ({ history }) => {
 	const [products, setProducts] = useState([])

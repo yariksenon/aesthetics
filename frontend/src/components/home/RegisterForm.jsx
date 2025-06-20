@@ -9,7 +9,7 @@ import ReCAPTCHA from 'react-google-recaptcha'
 import { motion } from 'framer-motion'
 import './custom.css'
 
-const API_URL = 'http://localhost:8080/api/v1/register'
+const API_URL = 'http://45.12.74.28:8080/api/v1/register'
 const CAPTCHA_SITE_KEY = '6LccqPoqAAAAAJX7xPKW3ZSxOTpB37BrDxjcCl3R'
 
 const ErrorMessage = ({ error }) => (

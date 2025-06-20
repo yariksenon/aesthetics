@@ -218,7 +218,7 @@ const User = () => {
 		const fetchData = async () => {
 			try {
 				const response = await axios.get(
-					'http://localhost:8080/api/v1/admin/users'
+					'http://45.12.74.28:8080/api/v1/admin/users'
 				)
 				setUsers(response.data)
 			} catch (err) {
@@ -288,14 +288,14 @@ const User = () => {
 				if (Array.isArray(userId)) {
 					await Promise.all(
 						userId.map(id =>
-							axios.delete(`http://localhost:8080/api/v1/admin/users/${id}`)
+							axios.delete(`http://45.12.74.28:8080/api/v1/admin/users/${id}`)
 						)
 					)
 					setUsers(users.filter(user => !userId.includes(user.id)))
 					setSelectedUsers([])
 				} else {
 					await axios.delete(
-						`http://localhost:8080/api/v1/admin/users/${userId}`
+						`http://45.12.74.28:8080/api/v1/admin/users/${userId}`
 					)
 					setUsers(users.filter(user => user.id !== userId))
 				}
@@ -319,7 +319,7 @@ const User = () => {
 		if (result.isConfirmed) {
 			try {
 				await axios.put(
-					`http://localhost:8080/api/v1/admin/users/${editingUserId}`,
+					`http://45.12.74.28:8080/api/v1/admin/users/${editingUserId}`,
 					editedUser
 				)
 				setUsers(

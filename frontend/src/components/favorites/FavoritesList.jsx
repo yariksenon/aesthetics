@@ -24,7 +24,7 @@ const WishlistPage = () => {
 
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/wishlist/${userId}`
+				`http://45.12.74.28:8080/api/v1/wishlist/${userId}`
 			)
 			if (!response.ok) throw new Error('Не удалось загрузить избранное')
 			const data = await response.json()
@@ -51,7 +51,7 @@ const WishlistPage = () => {
 
 		try {
 			const response = await fetch(
-				`http://localhost:8080/api/v1/wishlist/${userId}/${productId}`,
+				`http://45.12.74.28:8080/api/v1/wishlist/${userId}/${productId}`,
 				{ method: 'DELETE' }
 			)
 			if (!response.ok) throw new Error('Ошибка при удалении из избранного')
@@ -232,7 +232,7 @@ const WishlistPage = () => {
 
 												<img
 													alt={product.name}
-													src={`http://localhost:8080/static/${currentImage}`}
+													src={`http://45.12.74.28:8080/static/${currentImage}`}
 													className='absolute top-0 left-0 w-full h-full object-contain transition-opacity duration-300'
 													style={{
 														filter: isAvailable ? 'none' : 'grayscale(80%)',

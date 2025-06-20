@@ -39,7 +39,7 @@ function Email() {
 		setIsChecking(true)
 		try {
 			const response = await axios.get(
-				`http://localhost:8080/api/v1/subscribe/check/${encodeURIComponent(
+				`http://45.12.74.28:8080/api/v1/subscribe/check/${encodeURIComponent(
 					email
 				)}`
 			)
@@ -62,7 +62,7 @@ function Email() {
 	const handleSubscribe = useCallback(async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:8080/api/v1/subscribe',
+				'http://45.12.74.28:8080/api/v1/subscribe',
 				{ email }
 			)
 			if (response.status === 200) {
@@ -84,7 +84,7 @@ function Email() {
 	const handleUnsubscribe = useCallback(async () => {
 		try {
 			const response = await axios.post(
-				'http://localhost:8080/api/v1/unsubscribe',
+				'http://45.12.74.28:8080/api/v1/unsubscribe',
 				{ email }
 			)
 			if (response.status === 200) {

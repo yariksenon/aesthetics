@@ -85,7 +85,7 @@ const BrandApplicationForm = () => {
 	const fetchExistingBrandNames = async () => {
 		try {
 			const response = await fetch(
-				'http://localhost:8080/api/v1/admin/brand/approved'
+				'http://45.12.74.28:8080/api/v1/admin/brand/approved'
 			)
 			if (!response.ok) {
 				throw new Error('Ошибка при загрузке списка брендов')
@@ -125,7 +125,7 @@ const BrandApplicationForm = () => {
 				await fetchExistingBrandNames()
 
 				const response = await fetch(
-					`http://localhost:8080/api/v1/check-brand-application?userId=${parsedUserId}`
+					`http://45.12.74.28:8080/api/v1/check-brand-application?userId=${parsedUserId}`
 				)
 
 				if (!response.ok) {
@@ -240,7 +240,7 @@ const BrandApplicationForm = () => {
 				submissionData?.status === 'rejected'
 			) {
 				response = await fetch(
-					`http://localhost:8080/api/v1/brand/${submissionData.id}/resubmit`,
+					`http://45.12.74.28:8080/api/v1/brand/${submissionData.id}/resubmit`,
 					{
 						method: 'PUT',
 						headers: {
@@ -250,7 +250,7 @@ const BrandApplicationForm = () => {
 					}
 				)
 			} else if (!alreadySubmitted) {
-				response = await fetch('http://localhost:8080/api/v1/be-brand', {
+				response = await fetch('http://45.12.74.28:8080/api/v1/be-brand', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
