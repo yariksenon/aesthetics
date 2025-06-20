@@ -66,7 +66,8 @@ const BrandApplicationForm = () => {
 	const [activeTab, setActiveTab] = useState('statistics')
 	const [rulesChecked, setRulesChecked] = useState(false)
 	const [rulesModalVisible, setRulesModalVisible] = useState(false)
-	const [brandNames, setBrandNames] = useState([]) // Состояние для хранения существующих названий брендов
+	const [brandNames, setBrandNames] = useState([])
+	const [noWebsite, setNoWebsite] = useState(false) // Состояние для чекбокса "Нет вебсайта"
 
 	const formatDate = dateString => {
 		if (!dateString) return 'Неизвестно'
@@ -81,7 +82,6 @@ const BrandApplicationForm = () => {
 		})
 	}
 
-	// Функция для загрузки существующих названий брендов
 	const fetchExistingBrandNames = async () => {
 		try {
 			const response = await fetch(
@@ -102,7 +102,7 @@ const BrandApplicationForm = () => {
 		const storedUserData = localStorage.getItem('userData')
 		let parsedUserData = null
 		let parsedUserId = null
-		let defaultEmail = 'user@example.com' // Fallback email
+		let defaultEmail = 'user@example.com'
 
 		try {
 			parsedUserData = storedUserData ? JSON.parse(storedUserData) : null
@@ -122,7 +122,6 @@ const BrandApplicationForm = () => {
 
 		const checkExistingApplication = async () => {
 			try {
-				// Загружаем существующие названия брендов
 				await fetchExistingBrandNames()
 
 				const response = await fetch(
@@ -139,15 +138,21 @@ const BrandApplicationForm = () => {
 					setAlreadySubmitted(true)
 					setSubmissionData(data.brand || { status: 'pending' })
 					if (data.brand?.status === 'rejected') {
+						// Проверяем, если website содержит "нет вебсайта", устанавливаем чекбокс
+						const websiteValue = data.brand.website
+						const hasNoWebsite =
+							websiteValue &&
+							websiteValue.toLowerCase().includes('нет вебсайта')
+						setNoWebsite(hasNoWebsite)
+
 						form.setFieldsValue({
 							name: data.brand.name,
 							email: data.brand.email,
-							website: data.brand.website,
+							website: hasNoWebsite ? 'Нет вебсайта, увы' : data.brand.website,
 							description: data.brand.description,
 						})
 					}
 				} else {
-					// Set default email from localStorage
 					form.setFieldsValue({
 						email: defaultEmail,
 					})
@@ -162,7 +167,6 @@ const BrandApplicationForm = () => {
 		checkExistingApplication()
 	}, [form])
 
-	// Валидатор для проверки уникальности названия бренда
 	const validateBrandName = async (_, value) => {
 		if (!value) {
 			return Promise.reject(new Error('Пожалуйста, введите название бренда'))
@@ -170,7 +174,6 @@ const BrandApplicationForm = () => {
 
 		const name = value.toLowerCase().trim()
 
-		// Проверяем, есть ли такое название среди существующих брендов
 		if (brandNames.includes(name)) {
 			return Promise.reject(new Error('Бренд с таким названием уже существует'))
 		}
@@ -190,6 +193,21 @@ const BrandApplicationForm = () => {
 		setRulesModalVisible(false)
 	}
 
+	const handleNoWebsiteChange = e => {
+		const checked = e.target.checked
+		setNoWebsite(checked)
+
+		if (checked) {
+			form.setFieldsValue({
+				website: 'Нет вебсайта, увы',
+			})
+		} else {
+			form.setFieldsValue({
+				website: '',
+			})
+		}
+	}
+
 	const onFinish = async values => {
 		if (!userId || isNaN(userId)) {
 			setError('Не удалось идентифицировать пользователя')
@@ -205,7 +223,11 @@ const BrandApplicationForm = () => {
 		setError(null)
 
 		try {
-			// Дополнительная проверка на стороне клиента перед отправкой
+			// Если нет вебсайта, заменяем значение
+			if (noWebsite) {
+				values.website = 'Нет вебсайта, увы'
+			}
+
 			const brandName = values.name.toLowerCase().trim()
 			if (brandNames.includes(brandName)) {
 				throw new Error('Бренд с таким названием уже существует')
@@ -507,22 +529,55 @@ const BrandApplicationForm = () => {
 					name='website'
 					label='Веб-сайт'
 					rules={[
-						{ required: true, message: 'Пожалуйста, введите URL веб-сайта' },
 						{
-							type: 'url',
+							required: !noWebsite,
 							message:
-								'Введите корректный URL (начинается с http:// или https://)',
+								'Пожалуйста, введите URL веб-сайта или отметьте, что его нет',
 						},
+						({ getFieldValue }) => ({
+							validator(_, value) {
+								if (noWebsite) return Promise.resolve()
+								if (!value)
+									return Promise.reject(
+										new Error('Пожалуйста, введите URL веб-сайта')
+									)
+								try {
+									new URL(value)
+									return Promise.resolve()
+								} catch {
+									return Promise.reject(
+										new Error(
+											'Введите корректный URL (начинается с http:// или https://)'
+										)
+									)
+								}
+							},
+						}),
 						{ max: 255, message: 'URL не должен превышать 255 символов' },
 					]}
 				>
-					<Input
-						prefix={<GlobalOutlined className='text-gray-400' />}
-						placeholder='https://example.com'
-						className='py-2'
-						size='large'
-						maxLength={255}
-					/>
+					<div className='flex flex-col'>
+						<Input
+							prefix={<GlobalOutlined className='text-gray-400' />}
+							placeholder={
+								noWebsite ? 'Нет вебсайта, увы' : 'https://example.com'
+							}
+							className='py-2'
+							size='large'
+							maxLength={255}
+							disabled={noWebsite}
+						/>
+						<div className='mt-2'>
+							<Checkbox
+								checked={noWebsite}
+								onChange={handleNoWebsiteChange}
+								className='text-gray-700'
+								style={{ color: 'black' }}
+							>
+								Нет вебсайта
+							</Checkbox>
+						</div>
+					</div>
 				</Form.Item>
 
 				<Form.Item

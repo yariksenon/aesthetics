@@ -13,7 +13,7 @@ import ProtectedRoute from './components/admin/ProtectedRoute'
 import { CartProvider } from './context/CartContext'
 import { FavoritesProvider } from './context/FavoritesContext'
 import NetworkStatus from './components/network/NetworkStatus'
-import Offline from './components/network/Offline'
+// import Offline from './components/network/Offline'
 
 // Импортируем компоненты напрямую
 import Home from './components/home/Home'
@@ -69,7 +69,7 @@ const routes = [
 	{ path: '/cart', component: Cart },
 	{ path: '/favorites', component: Favorites },
 	{ path: '/404', component: NotFound },
-	{ path: '/offline', component: Offline },
+	// { path: '/offline', component: Offline },
 	{ path: '/:gender', component: GenderRoute },
 	{ path: '/:gender/:category', component: CategoryRoute },
 	{ path: '/:gender/:category/:subcategory', component: SubCategory },

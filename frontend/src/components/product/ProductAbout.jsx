@@ -466,7 +466,8 @@ const ProductAbout = () => {
 					<Paragraph>
 						{product?.brand?.description || 'Описание бренда отсутствует'}
 					</Paragraph>
-					{product?.brand?.website ? (
+					{product?.brand?.website &&
+					product.brand.website !== 'Нет вебсайта, увы' ? (
 						<Paragraph>
 							<strong>Веб-сайт: </strong>
 							<Link

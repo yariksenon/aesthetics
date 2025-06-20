@@ -21,7 +21,7 @@ import advirtisement_1_3_woman from '../../assets/home/Advertisement/woman/baske
 import advirtisement_1_4_woman from '../../assets/home/Advertisement/woman/runGirl.jpg'
 
 import advirtisement_1_1_children from '../../assets/home/Advertisement/children/children_rugby.jpg'
-import advirtisement_1_2_children from '../../assets/home/Advertisement/children/children_baketball_form.jpg'
+import advirtisement_1_2_children from '../../assets/home/Advertisement/children/children_photo.webp'
 import advirtisement_1_3_children from '../../assets/home/Advertisement/children/children_basketball.webp'
 import advirtisement_1_4_children from '../../assets/home/Advertisement/children/children_run.webp'
 

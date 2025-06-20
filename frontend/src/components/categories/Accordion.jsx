@@ -49,14 +49,14 @@ const Accordion = () => {
 
 	// Получаем текущий выбранный гендер
 	const getActiveGender = useCallback(() => {
-		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'man'
+		const activeMenuItem = localStorage.getItem('activeMenuItem') || 'woman'
 		switch (activeMenuItem) {
 			case 'man':
 				return 'men'
 			case 'woman':
 				return 'women'
-			case 'children':
-				return 'children'
+			case 'children': // This should match your localStorage value
+				return 'kids' // This should match your database value
 			default:
 				return 'men'
 		}
@@ -71,8 +71,8 @@ const Accordion = () => {
 					return subCategory.product_count?.men || 0
 				case 'women':
 					return subCategory.product_count?.women || 0
-				case 'children':
-					return subCategory.product_count?.children || 0
+				case 'kids': // Changed from 'children' to match database
+					return subCategory.product_count?.kids || 0 // Changed from 'children'
 				default:
 					return subCategory.product_count?.total || 0
 			}
